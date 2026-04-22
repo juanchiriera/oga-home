@@ -1,6 +1,5 @@
-import 'package:craftr_mobile/core/flavor.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/bootstrap/bootstrap_page.dart';
+import 'package:craftr_mobile/router/app_router.dart';
 import 'package:flutter/material.dart';
 
 class CraftrApp extends StatelessWidget {
@@ -8,13 +7,13 @@ class CraftrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final flavor = AppFlavor.fromEnvironment();
-    return MaterialApp(
-      title: flavor.displayName,
+    final router = buildAppRouter();
+    return MaterialApp.router(
+      title: 'CraftR',
       theme: craftrLightTheme(),
       darkTheme: craftrDarkTheme(),
       themeMode: ThemeMode.system,
-      home: BootstrapPage(flavor: flavor),
+      routerConfig: router,
     );
   }
 }

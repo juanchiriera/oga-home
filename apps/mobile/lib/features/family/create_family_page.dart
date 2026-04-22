@@ -1,0 +1,92 @@
+import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+class CreateFamilyPage extends StatefulWidget {
+  const CreateFamilyPage({super.key});
+
+  @override
+  State<CreateFamilyPage> createState() => _CreateFamilyPageState();
+}
+
+class _CreateFamilyPageState extends State<CreateFamilyPage> {
+  final _name = TextEditingController(text: 'Mi hogar');
+  String _currency = 'ARS';
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final callable = craftrFunctions().httpsCallable('createFamily');
+      await callable.call<Map<String, dynamic>>({
+        'name': _name.text.trim(),
+        'baseCurrency': _currency,
+      });
+      if (mounted) {
+        context.go('/home');
+      }
+    } on FirebaseFunctionsException catch (e) {
+      setState(() => _error = e.message ?? e.code);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Crear hogar')),
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          TextField(
+            controller: _name,
+            decoration: const InputDecoration(labelText: 'Nombre del hogar'),
+          ),
+          const SizedBox(height: 16),
+          InputDecorator(
+            decoration: const InputDecoration(labelText: 'Moneda base'),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _currency,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(value: 'ARS', child: Text('ARS')),
+                  DropdownMenuItem(value: 'USD', child: Text('USD')),
+                  DropdownMenuItem(value: 'EUR', child: Text('EUR')),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (v) => setState(() => _currency = v ?? 'ARS'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton(
+            onPressed: _busy ? null : _submit,
+            child: Text(_busy ? 'Creando…' : 'Crear hogar'),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 16),
+            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ],
+        ],
+      ),
+    );
+  }
+}

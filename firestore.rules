@@ -1,8 +1,49 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Plantilla inicial: sin acceso hasta definir paths `families/{familyId}/...`
-    // y membresía (ver docs/PRODUCTO_Y_BACKLOG.md · ADR-004).
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function memberRole(familyId) {
+      return get(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function isFamilyMember(familyId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid));
+    }
+
+    function isFamilyOwner(familyId) {
+      return isFamilyMember(familyId) && memberRole(familyId) == 'owner';
+    }
+
+    match /users/{userId} {
+      allow read: if isSelf(userId);
+      allow create, update: if isSelf(userId);
+      allow delete: if false;
+    }
+
+    match /families/{familyId} {
+      allow read: if isFamilyMember(familyId);
+      allow write: if false;
+
+      match /members/{memberId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+
+      match /invites/{inviteId} {
+        allow read: if isFamilyOwner(familyId);
+        allow write: if false;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
