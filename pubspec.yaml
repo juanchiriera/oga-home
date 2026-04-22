@@ -1,0 +1,9 @@
+name: craftr_workspace
+description: CraftR monorepo root (Melos workspace).
+publish_to: "none"
+
+environment:
+  sdk: ^3.11.5
+
+dev_dependencies:
+  melos: ^6.3.2

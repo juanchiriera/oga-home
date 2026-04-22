@@ -1,0 +1,41 @@
+# famil-ia / CraftR
+
+Monorepo: **Firebase** (`functions/`, reglas) + **Flutter** (`apps/mobile`).
+
+## Requisitos
+
+- [Flutter](https://docs.flutter.dev/get-started/install) (canal stable)
+- Node 20+ para Cloud Functions
+- Firebase CLI (opcional, para despliegue)
+
+## Flutter (app móvil)
+
+```bash
+cd apps/mobile
+flutter pub get
+flutter run --flavor dev --dart-define=FLAVOR=dev
+```
+
+Flavors Android: `dev`, `stg`, `prod` (IDs `…craftr_mobile.dev`, `…stg`, base prod).
+
+```bash
+flutter build apk --flavor prod --dart-define=FLAVOR=prod
+flutter build ios --release --no-codesign --dart-define=FLAVOR=prod
+```
+
+## Monorepo (Melos)
+
+Desde la raíz del repo:
+
+```bash
+dart pub get
+dart run melos bootstrap
+```
+
+## CI
+
+GitHub Actions ejecuta `flutter analyze` y builds en `.github/workflows/flutter_ci.yml`.
+
+## Documentación de producto
+
+Ver [docs/PRODUCTO_Y_BACKLOG.md](docs/PRODUCTO_Y_BACKLOG.md).

@@ -1,0 +1,9 @@
+name: craftr
+repository: https://github.com/your-org/famil-ia
+
+packages:
+  - apps/mobile
+
+command:
+  bootstrap:
+    runPubGetInParallel: true

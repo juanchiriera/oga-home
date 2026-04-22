@@ -3,3 +3,20 @@ firebase-debug.log
 firebase-debug.*.log
 functions/node_modules/
 functions/lib/
+
+# Dart tooling (workspace root)
+.dart_tool/
+
+# Flutter / Dart (apps/mobile)
+apps/mobile/.dart_tool/
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/build/
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/ios/Flutter/Flutter.podspec
+apps/mobile/android/.gradle/
+apps/mobile/android/app/debug/
+apps/mobile/android/app/profile/
+apps/mobile/android/app/release/
+apps/mobile/*.iml
+apps/mobile/.idea/
