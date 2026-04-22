@@ -1,0 +1,56 @@
+name: Deploy Firebase (manual)
+
+# Despliegue manual por entorno. Configura secretos en GitHub:
+#   FIREBASE_SERVICE_ACCOUNT_DEV / _STG / _PROD  → JSON de cuenta de servicio (multilínea).
+# Documentación: docs/FIREBASE_MULTIENTORNO_Y_SECRET_MANAGER.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Alias definido en .firebaserc"
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+      - name: Build functions
+        working-directory: functions
+        run: npm run build
+      - name: Write service account JSON
+        env:
+          SA_DEV: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DEV }}
+          SA_STG: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_STG }}
+          SA_PROD: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PROD }}
+        run: |
+          case "${{ inputs.target }}" in
+            dev) CONTENT="$SA_DEV" ;;
+            staging) CONTENT="$SA_STG" ;;
+            prod) CONTENT="$SA_PROD" ;;
+          esac
+          if [ -z "$CONTENT" ]; then echo "Secret vacío para ${{ inputs.target }}"; exit 1; fi
+          printf '%s' "$CONTENT" > "${RUNNER_TEMP}/sa.json"
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@13
+      - name: Deploy
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: |
+          firebase use ${{ inputs.target }}
+          firebase deploy --only functions,firestore:rules,storage --non-interactive

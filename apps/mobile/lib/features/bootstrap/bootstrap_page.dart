@@ -1,3 +1,4 @@
+import 'package:craftr_mobile/core/firebase_project.dart';
 import 'package:craftr_mobile/core/flavor.dart';
 import 'package:flutter/material.dart';
 
@@ -13,7 +14,8 @@ class BootstrapPage extends StatelessWidget {
       appBar: AppBar(title: Text(flavor.displayName)),
       body: Center(
         child: Text(
-          'Monorepo listo · flavor=${flavor.name}',
+          'Monorepo listo · flavor=${flavor.name}'
+          '${FirebaseProject.isConfigured ? '\nFirebase project: ${FirebaseProject.projectId}' : '\n(Sin FIREBASE_PROJECT_ID en dart-define)'}',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.titleMedium,
         ),

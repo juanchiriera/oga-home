@@ -1,5 +1,10 @@
 {
   "projects": {
-    "default": "oga-home"
-  }
+    "default": "REPLACE_ME_CRAFTR_DEV",
+    "dev": "REPLACE_ME_CRAFTR_DEV",
+    "staging": "REPLACE_ME_CRAFTR_STG",
+    "prod": "REPLACE_ME_CRAFTR_PROD"
+  },
+  "targets": {},
+  "etags": {}
 }

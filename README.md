@@ -39,3 +39,7 @@ GitHub Actions ejecuta `flutter analyze` y builds en `.github/workflows/flutter_
 ## Documentación de producto
 
 Ver [docs/PRODUCTO_Y_BACKLOG.md](docs/PRODUCTO_Y_BACKLOG.md).
+
+## Firebase (multi-entorno y secretos)
+
+Ver [docs/FIREBASE_MULTIENTORNO_Y_SECRET_MANAGER.md](docs/FIREBASE_MULTIENTORNO_Y_SECRET_MANAGER.md). Sustituye los `REPLACE_ME_*` en [`.firebaserc`](.firebaserc) por tus Project IDs.

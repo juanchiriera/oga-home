@@ -1,0 +1,84 @@
+# Firebase multi-entorno (dev / staging / prod) y Secret Manager
+
+Objetivo: tres proyectos GCP/Firebase (ADR-004), sin secretos en el repositorio. La app Flutter apunta a cada entorno vía `--dart-define` (IDs públicos de proyecto) y los binarios nativos usan `google-services.json` / `GoogleService-Info.plist` **no versionados** (se generan con Firebase Console o `flutterfire configure`).
+
+## 1. Crear proyectos y apps
+
+1. En [Firebase Console](https://console.firebase.google.com/) crea tres proyectos, por ejemplo: `craftr-dev`, `craftr-stg`, `craftr-prod`.
+2. En cada proyecto habilita: **Authentication** (Google), **Firestore**, **Functions**, **Storage**, **Remote Config** (y las APIs de facturación GCP asociadas).
+3. Registra apps Android/iOS/Web en cada proyecto y descarga los artefactos de configuración del cliente en rutas locales (ver §4).
+
+## 2. Sincronizar `.firebaserc`
+
+Sustituye los placeholders en [`.firebaserc`](../.firebaserc) por los **Project ID** reales.
+
+Uso local:
+
+```bash
+firebase use dev     # o: firebase use staging | prod
+firebase deploy --only functions,firestore:rules,storage
+```
+
+## 3. Secret Manager (GCP)
+
+Crea secretos **por proyecto** (mismos nombres en cada uno para simplificar CI):
+
+| Nombre sugerido            | Uso                                      |
+| -------------------------- | ---------------------------------------- |
+| `GEMINI_API_KEY`           | Llamadas Gemini desde Cloud Functions    |
+| `REVENUECAT_WEBHOOK_SECRET`| Verificación HMAC de webhooks RevenueCat |
+
+Por proyecto:
+
+```bash
+gcloud config set project REPLACE_ME_CRAFTR_DEV
+echo -n "valor" | gcloud secrets create GEMINI_API_KEY --data-file=-
+# Repetir en stg/prod y otorgar acceso a la cuenta de servicio de Cloud Functions
+```
+
+En Functions v2 los secretos se declaran con `defineSecret` y se enlazan al deploy. Ejemplo:
+
+```ts
+import { defineSecret } from "firebase-functions/params";
+import { onRequest } from "firebase-functions/v2/https";
+
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
+export const securePing = onRequest(
+  { secrets: [geminiApiKey] },
+  (_req, res) => {
+    void geminiApiKey.value();
+    res.status(200).send("ok");
+  },
+);
+```
+
+Despliega solo después de `firebase functions:secrets:set GEMINI_API_KEY` en ese proyecto.
+
+## 4. Flutter: sin secretos en repo
+
+- **Nunca** commitear API keys de Gemini, tokens de RevenueCat server-side, etc.
+- Variables **no sensibles** (solo identificadores de proyecto Firebase) pueden pasarse como:
+
+```bash
+flutter run --flavor dev --dart-define=FLAVOR=dev \
+  --dart-define=FIREBASE_PROJECT_ID=REPLACE_ME_CRAFTR_DEV
+```
+
+- Coloca `google-services.json` (Android) y `GoogleService-Info.plist` (iOS) por flavor en rutas ignoradas por git (p. ej. `apps/mobile/config/dev/`) o usa `--dart-define` + `flutterfire configure` según el flujo del equipo.
+
+## 5. CI: despliegue por rama
+
+El workflow [.github/workflows/firebase_deploy.yml](../.github/workflows/firebase_deploy.yml) despliega **solo** si existen los secretos `FIREBASE_SERVICE_ACCOUNT_DEV` / `_STG` / `_PROD` (JSON en base64 o contenido del key, según cómo los configures en GitHub).
+
+**Pendiente de cada entorno:** crear cuenta de servicio con roles mínimos (Firebase Admin o roles granulares), JSON como secret de GitHub, y ajustar el mapping rama → proyecto en el YAML.
+
+## 6. Pipelines por rama (resumen)
+
+| Rama sugerida | Alias Firebase | Proyecto |
+| -------------- | --------------- | -------- |
+| `develop`      | `dev`           | dev      |
+| `staging`      | `staging`       | stg      |
+| `main`         | `prod`          | prod     |
+
+Ajusta nombres de ramas a tu flujo real antes de activar el workflow en producción.
