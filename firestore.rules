@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Plantilla inicial: sin acceso hasta definir paths `families/{familyId}/...`
+    // y membresía (ver docs/PRODUCTO_Y_BACKLOG.md · ADR-004).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
