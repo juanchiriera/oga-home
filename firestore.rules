@@ -42,6 +42,16 @@ service cloud.firestore {
         allow read: if isFamilyOwner(familyId);
         allow write: if false;
       }
+
+      match /stockItems/{itemId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll(['name', 'state', 'updatedAt'])
+          && request.resource.data.name is string
+          && request.resource.data.state is string;
+        allow update: if isFamilyMember(familyId);
+        allow delete: if isFamilyMember(familyId);
+      }
     }
 
     match /{document=**} {

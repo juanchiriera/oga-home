@@ -6,9 +6,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Home provisional: resumen de sesión, hogar activo y accesos a flujos E2.
-class BootstrapPage extends StatelessWidget {
-  const BootstrapPage({super.key, required this.flavor});
+class HomeDashboardPage extends StatelessWidget {
+  const HomeDashboardPage({super.key, required this.flavor});
 
   final AppFlavor flavor;
 
@@ -16,9 +15,7 @@ class BootstrapPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return const Scaffold(
-        body: Center(child: Text('No hay usuario autenticado.')),
-      );
+      return const Scaffold(body: Center(child: Text('Sin sesión')));
     }
 
     return Scaffold(
@@ -40,13 +37,14 @@ class BootstrapPage extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         children: [
           Text(
-            'Monorepo listo · flavor=${flavor.name}',
-            style: Theme.of(context).textTheme.titleMedium,
+            'Resumen del hogar',
+            style: Theme.of(context).textTheme.headlineSmall,
           ),
+          const SizedBox(height: 8),
           if (FirebaseProject.isConfigured)
-            Text('Firebase project: ${FirebaseProject.projectId}')
+            Text('Firebase: ${FirebaseProject.projectId}')
           else
-            const Text('Sin FIREBASE_PROJECT_ID en dart-define'),
+            const Text('Configurá FIREBASE_PROJECT_ID (dart-define).'),
           const Divider(height: 32),
           StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
             stream:
@@ -60,13 +58,11 @@ class BootstrapPage extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Usuario: $uid', style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 8),
                   Text(
                     familyId != null && familyId.isNotEmpty
                         ? 'Hogar activo: $familyId'
-                        : 'Todavía no tenés un hogar activo.',
-                    style: Theme.of(context).textTheme.bodyLarge,
+                        : 'Sin hogar activo todavía.',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -78,16 +74,11 @@ class BootstrapPage extends StatelessWidget {
                     onPressed: familyId == null || familyId.isEmpty
                         ? null
                         : () => context.push('/invites'),
-                    child: const Text('Invitaciones del hogar'),
+                    child: const Text('Invitaciones'),
                   ),
                 ],
               );
             },
-          ),
-          const Divider(height: 32),
-          Text(
-            'Deep link de invitación (ejemplo): craftr://invite/DEMO_TOKEN',
-            style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
       ),

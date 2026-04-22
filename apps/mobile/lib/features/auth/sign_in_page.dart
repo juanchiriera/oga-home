@@ -22,7 +22,7 @@ class _SignInPageState extends State<SignInPage> {
     try {
       await _authService.signInWithGoogle();
       if (mounted) {
-        context.go('/home');
+        context.go('/app');
       }
     } catch (e) {
       setState(() => _error = e.toString());

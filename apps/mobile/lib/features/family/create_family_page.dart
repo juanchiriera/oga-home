@@ -34,7 +34,7 @@ class _CreateFamilyPageState extends State<CreateFamilyPage> {
         'baseCurrency': _currency,
       });
       if (mounted) {
-        context.go('/home');
+        context.go('/app');
       }
     } on FirebaseFunctionsException catch (e) {
       setState(() => _error = e.message ?? e.code);

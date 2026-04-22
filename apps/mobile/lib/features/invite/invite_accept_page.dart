@@ -33,7 +33,7 @@ class _InviteAcceptPageState extends State<InviteAcceptPage> {
       final callable = craftrFunctions().httpsCallable('acceptFamilyInvite');
       await callable.call<Map<String, dynamic>>({'token': widget.token});
       if (mounted) {
-        context.go('/home');
+        context.go('/app');
       }
     } on FirebaseFunctionsException catch (e) {
       setState(() => _message = e.message ?? e.code);
