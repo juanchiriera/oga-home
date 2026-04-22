@@ -14,6 +14,7 @@ Monorepo: **Firebase** (`functions/`, reglas) + **Flutter** (`apps/mobile`).
 cd apps/mobile
 flutter pub get
 flutter run --flavor dev --dart-define=FLAVOR=dev
+# Tras login, la app abre en /app (shell con barra inferior).
 ```
 
 Flavors Android: `dev`, `stg`, `prod` (IDs `…craftr_mobile.dev`, `…stg`, base prod).
