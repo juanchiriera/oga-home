@@ -61,7 +61,8 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final entitlements = MainShellEntitlementsScope.of(context);
-    final iaEnabled = entitlements.allOn;
+    final iaEnabled =
+        entitlements.allOn || entitlements.iaAssistantEnabled;
     final flavor = AppFlavor.fromEnvironment();
     final pages = <Widget>[
       HomeDashboardPage(flavor: flavor),

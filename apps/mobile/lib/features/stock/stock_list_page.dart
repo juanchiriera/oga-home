@@ -248,7 +248,10 @@ class _StockListPageState extends State<StockListPage> {
       extendBodyBehindAppBar: true,
       appBar: sanctuaryAppBar(context),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .snapshots(includeMetadataChanges: true),
         builder: (context, userSnap) {
           if (!userSnap.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -268,7 +271,7 @@ class _StockListPageState extends State<StockListPage> {
           }
           final familyRef = FirebaseFirestore.instance.collection('families').doc(familyId);
           return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: familyRef.snapshots(),
+            stream: familyRef.snapshots(includeMetadataChanges: true),
             builder: (context, familySnap) {
               if (!familySnap.hasData) {
                 return const Center(child: CircularProgressIndicator());

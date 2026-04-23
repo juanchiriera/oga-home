@@ -5,9 +5,16 @@ import 'package:flutter/foundation.dart';
 
 /// Entitlements remotos consumidos por la app.
 class EntitlementsState {
-  const EntitlementsState({required this.allOn});
+  const EntitlementsState({
+    required this.allOn,
+    required this.iaAssistantEnabled,
+  });
 
+  /// Fuerza capacidades premium / entitlements vía Remote Config.
   final bool allOn;
+
+  /// Activa la pestaña de asistente (IA) sin necesidad de `allOn`.
+  final bool iaAssistantEnabled;
 }
 
 class EntitlementsRemoteConfig {
@@ -15,14 +22,18 @@ class EntitlementsRemoteConfig {
     : _remoteConfig = remoteConfig ?? FirebaseRemoteConfig.instance;
 
   static const _allOnKey = 'entitlements_all_on';
+  static const _iaAssistantKey = 'ia_assistant_enabled';
   final FirebaseRemoteConfig _remoteConfig;
   final ValueNotifier<EntitlementsState> state = ValueNotifier(
-    EntitlementsState(allOn: false),
+    const EntitlementsState(allOn: false, iaAssistantEnabled: false),
   );
   StreamSubscription<RemoteConfigUpdate>? _updatesSubscription;
 
   Future<void> initialize() async {
-    await _remoteConfig.setDefaults({_allOnKey: false});
+    await _remoteConfig.setDefaults({
+      _allOnKey: false,
+      _iaAssistantKey: false,
+    });
     await _remoteConfig.setConfigSettings(
       RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 15),
@@ -48,8 +59,10 @@ class EntitlementsRemoteConfig {
   void _syncState() {
     final nextState = EntitlementsState(
       allOn: _remoteConfig.getBool(_allOnKey),
+      iaAssistantEnabled: _remoteConfig.getBool(_iaAssistantKey),
     );
-    if (state.value.allOn != nextState.allOn) {
+    if (state.value.allOn != nextState.allOn ||
+        state.value.iaAssistantEnabled != nextState.iaAssistantEnabled) {
       state.value = nextState;
     }
   }
