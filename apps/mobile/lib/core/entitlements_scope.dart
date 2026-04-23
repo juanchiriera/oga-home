@@ -13,11 +13,14 @@ class MainShellEntitlementsScope extends InheritedWidget {
   static EntitlementsState of(BuildContext context) {
     final scope = context
         .dependOnInheritedWidgetOfExactType<MainShellEntitlementsScope>();
-    return scope?.entitlements ?? const EntitlementsState(allOn: false);
+    return scope?.entitlements ??
+        const EntitlementsState(allOn: false, iaAssistantEnabled: false);
   }
 
   @override
   bool updateShouldNotify(MainShellEntitlementsScope oldWidget) {
-    return oldWidget.entitlements.allOn != entitlements.allOn;
+    return oldWidget.entitlements.allOn != entitlements.allOn ||
+        oldWidget.entitlements.iaAssistantEnabled !=
+            entitlements.iaAssistantEnabled;
   }
 }

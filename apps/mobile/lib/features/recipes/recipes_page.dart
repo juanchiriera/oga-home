@@ -198,6 +198,7 @@ class RecipesPage extends StatelessWidget {
       text: initial.porciones.toString(),
     );
     var favorita = initial.favorita;
+    var editorTab = 0;
 
     final save = await showDialog<bool>(
       context: context,
@@ -207,89 +208,121 @@ class RecipesPage extends StatelessWidget {
             title: Text(recipeId == null ? 'Nueva receta' : 'Editar receta'),
             content: SizedBox(
               width: 520,
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: tituloCtrl,
-                        decoration: const InputDecoration(labelText: 'Titulo'),
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Obligatorio'
-                            : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: descripcionCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Descripcion',
-                        ),
-                        minLines: 2,
-                        maxLines: 4,
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Obligatorio'
-                            : null,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: ingredientesCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Ingredientes (uno por línea)',
-                        ),
-                        minLines: 3,
-                        maxLines: 6,
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: pasosCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Pasos (uno por línea)',
-                        ),
-                        minLines: 3,
-                        maxLines: 6,
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextFormField(
-                              controller: tiempoCtrl,
-                              keyboardType: TextInputType.number,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SegmentedButton<int>(
+                      segments: const [
+                        ButtonSegment(value: 0, label: Text('Editar')),
+                        ButtonSegment(value: 1, label: Text('Vista previa')),
+                      ],
+                      selected: {editorTab},
+                      onSelectionChanged: (next) {
+                        setLocal(() => editorTab = next.first);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    if (editorTab == 0)
+                      Form(
+                        key: formKey,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextFormField(
+                              controller: tituloCtrl,
                               decoration: const InputDecoration(
-                                labelText: 'Tiempo (min)',
+                                labelText: 'Titulo',
+                              ),
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Obligatorio'
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: descripcionCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Descripcion',
+                              ),
+                              minLines: 2,
+                              maxLines: 4,
+                              validator: (v) => (v == null || v.trim().isEmpty)
+                                  ? 'Obligatorio'
+                                  : null,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: ingredientesCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Ingredientes (uno por línea)',
+                              ),
+                              minLines: 3,
+                              maxLines: 6,
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: pasosCtrl,
+                              decoration: const InputDecoration(
+                                labelText: 'Pasos (uno por línea)',
+                              ),
+                              minLines: 3,
+                              maxLines: 6,
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: tiempoCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Tiempo (min)',
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: TextFormField(
+                                    controller: porcionesCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Porciones',
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            TextFormField(
+                              controller: tagsCtrl,
+                              decoration: const InputDecoration(
+                                labelText:
+                                    'Tags (opcional, separados por coma)',
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextFormField(
-                              controller: porcionesCtrl,
-                              keyboardType: TextInputType.number,
-                              decoration: const InputDecoration(
-                                labelText: 'Porciones',
-                              ),
+                            const SizedBox(height: 8),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: favorita,
+                              title: const Text('Marcar como favorita'),
+                              onChanged: (v) => setLocal(() => favorita = v),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: tagsCtrl,
-                        decoration: const InputDecoration(
-                          labelText: 'Tags (opcional, separados por coma)',
+                          ],
                         ),
+                      )
+                    else
+                      _RecipeEditorPreview(
+                        titulo: tituloCtrl.text,
+                        descripcion: descripcionCtrl.text,
+                        ingredientesRaw: ingredientesCtrl.text,
+                        pasosRaw: pasosCtrl.text,
+                        tiempoRaw: tiempoCtrl.text,
+                        porcionesRaw: porcionesCtrl.text,
+                        tagsRaw: tagsCtrl.text,
+                        favorita: favorita,
                       ),
-                      const SizedBox(height: 8),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: favorita,
-                        title: const Text('Marcar como favorita'),
-                        onChanged: (v) => setLocal(() => favorita = v),
-                      ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ),
@@ -411,6 +444,181 @@ class RecipesPage extends StatelessWidget {
         .collection('recipes')
         .doc(recipeId)
         .delete();
+  }
+}
+
+/// Vista previa de solo lectura alineada con [RecipeDraft] (misma lógica de parseo).
+class _RecipeEditorPreview extends StatelessWidget {
+  const _RecipeEditorPreview({
+    required this.titulo,
+    required this.descripcion,
+    required this.ingredientesRaw,
+    required this.pasosRaw,
+    required this.tiempoRaw,
+    required this.porcionesRaw,
+    required this.tagsRaw,
+    required this.favorita,
+  });
+
+  final String titulo;
+  final String descripcion;
+  final String ingredientesRaw;
+  final String pasosRaw;
+  final String tiempoRaw;
+  final String porcionesRaw;
+  final String tagsRaw;
+  final bool favorita;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final ingredientes = RecipeDraft.parseMultiline(ingredientesRaw);
+    final pasos = RecipeDraft.parseMultiline(pasosRaw);
+    final tags = RecipeDraft.parseTags(tagsRaw);
+    final tiempo = int.tryParse(tiempoRaw.trim()) ?? 0;
+    final porciones = int.tryParse(porcionesRaw.trim()) ?? 0;
+    final title = titulo.trim().isEmpty ? 'Sin título' : titulo.trim();
+    final desc = descripcion.trim();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (favorita)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8, top: 2),
+                  child: Icon(
+                    Icons.favorite_rounded,
+                    color: scheme.error,
+                    size: 22,
+                  ),
+                ),
+            ],
+          ),
+          if (desc.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              desc,
+              style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+            ),
+          ],
+          if (tiempo > 0 || porciones > 0) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (tiempo > 0) _PreviewChip(label: '$tiempo min'),
+                if (porciones > 0) _PreviewChip(label: '$porciones porciones'),
+              ],
+            ),
+          ],
+          if (ingredientes.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Ingredientes',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...ingredientes.map(
+              (line) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('· ', style: theme.textTheme.bodyMedium),
+                    Expanded(child: Text(line, style: theme.textTheme.bodyMedium)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (pasos.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
+              'Proceso',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            ...pasos.asMap().entries.map((e) {
+              final i = e.key + 1;
+              final line = e.value;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      child: Text(
+                        '$i.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Text(line, style: theme.textTheme.bodyMedium)),
+                  ],
+                ),
+              );
+            }),
+          ],
+          if (tags.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: tags
+                  .map((t) => _PreviewChip(label: '#$t'))
+                  .toList(growable: false),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewChip extends StatelessWidget {
+  const _PreviewChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
   }
 }
 
