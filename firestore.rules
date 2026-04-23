@@ -87,6 +87,42 @@ service cloud.firestore {
         allow delete: if isFamilyMember(familyId);
       }
 
+      match /paymentMethods/{methodId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll([
+            'name',
+            'type',
+            'createdAt',
+            'updatedAt',
+            'createdBy'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.type is string
+          && request.resource.data.type in ['cash', 'debit', 'bank', 'credit_card', 'other']
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdBy is string
+          && request.resource.data.createdBy == request.auth.uid
+          && (!('lastFour' in request.resource.data)
+            || (request.resource.data.lastFour is string
+              && request.resource.data.lastFour.size() <= 4
+              && request.resource.data.lastFour.matches('^[0-9]*$')));
+        allow update: if isFamilyMember(familyId)
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.type is string
+          && request.resource.data.type in ['cash', 'debit', 'bank', 'credit_card', 'other']
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdBy is string
+          && (!('lastFour' in request.resource.data)
+            || (request.resource.data.lastFour is string
+              && request.resource.data.lastFour.size() <= 4
+              && request.resource.data.lastFour.matches('^[0-9]*$')));
+        allow delete: if isFamilyMember(familyId);
+      }
+
       match /expenses/{expenseId} {
         allow read: if isFamilyMember(familyId);
         allow create: if isFamilyMember(familyId)
@@ -107,14 +143,22 @@ service cloud.firestore {
           && request.resource.data.createdBy is string
           && request.resource.data.createdBy == request.auth.uid
           && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
-          && (!('note' in request.resource.data) || request.resource.data.note is string);
+          && (!('note' in request.resource.data) || request.resource.data.note is string)
+          && (!('paymentMethodId' in request.resource.data)
+            || request.resource.data.paymentMethodId is string)
+          && (!('status' in request.resource.data)
+            || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled']);
         allow update: if isFamilyMember(familyId)
           && request.resource.data.amount is number
           && request.resource.data.amount > 0
           && request.resource.data.categoryKey is string
           && request.resource.data.occurredAt is timestamp
           && request.resource.data.updatedAt is timestamp
-          && request.resource.data.createdBy is string;
+          && request.resource.data.createdBy is string
+          && (!('paymentMethodId' in request.resource.data)
+            || request.resource.data.paymentMethodId is string)
+          && (!('status' in request.resource.data)
+            || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled']);
         allow delete: if isFamilyMember(familyId);
       }
 

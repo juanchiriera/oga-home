@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -171,6 +172,51 @@ class _ExpensesPageState extends State<ExpensesPage> {
       }
     }
 
+    final pmCol = FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('paymentMethods');
+    var methodsSnap = await pmCol.orderBy('name').get();
+    while (methodsSnap.docs.isEmpty) {
+      if (!context.mounted) {
+        return;
+      }
+      final add = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Métodos de pago'),
+          content: const Text(
+            'Para registrar un gasto necesitás al menos un método (por ejemplo, Efectivo o tu tarjeta).',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Agregar método'),
+            ),
+          ],
+        ),
+      );
+      if (add != true) {
+        return;
+      }
+      if (!context.mounted) {
+        return;
+      }
+      await _upsertPaymentMethod(context: context, familyId: familyId, methodId: null);
+      if (!context.mounted) {
+        return;
+      }
+      methodsSnap = await pmCol.orderBy('name').get();
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
     final amountController = TextEditingController(
       text: initialData?['amount']?.toString() ?? '',
     );
@@ -183,6 +229,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
 
     var selectedCategory = (initialData?['categoryKey'] as String?) ?? kExpenseCategories.first.key;
     var selectedDate = (initialData?['occurredAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+    final pmIds = methodsSnap.docs.map((d) => d.id).toSet();
+    var selectedPaymentMethodId = (initialData?['paymentMethodId'] as String?) ?? '';
+    if (selectedPaymentMethodId.isEmpty || !pmIds.contains(selectedPaymentMethodId)) {
+      selectedPaymentMethodId = _defaultPaymentMethodId(methodsSnap.docs)!;
+    }
 
     final ok = await showDialog<bool>(
       context: context,
@@ -202,6 +254,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    key: ValueKey<String>('expense-cat-$selectedCategory'),
                     initialValue: selectedCategory,
                     decoration: const InputDecoration(labelText: 'Categoría *'),
                     items: kExpenseCategories
@@ -217,6 +270,36 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         setLocal(() => selectedCategory = value);
                       }
                     },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('expense-pm-$selectedPaymentMethodId'),
+                    initialValue: selectedPaymentMethodId,
+                    decoration: const InputDecoration(labelText: 'Método de pago *'),
+                    items: methodsSnap.docs
+                        .map(
+                          (d) {
+                            final m = d.data();
+                            final t = m['type'] as String? ?? PaymentMethodTypes.other;
+                            final n = m['name'] as String? ?? '—';
+                            return DropdownMenuItem<String>(
+                              value: d.id,
+                              child: Text('$n · ${PaymentMethodTypes.label(t)}'),
+                            );
+                          },
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setLocal(() => selectedPaymentMethodId = value);
+                      }
+                    },
+                  ),
+                  Text(
+                    'Con tarjeta de crédito el gasto queda pendiente de ciclo hasta que registres el cierre o pago.',
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ListTile(
@@ -276,6 +359,15 @@ class _ExpensesPageState extends State<ExpensesPage> {
       return;
     }
 
+    final methodDoc = methodsSnap.docs.firstWhere((d) => d.id == selectedPaymentMethodId);
+    final mType = methodDoc.data()['type'] as String? ?? PaymentMethodTypes.other;
+    var lifeStatus = ExpenseLifecycle.statusForPaymentMethodType(mType);
+    if (expenseId != null &&
+        selectedPaymentMethodId == (initialData?['paymentMethodId'] as String?) &&
+        (initialData?['status'] as String?) == ExpenseLifecycle.confirmed) {
+      lifeStatus = ExpenseLifecycle.confirmed;
+    }
+
     final now = FieldValue.serverTimestamp();
     final payload = <String, dynamic>{
       'amount': amount,
@@ -289,6 +381,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
       'note': noteController.text.trim(),
       'updatedAt': now,
       'createdBy': uid,
+      'paymentMethodId': selectedPaymentMethodId,
+      'status': lifeStatus,
     };
 
     final collection = FirebaseFirestore.instance
@@ -341,6 +435,191 @@ class _ExpensesPageState extends State<ExpensesPage> {
       const SnackBar(content: Text('Escanear ticket: próximamente.')),
     );
   }
+
+  String? _defaultPaymentMethodId(List<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    if (docs.isEmpty) {
+      return null;
+    }
+    for (final d in docs) {
+      if ((d.data()['type'] as String?) == PaymentMethodTypes.cash) {
+        return d.id;
+      }
+    }
+    return docs.first.id;
+  }
+
+  Future<void> _upsertPaymentMethod({
+    required BuildContext context,
+    required String familyId,
+    String? methodId,
+    Map<String, dynamic>? initialData,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+
+    final nameController = TextEditingController(
+      text: initialData?['name'] as String? ?? '',
+    );
+    final lastFourController = TextEditingController(
+      text: initialData?['lastFour'] as String? ?? '',
+    );
+    var selectedType = (initialData?['type'] as String?) ?? PaymentMethodTypes.cash;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          return AlertDialog(
+            title: Text(methodId == null ? 'Nuevo método de pago' : 'Editar método'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre *',
+                      hintText: 'Ej. Visa hogar, Efectivo billetera',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('pm-type-$selectedType'),
+                    initialValue: selectedType,
+                    decoration: const InputDecoration(labelText: 'Tipo *'),
+                    items: PaymentMethodTypes.values
+                        .map(
+                          (t) => DropdownMenuItem<String>(
+                            value: t,
+                            child: Text(PaymentMethodTypes.label(t)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setLocal(() => selectedType = value);
+                      }
+                    },
+                  ),
+                  if (selectedType == PaymentMethodTypes.creditCard) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: lastFourController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 4,
+                      decoration: const InputDecoration(
+                        labelText: 'Últimos 4 dígitos (opcional)',
+                        counterText: '',
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (ok != true || !context.mounted) {
+      return;
+    }
+
+    final name = nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresá un nombre para el método.')),
+      );
+      return;
+    }
+
+    final lastFour = lastFourController.text.trim();
+    final now = FieldValue.serverTimestamp();
+    final payload = <String, dynamic>{
+      'name': name,
+      'type': selectedType,
+      'updatedAt': now,
+    };
+    if (lastFour.isNotEmpty) {
+      payload['lastFour'] = lastFour;
+    }
+
+    final col = FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('paymentMethods');
+    if (methodId == null) {
+      payload['createdAt'] = now;
+      payload['createdBy'] = uid;
+      await col.add(payload);
+    } else {
+      if (lastFour.isEmpty) {
+        payload['lastFour'] = FieldValue.delete();
+      }
+      await col.doc(methodId).update(payload);
+    }
+  }
+
+  Future<void> _deletePaymentMethod(
+    BuildContext context,
+    String familyId,
+    String methodId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar método'),
+        content: const Text('Los gastos que lo usaban seguirán mostrando el método por ID.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('paymentMethods')
+        .doc(methodId)
+        .delete();
+  }
+
+  Future<void> _setExpenseConfirmed(
+    String familyId,
+    String expenseId,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('expenses')
+        .doc(expenseId)
+        .update({
+      'status': ExpenseLifecycle.confirmed,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
 }
 
 class _ExpensesContent extends StatelessWidget {
@@ -350,260 +629,405 @@ class _ExpensesContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final expensesQuery = FirebaseFirestore.instance
-        .collection('families')
-        .doc(familyId)
-        .collection('expenses')
-        .orderBy('occurredAt', descending: true);
+    final familyRef = FirebaseFirestore.instance.collection('families').doc(familyId);
+    final pmQuery = familyRef.collection('paymentMethods').orderBy('name');
+    final expensesQuery = familyRef.collection('expenses').orderBy('occurredAt', descending: true);
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: expensesQuery.snapshots(),
-      builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
+      stream: pmQuery.snapshots(),
+      builder: (context, pmSnap) {
+        if (pmSnap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snap.hasError) {
+        if (pmSnap.hasError) {
           return _ErrorState(
             onRetry: () {},
-            message: 'No se pudieron cargar los gastos.',
+            message: 'No se pudieron cargar los métodos de pago.',
           );
         }
-        final docs = snap.data?.docs ?? [];
-        if (docs.isEmpty) {
-          return const _EmptyState();
-        }
 
-        final monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1);
-        var monthlyTotal = 0.0;
-        final byCategory = <String, double>{};
-        for (final doc in docs) {
-          final data = doc.data();
-          final amount = (data['amount'] as num?)?.toDouble() ?? 0;
-          final categoryKey = data['categoryKey'] as String? ?? 'other';
-          final occurredAt = (data['occurredAt'] as Timestamp?)?.toDate();
-          byCategory[categoryKey] = (byCategory[categoryKey] ?? 0) + amount;
-          if (occurredAt != null && !occurredAt.isBefore(monthStart)) {
-            monthlyTotal += amount;
-          }
-        }
+        final pmDocs = pmSnap.data?.docs ?? const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+        final pmById = <String, Map<String, dynamic>>{
+          for (final d in pmDocs) d.id: d.data(),
+        };
 
-        final scheme = Theme.of(context).colorScheme;
-        return ListView(
-          padding: EdgeInsets.fromLTRB(
-            24,
-            MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
-            24,
-            sanctuaryScrollBottomPadding(context),
-          ),
-          children: [
-            Text(
-              'Gastos y finanzas',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.4,
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: expensesQuery.snapshots(),
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snap.hasError) {
+              return _ErrorState(
+                onRetry: () {},
+                message: 'No se pudieron cargar los gastos.',
+              );
+            }
+
+            final docs = snap.data?.docs ?? [];
+
+            final monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1);
+            var monthlyEffective = 0.0;
+            var monthlyPendingCard = 0.0;
+            final byCategory = <String, double>{};
+            for (final doc in docs) {
+              final data = doc.data();
+              if ((data['status'] as String?) == ExpenseLifecycle.cancelled) {
+                continue;
+              }
+              final amount = (data['amount'] as num?)?.toDouble() ?? 0;
+              final categoryKey = data['categoryKey'] as String? ?? 'other';
+              final occurredAt = (data['occurredAt'] as Timestamp?)?.toDate();
+              byCategory[categoryKey] = (byCategory[categoryKey] ?? 0) + amount;
+              if (occurredAt != null && !occurredAt.isBefore(monthStart)) {
+                if (ExpenseLifecycle.countsTowardEffectiveMonthly(data)) {
+                  monthlyEffective += amount;
+                } else if ((data['status'] as String?) == ExpenseLifecycle.pendingCardCycle) {
+                  monthlyPendingCard += amount;
+                }
+              }
+            }
+
+            final scheme = Theme.of(context).colorScheme;
+            final state = context.findAncestorStateOfType<_ExpensesPageState>();
+
+            return ListView(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                24,
+                sanctuaryScrollBottomPadding(context),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Seguí el ritmo del mes y registrá cada movimiento.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-                height: 1.45,
-              ),
-            ),
-            const SizedBox(height: 20),
-            CozyCard(
-              color: scheme.surfaceContainerLow,
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Gasto mensual',
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: scheme.secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
+              children: [
+                Text(
+                  'Gastos y finanzas',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Seguí el ritmo del mes y registrá cada movimiento.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                CozyCard(
+                  color: scheme.surfaceContainerLow,
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Gasto reconocido del mes',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: scheme.secondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '\$${monthlyEffective.toStringAsFixed(2)}',
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (monthlyPendingCard > 0) ...[
+                        const SizedBox(height: 10),
+                        Text(
+                          'Pendiente en tarjeta (aún no en resumen): '
+                          '\$${monthlyPendingCard.toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Suma movimientos del mes que ya impactan como débito/efectivo.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                CozyCard(
+                  color: scheme.surfaceContainer,
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Por categoría',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: scheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (byCategory.values.every((v) => v == 0))
+                        Text(
+                          'Sin datos aún.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      else
+                        ...kExpenseCategories
+                            .where((c) => (byCategory[c.key] ?? 0) > 0)
+                            .map(
+                              (c) {
+                                final accent = expenseCategoryAccent(scheme, c.colorIndex);
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Row(
+                                    children: [
+                                      Icon(c.icon, color: accent, size: 22),
+                                      const SizedBox(width: 10),
+                                      Expanded(child: Text(c.label)),
+                                      Text(
+                                        '\$${(byCategory[c.key] ?? 0).toStringAsFixed(2)}',
+                                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                CozyCard(
+                  color: scheme.surfaceContainer,
+                  padding: const EdgeInsets.all(22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Métodos de pago',
+                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: scheme.primary,
+                              ),
+                            ),
+                          ),
+                          if (state != null)
+                            TextButton.icon(
+                              onPressed: () => state._upsertPaymentMethod(
+                                context: context,
+                                familyId: familyId,
+                                methodId: null,
+                              ),
+                              icon: const Icon(Icons.add_rounded, size: 20),
+                              label: const Text('Agregar'),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      if (pmDocs.isEmpty)
+                        Text(
+                          'Todavía no cargaste métodos. Agregá uno para asignarlo a cada gasto.',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        )
+                      else
+                        ...pmDocs.map((d) {
+                          final m = d.data();
+                          final t = m['type'] as String? ?? PaymentMethodTypes.other;
+                          final n = m['name'] as String? ?? '—';
+                          final lastFour = m['lastFour'] as String?;
+                          final isCard = t == PaymentMethodTypes.creditCard;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Material(
+                              color: isCard ? scheme.primaryContainer.withValues(alpha: 0.35) : scheme.surfaceContainerHigh,
+                              borderRadius: BorderRadius.circular(16),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                leading: Icon(
+                                  isCard ? Icons.credit_card_rounded : Icons.payments_outlined,
+                                  color: scheme.primary,
+                                ),
+                                title: Text(n, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                subtitle: Text(
+                                  [
+                                    PaymentMethodTypes.label(t),
+                                    if (isCard && lastFour != null && lastFour.isNotEmpty) '· ****$lastFour',
+                                  ].join(' '),
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                                trailing: state == null
+                                    ? null
+                                    : PopupMenuButton<String>(
+                                        onSelected: (action) async {
+                                          if (action == 'edit') {
+                                            await state._upsertPaymentMethod(
+                                              context: context,
+                                              familyId: familyId,
+                                              methodId: d.id,
+                                              initialData: m,
+                                            );
+                                          } else if (action == 'delete') {
+                                            await state._deletePaymentMethod(context, familyId, d.id);
+                                          }
+                                        },
+                                        itemBuilder: (context) => const [
+                                          PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                          PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          );
+                        }),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Movimientos recientes',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (docs.isEmpty) ...[
+                  Icon(
+                    Icons.payments_outlined,
+                    size: 40,
+                    color: scheme.primary.withValues(alpha: 0.7),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '\$${monthlyTotal.toStringAsFixed(2)}',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    'Aún no hay movimientos',
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
-                    'Movimientos del mes actual',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    'Usá «Agregar gasto» para registrar el primero.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 14),
-            CozyCard(
-              color: scheme.surfaceContainer,
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Por categoría',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  ...kExpenseCategories
-                      .where((c) => (byCategory[c.key] ?? 0) > 0)
+                ] else
+                  ...docs
+                      .where((d) => (d.data()['status'] as String?) != ExpenseLifecycle.cancelled)
+                      .take(20)
                       .map(
-                        (c) {
-                          final accent = expenseCategoryAccent(scheme, c.colorIndex);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: Row(
-                              children: [
-                                Icon(c.icon, color: accent, size: 22),
-                                const SizedBox(width: 10),
-                                Expanded(child: Text(c.label)),
-                                Text(
-                                  '\$${(byCategory[c.key] ?? 0).toStringAsFixed(2)}',
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Movimientos recientes',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...docs.take(20).map(
-              (doc) {
-                final data = doc.data();
-                final amount = (data['amount'] as num?)?.toDouble() ?? 0;
-                final categoryKey = data['categoryKey'] as String? ?? 'other';
-                final category = kExpenseCategories.firstWhere(
-                  (c) => c.key == categoryKey,
-                  orElse: () => kExpenseCategories.last,
-                );
-                final accent = expenseCategoryAccent(scheme, category.colorIndex);
-                final merchant = data['merchant'] as String?;
-                final note = data['note'] as String?;
-                final occurredAt = (data['occurredAt'] as Timestamp?)?.toDate();
-
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: CozyCard(
-                    color: scheme.surfaceContainerLowest,
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                      backgroundColor: accent.withValues(alpha: 0.14),
-                        child: Icon(category.icon, color: accent),
-                      ),
-                      title: Text(
-                      merchant != null && merchant.trim().isNotEmpty
-                          ? merchant.trim()
-                          : category.label,
-                      ),
-                      subtitle: Text(
-                      '${category.label} • ${_formatDate(occurredAt ?? DateTime.now())}'
-                      ' • \$${amount.toStringAsFixed(2)}'
-                        '${note != null && note.trim().isNotEmpty ? '\n${note.trim()}' : ''}',
-                      ),
-                      isThreeLine: note != null && note.trim().isNotEmpty,
-                      trailing: PopupMenuButton<String>(
-                      onSelected: (action) async {
-                        final state = context.findAncestorStateOfType<_ExpensesPageState>();
-                        if (state == null) {
-                          return;
-                        }
-                        if (action == 'edit') {
-                          await state._upsertExpense(
-                            context: context,
-                            familyId: familyId,
-                            expenseId: doc.id,
-                            initialData: data,
-                          );
-                        } else if (action == 'delete') {
-                          await state._deleteExpense(context, familyId, doc.id);
-                        }
-                      },
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(value: 'edit', child: Text('Editar')),
-                          PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-                        ],
-                      ),
-                      onTap: () async {
-                      final state = context.findAncestorStateOfType<_ExpensesPageState>();
-                      if (state != null) {
-                        await state._upsertExpense(
-                          context: context,
-                          familyId: familyId,
-                          expenseId: doc.id,
-                          initialData: data,
+                    (doc) {
+                      final data = doc.data();
+                      final amount = (data['amount'] as num?)?.toDouble() ?? 0;
+                      final categoryKey = data['categoryKey'] as String? ?? 'other';
+                      final category = kExpenseCategories.firstWhere(
+                        (c) => c.key == categoryKey,
+                        orElse: () => kExpenseCategories.last,
+                      );
+                      final accent = expenseCategoryAccent(scheme, category.colorIndex);
+                      final merchant = data['merchant'] as String?;
+                      final note = data['note'] as String?;
+                      final occurredAt = (data['occurredAt'] as Timestamp?)?.toDate();
+                      final st = data['status'] as String?;
+                      final pending = st == ExpenseLifecycle.pendingCardCycle;
+                      final pmId = data['paymentMethodId'] as String?;
+                      String pmLine = '';
+                      if (pmId != null && pmById.containsKey(pmId)) {
+                        final pm = pmById[pmId]!;
+                        final pn = pm['name'] as String? ?? '—';
+                        final pt = PaymentMethodTypes.label(
+                          pm['type'] as String? ?? PaymentMethodTypes.other,
                         );
+                        pmLine = '\n$pn ($pt)';
+                      } else if (pmId != null) {
+                        pmLine = '\nMétodo desconocido';
                       }
-                      },
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    ),
+
+                      final sub = StringBuffer()
+                        ..write('${category.label} • ${_formatDate(occurredAt ?? DateTime.now())}')
+                        ..write(' • \$${amount.toStringAsFixed(2)}')
+                        ..write(pending ? ' • Pendiente tarjeta' : '')
+                        ..write(pmLine);
+                      if (note != null && note.trim().isNotEmpty) {
+                        sub.write('\n${note.trim()}');
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: CozyCard(
+                          color: scheme.surfaceContainerLowest,
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: accent.withValues(alpha: 0.14),
+                              child: Icon(category.icon, color: accent),
+                            ),
+                            title: Text(
+                              merchant != null && merchant.trim().isNotEmpty
+                                  ? merchant.trim()
+                                  : category.label,
+                            ),
+                            subtitle: Text(sub.toString()),
+                            isThreeLine: sub.toString().split('\n').length >= 3,
+                            trailing: state == null
+                                ? null
+                                : PopupMenuButton<String>(
+                                    onSelected: (action) async {
+                                      if (action == 'edit') {
+                                        await state._upsertExpense(
+                                          context: context,
+                                          familyId: familyId,
+                                          expenseId: doc.id,
+                                          initialData: data,
+                                        );
+                                      } else if (action == 'delete') {
+                                        await state._deleteExpense(context, familyId, doc.id);
+                                      } else if (action == 'confirm') {
+                                        await state._setExpenseConfirmed(familyId, doc.id);
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                      if (pending)
+                                        const PopupMenuItem(
+                                          value: 'confirm',
+                                          child: Text('Marcar como confirmado'),
+                                        ),
+                                      const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                                    ],
+                                  ),
+                            onTap: () async {
+                              if (state != null) {
+                                await state._upsertExpense(
+                                  context: context,
+                                  familyId: familyId,
+                                  expenseId: doc.id,
+                                  initialData: data,
+                                );
+                              }
+                            },
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          24,
-          MediaQuery.paddingOf(context).top + kToolbarHeight + 24,
-          24,
-          24,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.payments_outlined,
-              size: 48,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 12),
-            Text('Aún no hay movimientos', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              'Usá “Agregar gasto” para registrar el primer movimiento.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
