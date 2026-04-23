@@ -1,4 +1,3 @@
-import 'package:craftr_mobile/core/firebase_project.dart';
 import 'package:craftr_mobile/core/flavor.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
@@ -134,7 +133,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             ),
             children: [
               SanctuaryAssistantHero(
-                greetingLine: '$_greetingPrefix(), $firstName',
+                greetingLine: '${_greetingPrefix()}, $firstName',
                 subtitle: familyId != null && familyId.isNotEmpty
                     ? 'Acá tenés un vistazo del hogar: despensa, gastos, notas y recetas en un solo lugar.'
                     : 'Creá tu hogar para empezar a coordinar despensa, gastos y notas con quienes viven con vos.',
@@ -148,19 +147,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              if (FirebaseProject.isConfigured)
-                Text(
-                  'Firebase · ${FirebaseProject.projectId}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                )
-              else
-                Text(
-                  'Configurá FIREBASE_PROJECT_ID (dart-define).',
-                  style: theme.textTheme.bodySmall?.copyWith(color: scheme.error),
-                ),
-              const SizedBox(height: 16),
               FutureBuilder<_BillingUiState>(
                 future: _billingState,
                 builder: (context, snap) {
