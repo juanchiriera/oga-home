@@ -312,6 +312,12 @@ service cloud.firestore {
         allow read: if isFamilyMember(familyId);
         allow write: if false;
       }
+
+      // Auditoría de cierres / pagos de tarjeta (solo Cloud Functions / Admin SDK).
+      match /expenseSettlementEvents/{eventId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
     }
 
     match /{document=**} {
