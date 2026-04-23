@@ -1,6 +1,7 @@
 import 'package:craftr_mobile/core/flavor.dart';
 import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
@@ -283,11 +284,16 @@ class _HomeFamilyOverview extends StatelessWidget {
         if (expSnap.hasData) {
           for (final doc in expSnap.data!.docs) {
             final d = doc.data();
+            if ((d['status'] as String?) == ExpenseLifecycle.cancelled) {
+              continue;
+            }
             final amount = (d['amount'] as num?)?.toDouble() ?? 0;
             final key = d['categoryKey'] as String? ?? 'other';
             final occurredAt = (d['occurredAt'] as Timestamp?)?.toDate();
             byCategory[key] = (byCategory[key] ?? 0) + amount;
-            if (occurredAt != null && !occurredAt.isBefore(monthStart)) {
+            if (occurredAt != null &&
+                !occurredAt.isBefore(monthStart) &&
+                ExpenseLifecycle.countsTowardEffectiveMonthly(d)) {
               monthlyTotal += amount;
             }
           }
@@ -382,7 +388,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Gasto del mes',
+                                            'Gasto reconocido del mes',
                                             style: theme.textTheme.labelLarge?.copyWith(
                                               color: scheme.secondary,
                                               fontWeight: FontWeight.w600,
