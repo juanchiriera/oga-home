@@ -29,3 +29,5 @@ export {
   createFamilyInvite,
   revokeFamilyInvite,
 } from "./callables/familyCallables.js";
+
+export { generateRecurringExpenses } from "./scheduled/generateRecurringExpenses.js";
