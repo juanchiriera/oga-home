@@ -1,4 +1,5 @@
 import 'package:craftr_mobile/core/flavor.dart';
+import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
@@ -9,6 +10,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key, required this.flavor});
@@ -167,9 +169,18 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       ),
                     );
                   }
-                  return _BillingStateCard(
-                    state: state ?? const _BillingUiState.error(),
-                    onRetry: _refreshBillingState,
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _BillingStateCard(
+                        state: state ?? const _BillingUiState.error(),
+                        onRetry: _refreshBillingState,
+                      ),
+                      if (RevenueCatConfig.isConfigured) ...[
+                        const SizedBox(height: 10),
+                        _RevenueCatUiActions(),
+                      ],
+                    ],
                   );
                 },
               ),
@@ -709,6 +720,78 @@ class _HomeFamilyOverview extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// Paywall y Customer Center de [purchases_ui_flutter] (requiere paywalls en el dashboard RC).
+class _RevenueCatUiActions extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return CozyCard(
+      color: scheme.surfaceContainerLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'RevenueCat UI',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Paywall y centro de cliente configurados en RevenueCat.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.tonal(
+                onPressed: () => _presentPaywall(context),
+                child: const Text('Paywall'),
+              ),
+              OutlinedButton(
+                onPressed: () => _presentCustomerCenter(context),
+                child: const Text('Centro de cliente'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Future<void> _presentPaywall(BuildContext context) async {
+    try {
+      await RevenueCatUI.presentPaywall();
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Paywall: $e')),
+      );
+    }
+  }
+
+  static Future<void> _presentCustomerCenter(BuildContext context) async {
+    try {
+      await RevenueCatUI.presentCustomerCenter();
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Centro de cliente: $e')),
+      );
+    }
   }
 }
 
