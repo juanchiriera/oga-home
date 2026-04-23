@@ -18,7 +18,8 @@ class InvitesListPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Invitaciones')),
+      extendBodyBehindAppBar: true,
+      appBar: sanctuaryAppBar(context, title: 'Invitaciones'),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -53,7 +54,12 @@ class InvitesListPage extends StatelessWidget {
                 );
               }
               return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                  24,
+                  32 + MediaQuery.paddingOf(context).bottom,
+                ),
                 children: [
                   CozyCard(
                     child: Text(

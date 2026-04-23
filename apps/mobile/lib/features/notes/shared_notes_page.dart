@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/notes/family_links_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -28,8 +29,9 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notas compartidas'),
+      extendBodyBehindAppBar: true,
+      appBar: sanctuaryAppBar(
+        context,
         actions: [
           IconButton(
             tooltip: 'Enlaces útiles',
@@ -42,10 +44,15 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openNoteEditor(context),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Nueva nota'),
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: 72 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: FloatingActionButton.extended(
+          onPressed: () => _openNoteEditor(context),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Nueva nota'),
+        ),
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
@@ -87,57 +94,69 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
                 return title.contains(query) || content.contains(query);
               }).toList();
 
+              final scheme = Theme.of(context).colorScheme;
               return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                  24,
+                  sanctuaryScrollBottomPadding(context),
+                ),
                 children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Notas del hogar',
-                            style: Theme.of(context).textTheme.titleLarge
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _searchController,
-                            onChanged: (value) {
-                              setState(() => _searchQuery = value.trim());
-                            },
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.search_rounded),
-                              hintText: 'Buscar por título o contenido',
-                            ),
-                          ),
-                        ],
+                  Text(
+                    'Notas compartidas',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Buscá ideas, listas y acuerdos que viven con tu hogar.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  CozyCard(
+                    color: scheme.surfaceContainerHighest,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() => _searchQuery = value.trim());
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Buscar en tus notas…',
+                        prefixIcon: Icon(Icons.search_rounded, color: scheme.outline),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   if (filtered.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.sticky_note_2_outlined,
-                              size: 48,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              _searchQuery.isEmpty
-                                  ? 'Todavía no hay notas compartidas.'
-                                  : 'No encontramos notas para "$_searchQuery".',
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
+                    CozyCard(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.sticky_note_2_outlined,
+                            size: 48,
+                            color: scheme.primary,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? 'Todavía no hay notas compartidas.'
+                                : 'No encontramos notas para “$_searchQuery”.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
                       ),
                     )
                   else
@@ -314,11 +333,10 @@ class _NoteCard extends StatelessWidget {
         ? 'Recién creado'
         : 'Actualizado ${MaterialLocalizations.of(context).formatShortDate(updatedAt.toDate())}';
 
-    return Card(
+    return CozyCard(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      padding: const EdgeInsets.all(18),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -364,7 +382,6 @@ class _NoteCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

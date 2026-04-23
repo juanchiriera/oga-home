@@ -579,7 +579,12 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          MediaQuery.paddingOf(context).top + kToolbarHeight + 24,
+          24,
+          24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -613,7 +618,12 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          MediaQuery.paddingOf(context).top + kToolbarHeight + 24,
+          24,
+          24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

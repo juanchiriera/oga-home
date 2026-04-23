@@ -55,9 +55,15 @@ class _InviteAcceptPageState extends State<InviteAcceptPage> {
         ? '—'
         : '${widget.token.substring(0, widget.token.length > 8 ? 8 : widget.token.length)}…';
     return Scaffold(
-      appBar: AppBar(title: const Text('Invitación')),
+      extendBodyBehindAppBar: true,
+      appBar: sanctuaryAppBar(context, title: 'Invitación'),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+          24,
+          24 + MediaQuery.paddingOf(context).bottom,
+        ),
         child: ListView(
           children: [
             CozyCard(

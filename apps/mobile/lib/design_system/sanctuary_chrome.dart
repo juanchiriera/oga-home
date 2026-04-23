@@ -72,90 +72,98 @@ class SanctuaryAssistantHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final onPrimary = scheme.onPrimary;
+    final theme = Theme.of(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
       child: Stack(
-        clipBehavior: Clip.none,
+        clipBehavior: Clip.hardEdge,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [scheme.primary, scheme.primaryContainer],
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [scheme.primary, scheme.primaryContainer],
+                ),
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 22, 24, 26),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.auto_awesome_rounded,
-                        size: 20,
-                        color: const Color(0xFFFFDDB3).withValues(alpha: 0.95),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
+          ),
+          Positioned(
+            right: -48,
+            top: -48,
+            child: IgnorePointer(
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.tertiaryContainer.withValues(alpha: 0.28),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 28,
+            bottom: -36,
+            child: IgnorePointer(
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: scheme.secondaryContainer.withValues(alpha: 0.18),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 26),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.auto_awesome_rounded,
+                      size: 20,
+                      color: const Color(0xFFFFDDB3).withValues(alpha: 0.95),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
                         badgeLabel,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
                           color: onPrimary.withValues(alpha: 0.85),
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.0,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    greetingLine,
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: onPrimary,
-                      fontWeight: FontWeight.w800,
-                      height: 1.1,
-                      letterSpacing: -0.8,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: onPrimary.withValues(alpha: 0.92),
-                      height: 1.45,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            right: -40,
-            top: -40,
-            child: IgnorePointer(
-              child: Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: scheme.tertiaryContainer.withValues(alpha: 0.35),
+                  ],
                 ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 36,
-            bottom: -24,
-            child: IgnorePointer(
-              child: Container(
-                width: 90,
-                height: 90,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: scheme.secondaryContainer.withValues(alpha: 0.22),
+                const SizedBox(height: 10),
+                Text(
+                  greetingLine,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    color: onPrimary,
+                    fontWeight: FontWeight.w800,
+                    height: 1.12,
+                    letterSpacing: -0.8,
+                  ),
                 ),
-              ),
+                const SizedBox(height: 10),
+                Text(
+                  subtitle,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: onPrimary.withValues(alpha: 0.92),
+                    height: 1.45,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

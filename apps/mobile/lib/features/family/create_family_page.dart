@@ -53,9 +53,15 @@ class _CreateFamilyPageState extends State<CreateFamilyPage> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear hogar')),
+      extendBodyBehindAppBar: true,
+      appBar: sanctuaryAppBar(context, title: 'Crear hogar'),
       body: ListView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.fromLTRB(
+          24,
+          MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+          24,
+          32 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           CozyCard(
             child: Text(

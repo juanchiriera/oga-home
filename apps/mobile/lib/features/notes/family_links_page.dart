@@ -13,11 +13,12 @@ class FamilyLinksPage extends StatelessWidget {
     final scheme = theme.colorScheme;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return const Scaffold(body: Center(child: Text('Sin sesion')));
+      return const Scaffold(body: Center(child: Text('Sin sesión')));
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Enlaces utiles')),
+      extendBodyBehindAppBar: true,
+      appBar: sanctuaryAppBar(context, title: 'Enlaces útiles'),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -30,7 +31,7 @@ class FamilyLinksPage extends StatelessWidget {
           final familyId = userSnap.data!.data()?['activeFamilyId'] as String?;
           if (familyId == null || familyId.isEmpty) {
             return const Center(
-              child: Text('Crea o elegi un hogar para gestionar enlaces.'),
+              child: Text('Creá o elegí un hogar para gestionar enlaces.'),
             );
           }
 
@@ -48,7 +49,12 @@ class FamilyLinksPage extends StatelessWidget {
               final docs = linksSnap.data!.docs;
               if (docs.isEmpty) {
                 return ListView(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                    24,
+                    28 + MediaQuery.paddingOf(context).bottom,
+                  ),
                   children: [
                     CozyCard(
                       child: Row(
@@ -99,7 +105,12 @@ class FamilyLinksPage extends StatelessWidget {
               }
 
               return ListView(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                  24,
+                  28 + MediaQuery.paddingOf(context).bottom,
+                ),
                 children: [
                   CozyCard(
                     child: Row(

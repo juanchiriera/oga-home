@@ -1,3 +1,4 @@
+import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/services/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -35,7 +36,8 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Perfil familiar')),
+      extendBodyBehindAppBar: true,
+      appBar: sanctuaryAppBar(context, title: 'Hogar familiar'),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -57,7 +59,12 @@ class _ProfilePageState extends State<ProfilePage> {
           }
 
           return ListView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.fromLTRB(
+              24,
+              MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+              24,
+              32 + MediaQuery.paddingOf(context).bottom,
+            ),
             children: [
               _ProfileHeader(
                 displayName: _nameController.text.trim().isEmpty
@@ -66,17 +73,20 @@ class _ProfilePageState extends State<ProfilePage> {
                 photoUrl: _photoUrlController.text.trim(),
               ),
               const SizedBox(height: 24),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Form(
+              CozyCard(
+                color: Theme.of(context).colorScheme.surfaceContainerLowest,
+                padding: const EdgeInsets.all(20),
+                child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
                           'Editar perfil',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
@@ -124,7 +134,6 @@ class _ProfilePageState extends State<ProfilePage> {
                         ),
                       ],
                     ),
-                  ),
                 ),
               ),
             ],
@@ -171,33 +180,59 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            _AvatarCircle(displayName: displayName, photoUrl: photoUrl),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    displayName,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+    final scheme = Theme.of(context).colorScheme;
+    return CozyCard(
+      color: scheme.surfaceContainerLow,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          Center(
+            child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              _AvatarCircle(displayName: displayName, photoUrl: photoUrl),
+              Positioned(
+                right: -4,
+                bottom: -4,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: scheme.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: scheme.shadow.withValues(alpha: 0.12),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Administrador familiar',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Icon(Icons.edit_rounded, size: 16, color: scheme.onPrimary),
                   ),
-                ],
+                ),
               ),
+            ],
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            displayName,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Coordinación del hogar',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: scheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -211,7 +246,7 @@ class _AvatarCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const size = 88.0;
+    const size = 112.0;
     final hasPhoto = photoUrl.trim().isNotEmpty;
     final initials = _buildInitials(displayName);
     final scheme = Theme.of(context).colorScheme;
