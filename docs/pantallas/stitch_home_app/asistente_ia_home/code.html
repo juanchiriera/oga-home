@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sanctuary - Home</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#194e4d",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary": "#3a6847",
+                    "on-secondary-fixed-variant": "#225031",
+                    "on-error-container": "#93000a",
+                    "surface-variant": "#e4e4cc",
+                    "surface-container-low": "#f5f5dc",
+                    "tertiary-fixed": "#ffddb3",
+                    "inverse-primary": "#9cd0cd",
+                    "surface-container": "#efefd7",
+                    "surface-dim": "#dbdcc3",
+                    "inverse-on-surface": "#f2f2d9",
+                    "secondary-fixed": "#bcefc5",
+                    "surface-container-highest": "#e4e4cc",
+                    "outline-variant": "#bfc8c7",
+                    "on-tertiary-fixed": "#291800",
+                    "outline": "#707978",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#406e4d",
+                    "inverse-surface": "#303221",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed-dim": "#a1d2aa",
+                    "on-primary-container": "#a3d7d4",
+                    "error": "#ba1a1a",
+                    "on-surface-variant": "#404848",
+                    "tertiary": "#553b12",
+                    "on-tertiary": "#ffffff",
+                    "on-secondary-fixed": "#00210d",
+                    "surface-container-high": "#eaead1",
+                    "on-tertiary-fixed-variant": "#5d4219",
+                    "surface": "#fbfbe2",
+                    "surface-bright": "#fbfbe2",
+                    "tertiary-container": "#6f5227",
+                    "on-background": "#1b1d0e",
+                    "tertiary-fixed-dim": "#e8c08c",
+                    "on-tertiary-container": "#efc792",
+                    "primary-container": "#2c5f5d",
+                    "surface-tint": "#346664",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed": "#00201f",
+                    "on-error": "#ffffff",
+                    "primary-fixed": "#b8ece9",
+                    "secondary-container": "#bcefc5",
+                    "primary": "#0f4746",
+                    "background": "#fbfbe2",
+                    "on-surface": "#1b1d0e",
+                    "primary-fixed-dim": "#9cd0cd"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "body": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "label": [
+                            "Plus Jakarta Sans"
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen relative overflow-x-hidden">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-[#fbfbe2]/80 backdrop-blur-xl shadow-sm shadow-[#1b1d0e]/5">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high flex-shrink-0 shadow-sm">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Close up portrait of a young professional woman with soft natural lighting and a warm smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjNgD_RsF5j_V-VY4eoPihjJuUtNhHy3al1xpB6VcZh2ob7hXSizGDy3piZD7zhWIyA8byIL2CYWoEfwcWUrnwKERxbaxEToaX-UD7nO3b0yF9hSWHSB-YQ5osxoHbdS1wV88rEvO6FF-XpIpPJXGUyweF5jueFkiSvJheuwgzN4PIsx4brK-DsPoOndXFcMtlGPJ-6uTnSUoIP5He0uYO6h5WekNSp3-Gr_t9EFWIgqCq5lSccEof4-x8ji2Ka9-fID_5DoyT5rA"/>
+</div>
+<h1 class="font-['Plus_Jakarta_Sans'] text-lg font-bold tracking-tight text-[#0f4746] text-2xl italic">Sanctuary</h1>
+<button class="text-[#0f4746] hover:bg-[#efefd7] transition-colors tap-highlight-transparent active:scale-95 transition-transform p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-28 pb-36 px-6 max-w-2xl mx-auto">
+<!-- The Protagonist (AI Assistant Chat Bubble) -->
+<section class="mb-12 relative">
+<div class="absolute -inset-4 bg-tertiary-fixed/30 blur-3xl rounded-full z-0 pointer-events-none"></div>
+<div class="relative z-10 bg-tertiary-container rounded-[2.5rem] rounded-tl-xl p-6 shadow-lg shadow-tertiary-container/20 border border-white/10 max-w-[90%] float-left">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-8 h-8 rounded-full bg-surface/20 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-tertiary-fixed text-lg" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<span class="font-label text-sm text-tertiary-fixed font-bold tracking-wide">Assistant</span>
+</div>
+<p class="font-body text-on-tertiary-container text-[1.1rem] leading-relaxed">
+                    Welcome home! How can I help you manage the house today?
+                </p>
+</div>
+<div class="clear-both"></div>
+</section>
+<!-- Quick Actions (Bento Grid) -->
+<section class="mb-12">
+<h2 class="font-headline text-lg font-semibold text-primary mb-5 px-2">Quick Actions</h2>
+<div class="grid grid-cols-2 gap-4">
+<!-- Action 1 -->
+<button class="flex flex-col items-start p-5 bg-surface-container-high rounded-lg hover:bg-surface-variant transition-colors active:scale-[0.98] shadow-sm shadow-on-surface/5 group">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+</div>
+<span class="font-label text-sm font-semibold text-on-surface">Add expense</span>
+</button>
+<!-- Action 2 -->
+<button class="flex flex-col items-start p-5 bg-surface-container-high rounded-lg hover:bg-surface-variant transition-colors active:scale-[0.98] shadow-sm shadow-on-surface/5 group">
+<div class="w-12 h-12 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">kitchen</span>
+</div>
+<span class="font-label text-sm font-semibold text-on-surface">Check pantry</span>
+</button>
+<!-- Action 3 (Spans full width for emphasis) -->
+<button class="col-span-2 flex items-center justify-between p-6 bg-primary-container text-on-primary-container rounded-lg hover:bg-[#255250] transition-colors active:scale-[0.99] shadow-md shadow-primary-container/20 group overflow-hidden relative">
+<div class="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-14 h-14 rounded-full bg-surface/10 flex items-center justify-center backdrop-blur-md">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<div class="flex flex-col items-start">
+<span class="font-label text-base font-bold text-white mb-0.5">New recipe</span>
+<span class="font-body text-xs text-on-primary-container/80">Discover culinary inspiration</span>
+</div>
+</div>
+<span class="material-symbols-outlined opacity-70 group-hover:translate-x-1 transition-transform relative z-10">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- PRO Features Highlight -->
+<section class="relative overflow-hidden rounded-xl shadow-xl shadow-primary-container/10 active:scale-[0.99] transition-transform cursor-pointer">
+<div class="absolute inset-0 bg-gradient-to-br from-primary to-primary-container z-0"></div>
+<!-- Organic decorative shape -->
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-primary-fixed/20 blur-3xl rounded-full z-0 pointer-events-none"></div>
+<div class="relative z-10 p-7 flex flex-col items-start">
+<div class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[10px] font-bold uppercase tracking-widest mb-5 shadow-sm">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+                    PRO
+                </div>
+<h3 class="font-headline text-2xl text-on-primary mb-2 font-medium tracking-tight">Elevate Your Home</h3>
+<p class="font-body text-sm text-on-primary-container mb-6 max-w-[85%] leading-relaxed">
+                    Unlock advanced meal planning, automated budget tracking, and custom routines to craft your perfect sanctuary.
+                </p>
+<div class="mt-auto inline-flex items-center justify-center px-6 py-3 bg-surface text-primary rounded-full font-label text-sm font-bold shadow-md hover:bg-surface-container-lowest transition-colors">
+                    Explore Features
+                </div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] rounded-[3rem] z-50 bg-[#efefd7]/90 backdrop-blur-2xl shadow-[0_20px_50px_rgba(27,29,14,0.1)] flex justify-around items-center px-4 py-3">
+<!-- Assistant (Active) -->
+<button class="flex flex-col items-center justify-center bg-[#0f4746] text-[#ffffff] rounded-full w-14 h-14 shadow-lg shadow-[#0f4746]/20 active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent relative">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-medium absolute -bottom-4 text-primary opacity-0 pointer-events-none">Assistant</span>
+</button>
+<!-- Notes (Inactive) -->
+<button class="flex flex-col items-center justify-center text-[#3a6847] p-2 hover:bg-[#eaead1] rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Notes</span>
+</button>
+<!-- Wallet (Inactive) -->
+<button class="flex flex-col items-center justify-center text-[#3a6847] p-2 hover:bg-[#eaead1] rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Wallet</span>
+</button>
+<!-- Pantry (Inactive) -->
+<button class="flex flex-col items-center justify-center text-[#3a6847] p-2 hover:bg-[#eaead1] rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">shelves</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Pantry</span>
+</button>
+<!-- Kitchen (Inactive) -->
+<button class="flex flex-col items-center justify-center text-[#3a6847] p-2 hover:bg-[#eaead1] rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">restaurant_menu</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Kitchen</span>
+</button>
+</nav>
+</body></html>

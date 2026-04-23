@@ -11,7 +11,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  analyze_and_apk:
+  lint_and_test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Pub get
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: flutter test
+
+  build_android:
+    needs: lint_and_test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,12 +48,11 @@ jobs:
           cache: true
       - name: Pub get
         run: flutter pub get
-      - name: Analyze
-        run: flutter analyze
       - name: Build APK (dev flavor)
         run: flutter build apk --flavor dev --dart-define=FLAVOR=dev
 
   build_ios:
+    needs: lint_and_test
     runs-on: macos-latest
     defaults:
       run:

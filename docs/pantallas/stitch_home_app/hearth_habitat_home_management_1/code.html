@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login - Hearth &amp; Habitat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#1b1d0e",
+                        "error": "#ba1a1a",
+                        "surface-container": "#efefd7",
+                        "primary-container": "#2c5f5d",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#6f5227",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#efc792",
+                        "surface": "#fbfbe2",
+                        "surface-container-low": "#f5f5dc",
+                        "surface-container-highest": "#e4e4cc",
+                        "on-tertiary-fixed-variant": "#5d4219",
+                        "surface-tint": "#346664",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-primary": "#ffffff",
+                        "on-primary-container": "#a3d7d4",
+                        "on-primary-fixed": "#00201f",
+                        "background": "#fbfbe2",
+                        "secondary-fixed-dim": "#a1d2aa",
+                        "primary": "#0f4746",
+                        "surface-bright": "#fbfbe2",
+                        "on-surface-variant": "#404848",
+                        "secondary": "#3a6847",
+                        "secondary-fixed": "#bcefc5",
+                        "on-tertiary-fixed": "#291800",
+                        "on-secondary-fixed": "#00210d",
+                        "inverse-on-surface": "#f2f2d9",
+                        "on-background": "#1b1d0e",
+                        "surface-container-high": "#eaead1",
+                        "surface-dim": "#dbdcc3",
+                        "outline": "#707978",
+                        "secondary-container": "#bcefc5",
+                        "surface-variant": "#e4e4cc",
+                        "on-secondary-container": "#406e4d",
+                        "tertiary-fixed": "#ffddb3",
+                        "tertiary-fixed-dim": "#e8c08c",
+                        "primary-fixed-dim": "#9cd0cd",
+                        "outline-variant": "#bfc8c7",
+                        "inverse-surface": "#303221",
+                        "primary-fixed": "#b8ece9",
+                        "inverse-primary": "#9cd0cd",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed-variant": "#194e4d",
+                        "on-secondary-fixed-variant": "#225031",
+                        "tertiary": "#553b12"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #fbfbe2;
+        }
+        .organic-blob {
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col items-center justify-center p-6 selection:bg-primary-container selection:text-on-primary-container">
+<header class="fixed top-0 left-0 w-full z-50 bg-[#fbfbe2] dark:bg-[#1b1d0e] rounded-b-[3rem] shadow-[0_20px_50px_rgba(27,29,14,0.05)]">
+<div class="flex items-center justify-between px-8 py-6 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#0f4746] dark:text-[#bcefc5] text-3xl" data-icon="home_app_fill" style="font-variation-settings: 'FILL' 1;">home_filled</span>
+<span class="text-[#0f4746] dark:text-[#efefd7] font-semibold text-xl tracking-tight font-headline">Hearth &amp; Habitat</span>
+</div>
+</div>
+</header>
+<main class="w-full max-w-md mt-24 flex flex-col gap-8">
+<div class="text-center space-y-2">
+<h1 class="text-4xl font-extrabold tracking-tight text-primary leading-tight">Welcome home</h1>
+<p class="text-secondary font-medium opacity-80 body-md">Enter your details to manage your sanctuary.</p>
+</div>
+<section class="bg-surface-container-low rounded-xl p-8 shadow-[0_40px_100px_rgba(15,71,70,0.06)] relative overflow-hidden">
+<div class="absolute -top-12 -right-12 w-48 h-48 bg-secondary-container/20 organic-blob -z-0"></div>
+<form class="space-y-6 relative z-10">
+<div class="space-y-2">
+<label class="block text-sm font-semibold text-primary ml-1" for="email">Email address</label>
+<input class="w-full px-6 py-4 rounded-full bg-surface-container-highest border-none focus:ring-2 focus:ring-primary-container text-on-surface placeholder:text-outline/50 transition-all" id="email" placeholder="hello@hearth.com" type="email"/>
+</div>
+<div class="space-y-2">
+<div class="flex items-center justify-between ml-1">
+<label class="block text-sm font-semibold text-primary" for="password">Password</label>
+<a class="text-xs font-bold text-secondary hover:text-primary transition-colors" href="#">Forgot Password?</a>
+</div>
+<div class="relative">
+<input class="w-full px-6 py-4 rounded-full bg-surface-container-highest border-none focus:ring-2 focus:ring-primary-container text-on-surface placeholder:text-outline/50 transition-all" id="password" placeholder="••••••••" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-outline" type="button">
+<span class="material-symbols-outlined text-xl" data-icon="visibility">visibility</span>
+</button>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-4 rounded-full font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-300" type="submit">
+                    Login
+                </button>
+</form>
+<div class="mt-8 pt-8 border-t border-outline-variant/15 text-center">
+<p class="text-on-surface-variant text-sm mb-4">Don't have an account yet?</p>
+<a class="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-surface-container-high text-primary font-bold hover:bg-secondary-container transition-all active:scale-95" href="#">
+                    Sign Up
+                    <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</a>
+</div>
+</section>
+<section class="bg-tertiary-container/10 border-2 border-dashed border-tertiary-container/30 rounded-xl p-6 flex flex-col items-center text-center gap-4">
+<div class="bg-tertiary-container text-on-tertiary-container p-3 rounded-full shadow-inner">
+<span class="material-symbols-outlined text-2xl" data-icon="group_add" style="font-variation-settings: 'FILL' 1;">group_add</span>
+</div>
+<div class="space-y-1">
+<h3 class="font-bold text-tertiary text-lg">Accept Household Invitation</h3>
+<p class="text-on-tertiary-fixed-variant text-sm">Joining an existing space? Enter your access code here.</p>
+</div>
+<button class="bg-tertiary text-on-tertiary px-8 py-3 rounded-full font-bold text-sm hover:opacity-90 active:scale-95 transition-all">
+                Redeem Invite Code
+            </button>
+</section>
+</main>
+<footer class="mt-12 mb-8 text-center">
+<div class="flex justify-center gap-4 mb-6">
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined" data-icon="spa">spa</span>
+</div>
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined" data-icon="energy_savings_leaf">energy_savings_leaf</span>
+</div>
+<div class="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined" data-icon="nest_eco_leaf">nest_eco_leaf</span>
+</div>
+</div>
+<p class="text-outline text-xs tracking-widest uppercase font-bold opacity-60">Sustainable Living • Conscious Design</p>
+</footer>
+<div class="fixed -bottom-24 -left-24 w-64 h-64 bg-primary-container/5 organic-blob -z-10 rotate-45"></div>
+<div class="fixed top-1/4 -right-32 w-80 h-80 bg-tertiary-container/5 organic-blob -z-10 -rotate-12"></div>
+</body></html>

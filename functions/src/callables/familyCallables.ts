@@ -13,6 +13,21 @@ function requireAuth(request: { auth?: { uid: string } | null }): string {
   return request.auth.uid;
 }
 
+async function assertEntitlement(familyId: string, key: string): Promise<void> {
+  const billingDoc = await admin
+    .firestore()
+    .doc(`families/${familyId}/billing/entitlements`)
+    .get();
+
+  const enabled = billingDoc.get(`entitlements.${key}`) === true;
+  if (!enabled) {
+    throw new HttpsError(
+      "permission-denied",
+      `Entitlement ${key} requerido para esta operación`,
+    );
+  }
+}
+
 export const createFamily = onCall({ region }, async (request) => {
   const uid = requireAuth(request);
   const name = String(request.data?.name ?? "").trim();
@@ -27,6 +42,11 @@ export const createFamily = onCall({ region }, async (request) => {
   batch.set(familyRef, {
     name,
     baseCurrency,
+    settings: {
+      stock: {
+        include_low: false,
+      },
+    },
     createdBy: uid,
     createdAt: FieldValue.serverTimestamp(),
   });
@@ -37,6 +57,19 @@ export const createFamily = onCall({ region }, async (request) => {
   batch.set(
     db.collection("users").doc(uid),
     { activeFamilyId: familyRef.id },
+    { merge: true },
+  );
+  // Base para assertEntitlement (invites) antes del primer evento RevenueCat.
+  batch.set(
+    familyRef.collection("billing").doc("entitlements"),
+    {
+      familyId: familyRef.id,
+      source: "bootstrap",
+      entitlements: {
+        invites: true,
+      },
+      updatedAt: FieldValue.serverTimestamp(),
+    },
     { merge: true },
   );
   await batch.commit();
@@ -60,6 +93,7 @@ export const createFamilyInvite = onCall({ region }, async (request) => {
   if (!memberSnap.exists || memberSnap.get("role") !== "owner") {
     throw new HttpsError("permission-denied", "Solo owners pueden invitar");
   }
+  await assertEntitlement(familyId, "invites");
 
   const token = randomBytes(24).toString("hex");
   const ttlDays = Number(request.data?.ttlDays ?? 7);
@@ -119,6 +153,7 @@ export const acceptFamilyInvite = onCall({ region }, async (request) => {
   if (!familyId) {
     throw new HttpsError("internal", "Ruta de invitación inválida");
   }
+  await assertEntitlement(familyId, "invites");
 
   const batch = db.batch();
   batch.update(doc.ref, {
@@ -159,6 +194,7 @@ export const revokeFamilyInvite = onCall({ region }, async (request) => {
   if (!memberSnap.exists || memberSnap.get("role") !== "owner") {
     throw new HttpsError("permission-denied", "Solo owners pueden revocar");
   }
+  await assertEntitlement(familyId, "invites");
 
   const inviteRef = db
     .collection("families")
@@ -175,3 +211,7 @@ export const revokeFamilyInvite = onCall({ region }, async (request) => {
   });
   return { ok: true };
 });
+
+// TODO(E3-04): cuando se implementen nuevos callables de dominios pagos
+// (p.ej. assistant, stock avanzado, importaciones), aplicar assertEntitlement
+// con la key del módulo antes de mutaciones/compute costoso.

@@ -3,6 +3,7 @@ firebase-debug.log
 firebase-debug.*.log
 functions/node_modules/
 functions/lib/
+functions/.env.oga-home
 
 # Dart tooling (workspace root)
 .dart_tool/

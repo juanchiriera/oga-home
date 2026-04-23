@@ -23,6 +23,14 @@ service cloud.firestore {
       return isFamilyMember(familyId) && memberRole(familyId) == 'owner';
     }
 
+    function hasOptionalString(data, key) {
+      return !data.keys().hasAny([key]) || data[key] is string;
+    }
+
+    function isHttpsString(value) {
+      return value is string && value.matches('^https://.+');
+    }
+
     match /users/{userId} {
       allow read: if isSelf(userId);
       allow create, update: if isSelf(userId);
@@ -31,7 +39,19 @@ service cloud.firestore {
 
     match /families/{familyId} {
       allow read: if isFamilyMember(familyId);
-      allow write: if false;
+      allow create, delete: if false;
+      allow update: if isFamilyMember(familyId)
+        && request.resource.data.keys().hasOnly([
+          'name',
+          'baseCurrency',
+          'settings',
+          'createdBy',
+          'createdAt',
+        ])
+        && request.resource.data.name == resource.data.name
+        && request.resource.data.baseCurrency == resource.data.baseCurrency
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
 
       match /members/{memberId} {
         allow read: if isFamilyMember(familyId);
@@ -48,9 +68,129 @@ service cloud.firestore {
         allow create: if isFamilyMember(familyId)
           && request.resource.data.keys().hasAll(['name', 'state', 'updatedAt'])
           && request.resource.data.name is string
-          && request.resource.data.state is string;
-        allow update: if isFamilyMember(familyId);
+          && request.resource.data.state is string
+          && (!('updatedBy' in request.resource.data)
+            || (request.resource.data.updatedBy is string
+              && request.resource.data.updatedBy == request.auth.uid))
+          && (!('conflictPolicy' in request.resource.data)
+            || request.resource.data.conflictPolicy == 'lww-v1')
+          && (!('clientUpdatedAt' in request.resource.data)
+            || request.resource.data.clientUpdatedAt is timestamp);
+        allow update: if isFamilyMember(familyId)
+          && (!('updatedBy' in request.resource.data)
+            || (request.resource.data.updatedBy is string
+              && request.resource.data.updatedBy == request.auth.uid))
+          && (!('conflictPolicy' in request.resource.data)
+            || request.resource.data.conflictPolicy == 'lww-v1')
+          && (!('clientUpdatedAt' in request.resource.data)
+            || request.resource.data.clientUpdatedAt is timestamp);
         allow delete: if isFamilyMember(familyId);
+      }
+
+      match /expenses/{expenseId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll([
+            'amount',
+            'categoryKey',
+            'occurredAt',
+            'createdAt',
+            'updatedAt',
+            'createdBy'
+          ])
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.categoryKey is string
+          && request.resource.data.occurredAt is timestamp
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdBy is string
+          && request.resource.data.createdBy == request.auth.uid
+          && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
+          && (!('note' in request.resource.data) || request.resource.data.note is string);
+        allow update: if isFamilyMember(familyId)
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.categoryKey is string
+          && request.resource.data.occurredAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdBy is string;
+        allow delete: if isFamilyMember(familyId);
+      }
+
+      match /sharedNotes/{noteId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll(['title', 'content', 'createdAt', 'updatedAt'])
+          && request.resource.data.title is string
+          && request.resource.data.content is string;
+        allow update: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll(['title', 'content', 'updatedAt'])
+          && request.resource.data.title is string
+          && request.resource.data.content is string;
+        allow delete: if isFamilyMember(familyId);
+      }
+
+      match /recipes/{recipeId} {
+        // Alineado con RecipeDraft.toFirestore: metadatos de sync y tags opcional.
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.titulo is string
+          && request.resource.data.descripcion is string
+          && request.resource.data.ingredientes is list
+          && request.resource.data.pasos is list
+          && request.resource.data.tiempoMin is int
+          && request.resource.data.porciones is int
+          && request.resource.data.favorita is bool
+          && request.resource.data.updatedBy is string
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.createdBy is string
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.clientUpdatedAt is timestamp
+          && request.resource.data.conflictPolicy is string
+          && (!('tags' in request.resource.data) || request.resource.data.tags is list);
+        allow update: if isFamilyMember(familyId)
+          && request.resource.data.titulo is string
+          && request.resource.data.descripcion is string
+          && request.resource.data.ingredientes is list
+          && request.resource.data.pasos is list
+          && request.resource.data.tiempoMin is int
+          && request.resource.data.porciones is int
+          && request.resource.data.favorita is bool
+          && request.resource.data.updatedBy is string
+          && request.resource.data.updatedBy == request.auth.uid
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.clientUpdatedAt is timestamp
+          && request.resource.data.conflictPolicy is string
+          && (!('tags' in request.resource.data) || request.resource.data.tags is list);
+        allow delete: if isFamilyMember(familyId);
+      }
+
+      match /family_links/{linkId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll(['url', 'updatedAt'])
+          && isHttpsString(request.resource.data.url)
+          && hasOptionalString(request.resource.data, 'title')
+          && hasOptionalString(request.resource.data, 'note');
+        allow update: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll(['url', 'updatedAt'])
+          && isHttpsString(request.resource.data.url)
+          && hasOptionalString(request.resource.data, 'title')
+          && hasOptionalString(request.resource.data, 'note');
+        allow delete: if isFamilyMember(familyId);
+      }
+
+      match /billing/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+
+      match /billingEvents/{eventId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
       }
     }
 

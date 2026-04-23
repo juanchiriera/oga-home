@@ -1,3 +1,4 @@
+import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
@@ -49,11 +50,22 @@ class _CreateFamilyPageState extends State<CreateFamilyPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Crear hogar')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          CozyCard(
+            child: Text(
+              'Completá los datos para crear tu espacio familiar compartido.',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           TextField(
             controller: _name,
             decoration: const InputDecoration(labelText: 'Nombre del hogar'),
@@ -77,13 +89,17 @@ class _CreateFamilyPageState extends State<CreateFamilyPage> {
             ),
           ),
           const SizedBox(height: 24),
-          FilledButton(
+          CozyPrimaryButton(
             onPressed: _busy ? null : _submit,
-            child: Text(_busy ? 'Creando…' : 'Crear hogar'),
+            label: _busy ? 'Creando…' : 'Crear hogar',
+            icon: Icons.home_work_rounded,
           ),
           if (_error != null) ...[
             const SizedBox(height: 16),
-            Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
           ],
         ],
       ),

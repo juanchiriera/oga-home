@@ -26,7 +26,8 @@ Crea secretos **por proyecto** (mismos nombres en cada uno para simplificar CI):
 | Nombre sugerido            | Uso                                      |
 | -------------------------- | ---------------------------------------- |
 | `GEMINI_API_KEY`           | Llamadas Gemini desde Cloud Functions    |
-| `REVENUECAT_WEBHOOK_SECRET`| Verificación HMAC de webhooks RevenueCat |
+| `RC_WEBHOOK_SECRET`        | Verificación HMAC de webhooks RevenueCat |
+| `RC_WEBHOOK_SIGNATURE_HEADER` | Header de firma webhook (default `X-RevenueCat-Signature`) |
 
 Por proyecto:
 
@@ -54,6 +55,15 @@ export const securePing = onRequest(
 ```
 
 Despliega solo después de `firebase functions:secrets:set GEMINI_API_KEY` en ese proyecto.
+
+### RevenueCat webhook (E3-02)
+
+- Function: `revenuecatWebhook` (HTTPS, Functions v2).
+- Firma: HMAC SHA-256 sobre `rawBody`.
+- Secreto requerido: `RC_WEBHOOK_SECRET`.
+- Header de firma configurable con parámetro `RC_WEBHOOK_SIGNATURE_HEADER` (si no está, usa `X-RevenueCat-Signature`).
+- Idempotencia: deduplicación por `event_id` en `families/{familyId}/billingEvents/{eventId}`.
+- Proyección de estado para cliente en `families/{familyId}/billing/current`.
 
 ## 4. Flutter: sin secretos en repo
 

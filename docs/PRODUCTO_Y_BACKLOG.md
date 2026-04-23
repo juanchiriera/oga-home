@@ -373,6 +373,7 @@ Registrar auditoría en **Firestore** (colección o subcolección **AssistantAct
 - **App Flutter:** SDK de RevenueCat; configuración de productos / entitlements en el dashboard de RevenueCat alineados a suscripciones en App Store y Google Play.
 - **Identidad RC ↔ familia:** definir un `**app_user_id` estable por familia** (o convención documentada, ej. prefijo + `family_id`) para que el estado de compra refleje el hogar; alternativa: vincular compras del comprador inicial mediante webhook que escribe en `families/{id}/billing`.
 - **Webhooks RevenueCat → Cloud Function (HTTPS):** validación de firma, idempotencia por `event_id`, actualización de documento(s) de suscripción / entitlements en **Firestore**.
+- **Implementación E3-02 (actual):** `familyId` se toma directo desde `app_user_id`; firma HMAC con `RC_WEBHOOK_SECRET` y header configurable (`RC_WEBHOOK_SIGNATURE_HEADER`, default `X-RevenueCat-Signature`); idempotencia en `families/{familyId}/billingEvents/{eventId}` y proyección en `families/{familyId}/billing/current`.
 - **Restaurar compras** y manejo de **billing issues** según guías RC + pantallas propias (§9.4).
 
 ### 9.2 Entitlements (ejemplos)

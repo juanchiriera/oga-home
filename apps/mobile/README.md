@@ -2,7 +2,12 @@
 
 Google Sign-In requiere `google-services.json` (Android) y configuración iOS; además definí `FIREBASE_*` vía `--dart-define` o reemplazá `lib/core/firebase_options.dart` con la salida de `flutterfire configure`.
 
-Deep link de invitación: `craftr://invite/<token>` (Android + iOS).
+Deep links soportados:
+
+- Invitación: `craftr://invite/<token>` (Android + iOS).
+- Familia + entidad: `craftr://family/<familyId>/<entityType>/<entityId>`.
+
+Si no hay sesión iniciada y se abre un deep link, la app guarda el destino y redirige después de login.
 
 ## Getting Started
 

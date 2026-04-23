@@ -1,37 +1,91 @@
 import 'package:craftr_mobile/core/flavor.dart';
+import 'package:craftr_mobile/core/entitlements_scope.dart';
+import 'package:craftr_mobile/features/expenses/expenses_page.dart';
 import 'package:craftr_mobile/features/home/home_dashboard_page.dart';
+import 'package:craftr_mobile/features/notes/shared_notes_page.dart';
+import 'package:craftr_mobile/features/recipes/recipes_page.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
 import 'package:flutter/material.dart';
 
 /// Navegación principal tipo “cozy” M3: barra inferior + secciones placeholder.
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  const MainShell({super.key, this.initialTab = 0});
+
+  final int initialTab;
+
+  static int tabFromQuery(String? tab) {
+    switch (tab?.toLowerCase()) {
+      case 'despensa':
+      case 'stock':
+        return 1;
+      case 'gastos':
+      case 'expenses':
+        return 2;
+      case 'recetas':
+      case 'recipes':
+        return 3;
+      case 'notas':
+      case 'notes':
+        return 4;
+      case 'ia':
+      case 'assistant':
+        return 5;
+      case 'inicio':
+      case 'home':
+      default:
+        return 0;
+    }
+  }
 
   @override
   State<MainShell> createState() => _MainShellState();
 }
 
 class _MainShellState extends State<MainShell> {
-  int _index = 0;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialTab;
+  }
+
+  @override
+  void didUpdateWidget(covariant MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab) {
+      _index = widget.initialTab;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final entitlements = MainShellEntitlementsScope.of(context);
+    final iaEnabled = entitlements.allOn;
     final flavor = AppFlavor.fromEnvironment();
     final pages = <Widget>[
       HomeDashboardPage(flavor: flavor),
       const StockListPage(),
-      const _PlaceholderPage(title: 'Gastos', icon: Icons.payments_outlined),
-      const _PlaceholderPage(title: 'Recetas', icon: Icons.restaurant_menu_outlined),
-      const _PlaceholderPage(title: 'Notas', icon: Icons.note_alt_outlined),
-      const _PlaceholderPage(title: 'Asistente', icon: Icons.chat_bubble_outline),
+      const ExpensesPage(),
+      const RecipesPage(),
+      const SharedNotesPage(),
     ];
+    if (iaEnabled) {
+      pages.add(
+        const _PlaceholderPage(
+          title: 'Asistente',
+          icon: Icons.chat_bubble_outline,
+        ),
+      );
+    }
+    final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
+      body: IndexedStack(index: selectedIndex, children: pages),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
+        selectedIndex: selectedIndex,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
@@ -57,11 +111,12 @@ class _MainShellState extends State<MainShell> {
             selectedIcon: Icon(Icons.note_alt),
             label: 'Notas',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'IA',
-          ),
+          if (iaEnabled)
+            const NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline),
+              selectedIcon: Icon(Icons.chat_bubble),
+              label: 'IA',
+            ),
         ],
       ),
     );
@@ -84,10 +139,7 @@ class _PlaceholderPage extends StatelessWidget {
           const SizedBox(height: 12),
           Text(title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          Text(
-            'Próximamente',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+          Text('Próximamente', style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
