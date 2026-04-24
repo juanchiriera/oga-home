@@ -38,3 +38,9 @@ export {
 } from "./callables/expenseCallables.js";
 
 export { geminiApiKey, importRecipeFromUrl } from "./callables/recipeCallables.js";
+
+export {
+  confirmExpenseImport,
+  processExpenseImport,
+  startExpenseImport,
+} from "./callables/expenseImportCallables.js";
