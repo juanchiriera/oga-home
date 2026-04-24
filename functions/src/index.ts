@@ -36,3 +36,9 @@ export {
   registerCardCycleClose,
   registerCardPayment,
 } from "./callables/expenseCallables.js";
+
+export {
+  confirmExpenseImport,
+  processExpenseImport,
+  startExpenseImport,
+} from "./callables/expenseImportCallables.js";
