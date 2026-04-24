@@ -147,7 +147,9 @@ service cloud.firestore {
           && (!('paymentMethodId' in request.resource.data)
             || request.resource.data.paymentMethodId is string)
           && (!('status' in request.resource.data)
-            || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled']);
+            || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled'])
+          && (!('currency' in request.resource.data)
+            || request.resource.data.currency in ['ARS', 'USD', 'EUR']);
         allow update: if isFamilyMember(familyId)
           && request.resource.data.amount is number
           && request.resource.data.amount > 0
@@ -158,7 +160,9 @@ service cloud.firestore {
           && (!('paymentMethodId' in request.resource.data)
             || request.resource.data.paymentMethodId is string)
           && (!('status' in request.resource.data)
-            || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled']);
+            || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled'])
+          && (!('currency' in request.resource.data)
+            || request.resource.data.currency in ['ARS', 'USD', 'EUR']);
         allow delete: if isFamilyMember(familyId);
       }
 

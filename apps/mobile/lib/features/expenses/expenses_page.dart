@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
+import 'package:craftr_mobile/features/expenses/expense_money.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -176,6 +177,14 @@ class _ExpensesPageState extends State<ExpensesPage> {
         .collection('families')
         .doc(familyId)
         .collection('paymentMethods');
+    final familyDoc = await FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .get();
+    final baseCurrency = normalizeCurrency(
+      familyDoc.data()?['baseCurrency'] as String?,
+      fallback: 'ARS',
+    );
     var methodsSnap = await pmCol.orderBy('name').get();
     while (methodsSnap.docs.isEmpty) {
       if (!context.mounted) {
@@ -226,9 +235,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final noteController = TextEditingController(
       text: initialData?['note'] as String? ?? '',
     );
-
     var selectedCategory = (initialData?['categoryKey'] as String?) ?? kExpenseCategories.first.key;
     var selectedDate = (initialData?['occurredAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    var selectedCurrency = normalizeCurrency(
+      initialData?['currency'] as String?,
+      fallback: baseCurrency,
+    );
 
     final pmIds = methodsSnap.docs.map((d) => d.id).toSet();
     var selectedPaymentMethodId = (initialData?['paymentMethodId'] as String?) ?? '';
@@ -251,6 +263,28 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     controller: amountController,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(labelText: 'Monto *'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('expense-currency-$selectedCurrency'),
+                    initialValue: selectedCurrency,
+                    decoration: InputDecoration(
+                      labelText: 'Moneda *',
+                      helperText: 'Moneda base familiar: $baseCurrency',
+                    ),
+                    items: kSupportedCurrencies
+                        .map(
+                          (currency) => DropdownMenuItem<String>(
+                            value: currency,
+                            child: Text(currency),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setLocal(() => selectedCurrency = value);
+                      }
+                    },
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
@@ -358,7 +392,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
       );
       return;
     }
-
     final methodDoc = methodsSnap.docs.firstWhere((d) => d.id == selectedPaymentMethodId);
     final mType = methodDoc.data()['type'] as String? ?? PaymentMethodTypes.other;
     var lifeStatus = ExpenseLifecycle.statusForPaymentMethodType(mType);
@@ -371,6 +404,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final now = FieldValue.serverTimestamp();
     final payload = <String, dynamic>{
       'amount': amount,
+      'currency': selectedCurrency,
       'categoryKey': selectedCategory,
       'occurredAt': Timestamp.fromDate(DateTime(
         selectedDate.year,
@@ -393,6 +427,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
       payload['createdAt'] = now;
       await collection.add(payload);
     } else {
+      payload['fxRate'] = FieldValue.delete();
+      payload['amountInBase'] = FieldValue.delete();
       await collection.doc(expenseId).update(payload);
     }
   }
@@ -633,9 +669,16 @@ class _ExpensesContent extends StatelessWidget {
     final pmQuery = familyRef.collection('paymentMethods').orderBy('name');
     final expensesQuery = familyRef.collection('expenses').orderBy('occurredAt', descending: true);
 
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: pmQuery.snapshots(),
-      builder: (context, pmSnap) {
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: familyRef.snapshots(),
+      builder: (context, familySnap) {
+        final baseCurrency = normalizeCurrency(
+          familySnap.data?.data()?['baseCurrency'] as String?,
+          fallback: 'ARS',
+        );
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: pmQuery.snapshots(),
+          builder: (context, pmSnap) {
         if (pmSnap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -651,9 +694,9 @@ class _ExpensesContent extends StatelessWidget {
           for (final d in pmDocs) d.id: d.data(),
         };
 
-        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-          stream: expensesQuery.snapshots(),
-          builder: (context, snap) {
+            return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream: expensesQuery.snapshots(),
+              builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
@@ -667,23 +710,28 @@ class _ExpensesContent extends StatelessWidget {
             final docs = snap.data?.docs ?? [];
 
             final monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1);
-            var monthlyEffective = 0.0;
-            var monthlyPendingCard = 0.0;
-            final byCategory = <String, double>{};
+            final monthlyEffectiveByCurrency = <String, double>{};
+            final monthlyPendingByCurrency = <String, double>{};
+            final byCategoryCurrency = <String, Map<String, double>>{};
             for (final doc in docs) {
               final data = doc.data();
               if ((data['status'] as String?) == ExpenseLifecycle.cancelled) {
                 continue;
               }
-              final amount = (data['amount'] as num?)?.toDouble() ?? 0;
+              final amount = expenseAmount(data);
+              final currency = expenseCurrency(data, fallback: baseCurrency);
               final categoryKey = data['categoryKey'] as String? ?? 'other';
               final occurredAt = (data['occurredAt'] as Timestamp?)?.toDate();
-              byCategory[categoryKey] = (byCategory[categoryKey] ?? 0) + amount;
+              final categoryTotals =
+                  byCategoryCurrency.putIfAbsent(categoryKey, () => <String, double>{});
+              categoryTotals[currency] = (categoryTotals[currency] ?? 0) + amount;
               if (occurredAt != null && !occurredAt.isBefore(monthStart)) {
                 if (ExpenseLifecycle.countsTowardEffectiveMonthly(data)) {
-                  monthlyEffective += amount;
+                  monthlyEffectiveByCurrency[currency] =
+                      (monthlyEffectiveByCurrency[currency] ?? 0) + amount;
                 } else if ((data['status'] as String?) == ExpenseLifecycle.pendingCardCycle) {
-                  monthlyPendingCard += amount;
+                  monthlyPendingByCurrency[currency] =
+                      (monthlyPendingByCurrency[currency] ?? 0) + amount;
                 }
               }
             }
@@ -729,20 +777,38 @@ class _ExpensesContent extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        '\$${monthlyEffective.toStringAsFixed(2)}',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                      if (monthlyEffectiveByCurrency.isEmpty)
+                        Text(
+                          'Sin movimientos del mes',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
+                      else
+                        ...formatTotalsByCurrency(monthlyEffectiveByCurrency).map(
+                          (line) => Text(
+                            line,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
-                      ),
-                      if (monthlyPendingCard > 0) ...[
+                      if (monthlyPendingByCurrency.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Text(
-                          'Pendiente en tarjeta (aún no en resumen): '
-                          '\$${monthlyPendingCard.toStringAsFixed(2)}',
+                          'Pendiente en tarjeta (aún no en resumen):',
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                             height: 1.4,
+                          ),
+                        ),
+                        ...formatTotalsByCurrency(monthlyPendingByCurrency).map(
+                          (line) => Text(
+                            line,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ],
@@ -771,7 +837,7 @@ class _ExpensesContent extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      if (byCategory.values.every((v) => v == 0))
+                      if (byCategoryCurrency.isEmpty)
                         Text(
                           'Sin datos aún.',
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -780,7 +846,7 @@ class _ExpensesContent extends StatelessWidget {
                         )
                       else
                         ...kExpenseCategories
-                            .where((c) => (byCategory[c.key] ?? 0) > 0)
+                            .where((c) => byCategoryCurrency.containsKey(c.key))
                             .map(
                               (c) {
                                 final accent = expenseCategoryAccent(scheme, c.colorIndex);
@@ -792,7 +858,9 @@ class _ExpensesContent extends StatelessWidget {
                                       const SizedBox(width: 10),
                                       Expanded(child: Text(c.label)),
                                       Text(
-                                        '\$${(byCategory[c.key] ?? 0).toStringAsFixed(2)}',
+                                        formatTotalsByCurrency(
+                                          byCategoryCurrency[c.key] ?? const <String, double>{},
+                                        ).join(' · '),
                                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
                                           fontWeight: FontWeight.w700,
                                         ),
@@ -930,6 +998,10 @@ class _ExpensesContent extends StatelessWidget {
                     (doc) {
                       final data = doc.data();
                       final amount = (data['amount'] as num?)?.toDouble() ?? 0;
+                      final currency = normalizeCurrency(
+                        data['currency'] as String?,
+                        fallback: baseCurrency,
+                      );
                       final categoryKey = data['categoryKey'] as String? ?? 'other';
                       final category = kExpenseCategories.firstWhere(
                         (c) => c.key == categoryKey,
@@ -956,7 +1028,7 @@ class _ExpensesContent extends StatelessWidget {
 
                       final sub = StringBuffer()
                         ..write('${category.label} • ${_formatDate(occurredAt ?? DateTime.now())}')
-                        ..write(' • \$${amount.toStringAsFixed(2)}')
+                        ..write(' • ${formatMoney(amount, currency)}')
                         ..write(pending ? ' • Pendiente tarjeta' : '')
                         ..write(pmLine);
                       if (note != null && note.trim().isNotEmpty) {
@@ -1024,6 +1096,8 @@ class _ExpensesContent extends StatelessWidget {
                     },
                   ),
               ],
+            );
+              },
             );
           },
         );

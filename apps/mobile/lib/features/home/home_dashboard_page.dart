@@ -2,6 +2,7 @@ import 'package:craftr_mobile/core/flavor.dart';
 import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
+import 'package:craftr_mobile/features/expenses/expense_money.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
@@ -85,7 +86,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             icon: CircleAvatar(
               radius: 18,
               backgroundColor: scheme.secondaryContainer,
-              backgroundImage: user.photoURL != null && user.photoURL!.isNotEmpty
+              backgroundImage:
+                  user.photoURL != null && user.photoURL!.isNotEmpty
                   ? NetworkImage(user.photoURL!)
                   : null,
               child: user.photoURL == null || user.photoURL!.isEmpty
@@ -120,7 +122,10 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance.collection('users').doc(uid).snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .snapshots(),
         builder: (context, userSnap) {
           if (!userSnap.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -154,7 +159,8 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 future: _billingState,
                 builder: (context, snap) {
                   final state = snap.data;
-                  if (snap.connectionState == ConnectionState.waiting && state == null) {
+                  if (snap.connectionState == ConnectionState.waiting &&
+                      state == null) {
                     return CozyCard(
                       color: scheme.surfaceContainer,
                       child: const Row(
@@ -269,454 +275,582 @@ class _HomeFamilyOverview extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final familyRef = FirebaseFirestore.instance.collection('families').doc(familyId);
+    final familyRef = FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId);
 
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: familyRef
-          .collection('expenses')
-          .orderBy('occurredAt', descending: true)
-          .limit(80)
-          .snapshots(),
-      builder: (context, expSnap) {
-        final monthStart = DateTime(DateTime.now().year, DateTime.now().month, 1);
-        var monthlyTotal = 0.0;
-        final byCategory = <String, double>{};
-        if (expSnap.hasData) {
-          for (final doc in expSnap.data!.docs) {
-            final d = doc.data();
-            if ((d['status'] as String?) == ExpenseLifecycle.cancelled) {
-              continue;
-            }
-            final amount = (d['amount'] as num?)?.toDouble() ?? 0;
-            final key = d['categoryKey'] as String? ?? 'other';
-            final occurredAt = (d['occurredAt'] as Timestamp?)?.toDate();
-            byCategory[key] = (byCategory[key] ?? 0) + amount;
-            if (occurredAt != null &&
-                !occurredAt.isBefore(monthStart) &&
-                ExpenseLifecycle.countsTowardEffectiveMonthly(d)) {
-              monthlyTotal += amount;
-            }
-          }
-        }
-
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: familyRef.snapshots(),
+      builder: (context, familySnap) {
+        final baseCurrency = normalizeCurrency(
+          familySnap.data?.data()?['baseCurrency'] as String?,
+          fallback: 'ARS',
+        );
         return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
           stream: familyRef
-              .collection('stockItems')
-              .where('state', whereIn: ['out', 'low'])
-              .orderBy('name')
-              .limit(8)
-              .snapshots(includeMetadataChanges: true),
-          builder: (context, stockSnap) {
-            final stockDocs = stockSnap.data?.docs ?? const [];
-            final alertCount = stockDocs.length;
+              .collection('expenses')
+              .orderBy('occurredAt', descending: true)
+              .limit(80)
+              .snapshots(),
+          builder: (context, expSnap) {
+            final monthStart = DateTime(
+              DateTime.now().year,
+              DateTime.now().month,
+              1,
+            );
+            final monthlyTotalByCurrency = <String, double>{};
+            final byCategory = <String, Map<String, double>>{};
+            if (expSnap.hasData) {
+              for (final doc in expSnap.data!.docs) {
+                final d = doc.data();
+                if ((d['status'] as String?) == ExpenseLifecycle.cancelled) {
+                  continue;
+                }
+                final amount = expenseAmount(d);
+                final currency = expenseCurrency(d, fallback: baseCurrency);
+                final key = d['categoryKey'] as String? ?? 'other';
+                final occurredAt = (d['occurredAt'] as Timestamp?)?.toDate();
+                final categoryTotals = byCategory.putIfAbsent(
+                  key,
+                  () => <String, double>{},
+                );
+                categoryTotals[currency] =
+                    (categoryTotals[currency] ?? 0) + amount;
+                if (occurredAt != null &&
+                    !occurredAt.isBefore(monthStart) &&
+                    ExpenseLifecycle.countsTowardEffectiveMonthly(d)) {
+                  monthlyTotalByCurrency[currency] =
+                      (monthlyTotalByCurrency[currency] ?? 0) + amount;
+                }
+              }
+            }
 
             return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: familyRef
-                  .collection('sharedNotes')
-                  .orderBy('updatedAt', descending: true)
-                  .limit(1)
-                  .snapshots(),
-              builder: (context, notesSnap) {
-                final noteDoc = notesSnap.data?.docs.isNotEmpty == true
-                    ? notesSnap.data!.docs.first
-                    : null;
+                  .collection('stockItems')
+                  .where('state', whereIn: ['out', 'low'])
+                  .orderBy('name')
+                  .limit(8)
+                  .snapshots(includeMetadataChanges: true),
+              builder: (context, stockSnap) {
+                final stockDocs = stockSnap.data?.docs ?? const [];
+                final alertCount = stockDocs.length;
 
                 return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                   stream: familyRef
-                      .collection('recipes')
-                      .orderBy('favorita', descending: true)
+                      .collection('sharedNotes')
                       .orderBy('updatedAt', descending: true)
                       .limit(1)
-                      .snapshots(includeMetadataChanges: true),
-                  builder: (context, recSnap) {
-                    final recDoc = recSnap.data?.docs.isNotEmpty == true
-                        ? recSnap.data!.docs.first
+                      .snapshots(),
+                  builder: (context, notesSnap) {
+                    final noteDoc = notesSnap.data?.docs.isNotEmpty == true
+                        ? notesSnap.data!.docs.first
                         : null;
-                    RecipeDraft? featured;
-                    if (recDoc != null) {
-                      featured = RecipeDraft.fromFirestore(recDoc.data());
-                    }
 
-                    final topChips = kExpenseCategories
-                        .where((c) => (byCategory[c.key] ?? 0) > 0)
-                        .take(4)
-                        .toList();
+                    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: familyRef
+                          .collection('recipes')
+                          .orderBy('favorita', descending: true)
+                          .orderBy('updatedAt', descending: true)
+                          .limit(1)
+                          .snapshots(includeMetadataChanges: true),
+                      builder: (context, recSnap) {
+                        final recDoc = recSnap.data?.docs.isNotEmpty == true
+                            ? recSnap.data!.docs.first
+                            : null;
+                        RecipeDraft? featured;
+                        if (recDoc != null) {
+                          featured = RecipeDraft.fromFirestore(recDoc.data());
+                        }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Hogar activo',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: scheme.secondary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SelectableText(
-                          familyId,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
+                        final topChips = kExpenseCategories
+                            .where((c) => byCategory.containsKey(c.key))
+                            .take(4)
+                            .toList();
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: FilledButton(
-                                onPressed: onInvites,
-                                child: const Text('Invitaciones'),
+                            Text(
+                              'Hogar activo',
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                color: scheme.secondary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(28),
-                          onTap: onOpenExpenses,
-                          child: CozyCard(
-                            color: scheme.surfaceContainerLow,
-                            padding: const EdgeInsets.all(22),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 4),
+                            SelectableText(
+                              familyId,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
                               children: [
-                                Row(
+                                Expanded(
+                                  child: FilledButton(
+                                    onPressed: onInvites,
+                                    child: const Text('Invitaciones'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(28),
+                              onTap: onOpenExpenses,
+                              child: CozyCard(
+                                color: scheme.surfaceContainerLow,
+                                padding: const EdgeInsets.all(22),
+                                child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Gasto reconocido del mes',
-                                            style: theme.textTheme.labelLarge?.copyWith(
-                                              color: scheme.secondary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            '\$${monthlyTotal.toStringAsFixed(2)}',
-                                            style: theme.textTheme.headlineSmall?.copyWith(
-                                              fontWeight: FontWeight.w800,
-                                              color: scheme.primary,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    FilledButton.tonalIcon(
-                                      onPressed: onOpenExpenses,
-                                      icon: const Icon(Icons.receipt_long_rounded, size: 20),
-                                      label: const Text('Escanear'),
-                                    ),
-                                  ],
-                                ),
-                                if (topChips.isNotEmpty) ...[
-                                  const SizedBox(height: 18),
-                                  Text(
-                                    'Categorías con movimiento',
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children: topChips
-                                        .map(
-                                          (c) => Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 14,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: scheme.surfaceContainerHigh,
-                                              borderRadius: BorderRadius.circular(999),
-                                            ),
-                                            child: Text(
-                                              '${c.label}: \$${(byCategory[c.key] ?? 0).toStringAsFixed(0)}',
-                                              style: theme.textTheme.labelSmall?.copyWith(
-                                                color: scheme.secondary,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
-                                          ),
-                                        )
-                                        .toList(),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(28),
-                          onTap: onOpenStock,
-                          child: CozyCard(
-                            color: scheme.surfaceContainer,
-                            padding: const EdgeInsets.all(22),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Alertas de despensa',
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          color: scheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                    Icon(Icons.kitchen_outlined, color: scheme.secondary),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  alertCount == 0
-                                      ? 'No hay ítems marcados como “no hay” o “queda poco”.'
-                                      : '$alertCount ítem${alertCount == 1 ? '' : 's'} para revisar.',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                const SizedBox(height: 14),
-                                if (!stockSnap.hasData)
-                                  const LinearProgressIndicator(minHeight: 3)
-                                else if (stockDocs.isEmpty)
-                                  Text(
-                                    'Todo en orden por ahora.',
-                                    style: theme.textTheme.bodyMedium,
-                                  )
-                                else
-                                  ...stockDocs.take(3).map((d) {
-                                    final s = d.data();
-                                    final name = s['name'] as String? ?? '(sin nombre)';
-                                    final level = StockLevel.parse(s['state'] as String?);
-                                    final isOut = level == StockLevel.out;
-                                    final dotColor = isOut ? scheme.error : scheme.tertiary;
-                                    return Padding(
-                                      padding: const EdgeInsets.only(bottom: 10),
-                                      child: CozyCard(
-                                        color: scheme.surfaceContainerLowest,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: dotColor,
-                                                shape: BoxShape.circle,
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: dotColor.withValues(alpha: 0.45),
-                                                    blurRadius: 8,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    name,
-                                                    style: theme.textTheme.titleSmall?.copyWith(
-                                                      fontWeight: FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    level.label,
-                                                    style: theme.textTheme.labelSmall?.copyWith(
-                                                      color: scheme.onSurfaceVariant,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Icon(Icons.add_circle_outline, color: scheme.primary),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }),
-                                const SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: TextButton(
-                                    onPressed: onOpenStock,
-                                    child: const Text('Ver despensa completa'),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(28),
-                          onTap: onOpenNotes,
-                          child: CozyCard(
-                            color: scheme.surfaceContainerHigh,
-                            padding: const EdgeInsets.all(22),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(Icons.description_outlined, color: scheme.primary),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      'Nota reciente',
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: scheme.primary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                if (noteDoc == null)
-                                  Text(
-                                    'Todavía no hay notas compartidas.',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  )
-                                else ...[
-                                  CozyCard(
-                                    color: scheme.surfaceContainerLow,
-                                    padding: const EdgeInsets.all(18),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          noteDoc.data()['title'] as String? ?? '(sin título)',
-                                          style: theme.textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            color: scheme.primary,
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'Gasto reconocido del mes',
+                                                style: theme
+                                                    .textTheme
+                                                    .labelLarge
+                                                    ?.copyWith(
+                                                      color: scheme.secondary,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              if (monthlyTotalByCurrency
+                                                  .isEmpty)
+                                                Text(
+                                                  'Sin movimientos del mes',
+                                                  style: theme
+                                                      .textTheme
+                                                      .titleMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color: scheme.primary,
+                                                      ),
+                                                )
+                                              else
+                                                ...formatTotalsByCurrency(
+                                                  monthlyTotalByCurrency,
+                                                ).map(
+                                                  (line) => Text(
+                                                    line,
+                                                    style: theme
+                                                        .textTheme
+                                                        .headlineSmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          color: scheme.primary,
+                                                        ),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          noteDoc.data()['content'] as String? ?? '',
-                                          maxLines: 4,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: theme.textTheme.bodySmall?.copyWith(
-                                            color: scheme.onSurfaceVariant,
-                                            height: 1.45,
+                                        FilledButton.tonalIcon(
+                                          onPressed: onOpenExpenses,
+                                          icon: const Icon(
+                                            Icons.receipt_long_rounded,
+                                            size: 20,
                                           ),
+                                          label: const Text('Escanear'),
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (featured != null) ...[
-                          const SizedBox(height: 16),
-                          InkWell(
-                            borderRadius: BorderRadius.circular(28),
-                            onTap: onOpenRecipes,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(28),
-                              child: Stack(
-                                children: [
-                                  Positioned.fill(
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            scheme.surfaceContainerHighest,
-                                            scheme.surfaceContainer,
-                                          ],
-                                        ),
+                                    if (topChips.isNotEmpty) ...[
+                                      const SizedBox(height: 18),
+                                      Text(
+                                        'Categorías con movimiento',
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
                                       ),
-                                    ),
-                                  ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(22),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: scheme.tertiaryContainer,
-                                            borderRadius: BorderRadius.circular(999),
-                                          ),
-                                          child: Text(
-                                            'Receta destacada',
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              color: scheme.onTertiaryContainer,
-                                              fontWeight: FontWeight.w800,
-                                              letterSpacing: 0.8,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        Text(
-                                          featured.titulo,
-                                          style: theme.textTheme.headlineSmall?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            color: scheme.onSurface,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.schedule_rounded,
-                                              size: 18,
-                                              color: scheme.secondary,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '${featured.tiempoMin} min',
-                                              style: theme.textTheme.labelMedium?.copyWith(
-                                                color: scheme.secondary,
+                                      const SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 8,
+                                        runSpacing: 8,
+                                        children: topChips
+                                            .map(
+                                              (c) => Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 8,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: scheme
+                                                      .surfaceContainerHigh,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        999,
+                                                      ),
+                                                ),
+                                                child: Text(
+                                                  '${c.label}: ${formatTotalsByCurrency(byCategory[c.key] ?? const <String, double>{}).join(' · ')}',
+                                                  style: theme
+                                                      .textTheme
+                                                      .labelSmall
+                                                      ?.copyWith(
+                                                        color: scheme.secondary,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                ),
                                               ),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Icon(
-                                              Icons.restaurant_menu_rounded,
-                                              size: 18,
-                                              color: scheme.secondary,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              '${featured.porciones} porciones',
-                                              style: theme.textTheme.labelMedium?.copyWith(
-                                                color: scheme.secondary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                                            )
+                                            .toList(),
+                                      ),
+                                    ],
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ],
+                            const SizedBox(height: 16),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(28),
+                              onTap: onOpenStock,
+                              child: CozyCard(
+                                color: scheme.surfaceContainer,
+                                padding: const EdgeInsets.all(22),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            'Alertas de despensa',
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w800,
+                                                  color: scheme.primary,
+                                                ),
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.kitchen_outlined,
+                                          color: scheme.secondary,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      alertCount == 0
+                                          ? 'No hay ítems marcados como “no hay” o “queda poco”.'
+                                          : '$alertCount ítem${alertCount == 1 ? '' : 's'} para revisar.',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    if (!stockSnap.hasData)
+                                      const LinearProgressIndicator(
+                                        minHeight: 3,
+                                      )
+                                    else if (stockDocs.isEmpty)
+                                      Text(
+                                        'Todo en orden por ahora.',
+                                        style: theme.textTheme.bodyMedium,
+                                      )
+                                    else
+                                      ...stockDocs.take(3).map((d) {
+                                        final s = d.data();
+                                        final name =
+                                            s['name'] as String? ??
+                                            '(sin nombre)';
+                                        final level = StockLevel.parse(
+                                          s['state'] as String?,
+                                        );
+                                        final isOut = level == StockLevel.out;
+                                        final dotColor = isOut
+                                            ? scheme.error
+                                            : scheme.tertiary;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 10,
+                                          ),
+                                          child: CozyCard(
+                                            color:
+                                                scheme.surfaceContainerLowest,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 12,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  width: 8,
+                                                  height: 8,
+                                                  decoration: BoxDecoration(
+                                                    color: dotColor,
+                                                    shape: BoxShape.circle,
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: dotColor
+                                                            .withValues(
+                                                              alpha: 0.45,
+                                                            ),
+                                                        blurRadius: 8,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        name,
+                                                        style: theme
+                                                            .textTheme
+                                                            .titleSmall
+                                                            ?.copyWith(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                            ),
+                                                      ),
+                                                      Text(
+                                                        level.label,
+                                                        style: theme
+                                                            .textTheme
+                                                            .labelSmall
+                                                            ?.copyWith(
+                                                              color: scheme
+                                                                  .onSurfaceVariant,
+                                                            ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  Icons.add_circle_outline,
+                                                  color: scheme.primary,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: TextButton(
+                                        onPressed: onOpenStock,
+                                        child: const Text(
+                                          'Ver despensa completa',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(28),
+                              onTap: onOpenNotes,
+                              child: CozyCard(
+                                color: scheme.surfaceContainerHigh,
+                                padding: const EdgeInsets.all(22),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.description_outlined,
+                                          color: scheme.primary,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          'Nota reciente',
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w800,
+                                                color: scheme.primary,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    if (noteDoc == null)
+                                      Text(
+                                        'Todavía no hay notas compartidas.',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                      )
+                                    else ...[
+                                      CozyCard(
+                                        color: scheme.surfaceContainerLow,
+                                        padding: const EdgeInsets.all(18),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              noteDoc.data()['title']
+                                                      as String? ??
+                                                  '(sin título)',
+                                              style: theme.textTheme.titleSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                    color: scheme.primary,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              noteDoc.data()['content']
+                                                      as String? ??
+                                                  '',
+                                              maxLines: 4,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        scheme.onSurfaceVariant,
+                                                    height: 1.45,
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (featured != null) ...[
+                              const SizedBox(height: 16),
+                              InkWell(
+                                borderRadius: BorderRadius.circular(28),
+                                onTap: onOpenRecipes,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(28),
+                                  child: Stack(
+                                    children: [
+                                      Positioned.fill(
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topCenter,
+                                              end: Alignment.bottomCenter,
+                                              colors: [
+                                                scheme.surfaceContainerHighest,
+                                                scheme.surfaceContainer,
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(22),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: scheme.tertiaryContainer,
+                                                borderRadius:
+                                                    BorderRadius.circular(999),
+                                              ),
+                                              child: Text(
+                                                'Receta destacada',
+                                                style: theme
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
+                                                      color: scheme
+                                                          .onTertiaryContainer,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      letterSpacing: 0.8,
+                                                    ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              featured.titulo,
+                                              style: theme
+                                                  .textTheme
+                                                  .headlineSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                    color: scheme.onSurface,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.schedule_rounded,
+                                                  size: 18,
+                                                  color: scheme.secondary,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '${featured.tiempoMin} min',
+                                                  style: theme
+                                                      .textTheme
+                                                      .labelMedium
+                                                      ?.copyWith(
+                                                        color: scheme.secondary,
+                                                      ),
+                                                ),
+                                                const SizedBox(width: 16),
+                                                Icon(
+                                                  Icons.restaurant_menu_rounded,
+                                                  size: 18,
+                                                  color: scheme.secondary,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  '${featured.porciones} porciones',
+                                                  style: theme
+                                                      .textTheme
+                                                      .labelMedium
+                                                      ?.copyWith(
+                                                        color: scheme.secondary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      },
                     );
                   },
                 );
@@ -781,9 +915,9 @@ class _RevenueCatUiActions extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Paywall: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Paywall: $e')));
     }
   }
 
@@ -794,9 +928,9 @@ class _RevenueCatUiActions extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Centro de cliente: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Centro de cliente: $e')));
     }
   }
 }
@@ -828,7 +962,10 @@ class _BillingStateCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(state.message, style: theme.textTheme.bodyMedium?.copyWith(height: 1.45)),
+          Text(
+            state.message,
+            style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
+          ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
