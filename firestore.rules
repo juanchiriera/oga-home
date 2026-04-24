@@ -150,6 +150,14 @@ service cloud.firestore {
             || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled'])
           && (!('currency' in request.resource.data)
             || request.resource.data.currency in ['ARS', 'USD', 'EUR']);
+          && (!('recurringTemplateId' in request.resource.data)
+            || request.resource.data.recurringTemplateId is string)
+          && (!('recurringPeriodKey' in request.resource.data)
+            || request.resource.data.recurringPeriodKey is string)
+          && (!('installmentIndex' in request.resource.data)
+            || request.resource.data.installmentIndex is int)
+          && (!('installmentTotal' in request.resource.data)
+            || request.resource.data.installmentTotal is int);
         allow update: if isFamilyMember(familyId)
           && request.resource.data.amount is number
           && request.resource.data.amount > 0
@@ -163,6 +171,74 @@ service cloud.firestore {
             || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled'])
           && (!('currency' in request.resource.data)
             || request.resource.data.currency in ['ARS', 'USD', 'EUR']);
+          && (!('recurringTemplateId' in request.resource.data)
+            || request.resource.data.recurringTemplateId is string)
+          && (!('recurringPeriodKey' in request.resource.data)
+            || request.resource.data.recurringPeriodKey is string)
+          && (!('installmentIndex' in request.resource.data)
+            || request.resource.data.installmentIndex is int)
+          && (!('installmentTotal' in request.resource.data)
+            || request.resource.data.installmentTotal is int);
+        allow delete: if isFamilyMember(familyId);
+      }
+
+      match /recurringTemplates/{templateId} {
+        allow read: if isFamilyMember(familyId);
+        allow create: if isFamilyMember(familyId)
+          && request.resource.data.keys().hasAll([
+            'active',
+            'amount',
+            'categoryKey',
+            'type',
+            'generationDay',
+            'createdAt',
+            'updatedAt',
+            'createdBy'
+          ])
+          && request.resource.data.active is bool
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.categoryKey is string
+          && request.resource.data.type in ['fixed_monthly', 'installment']
+          && request.resource.data.generationDay in ['month_start', 'month_end']
+          && request.resource.data.createdAt is timestamp
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdBy is string
+          && request.resource.data.createdBy == request.auth.uid
+          && (!('paymentMethodId' in request.resource.data)
+            || request.resource.data.paymentMethodId is string)
+          && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
+          && (!('note' in request.resource.data) || request.resource.data.note is string)
+          && (!('totalInstallments' in request.resource.data)
+            || (request.resource.data.totalInstallments is int
+              && request.resource.data.totalInstallments >= 1))
+          && (!('currentInstallment' in request.resource.data)
+            || (request.resource.data.currentInstallment is int
+              && request.resource.data.currentInstallment >= 1))
+          && (!('lastGeneratedPeriod' in request.resource.data)
+            || request.resource.data.lastGeneratedPeriod is string);
+        allow update: if isFamilyMember(familyId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.active is bool
+          && request.resource.data.amount is number
+          && request.resource.data.amount > 0
+          && request.resource.data.categoryKey is string
+          && request.resource.data.type in ['fixed_monthly', 'installment']
+          && request.resource.data.generationDay in ['month_start', 'month_end']
+          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.createdBy is string
+          && (!('paymentMethodId' in request.resource.data)
+            || request.resource.data.paymentMethodId is string)
+          && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
+          && (!('note' in request.resource.data) || request.resource.data.note is string)
+          && (!('totalInstallments' in request.resource.data)
+            || (request.resource.data.totalInstallments is int
+              && request.resource.data.totalInstallments >= 1))
+          && (!('currentInstallment' in request.resource.data)
+            || (request.resource.data.currentInstallment is int
+              && request.resource.data.currentInstallment >= 1))
+          && (!('lastGeneratedPeriod' in request.resource.data)
+            || request.resource.data.lastGeneratedPeriod is string);
         allow delete: if isFamilyMember(familyId);
       }
 
@@ -237,6 +313,12 @@ service cloud.firestore {
       }
 
       match /billingEvents/{eventId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+
+      // Auditoría de cierres / pagos de tarjeta (solo Cloud Functions / Admin SDK).
+      match /expenseSettlementEvents/{eventId} {
         allow read: if isFamilyMember(familyId);
         allow write: if false;
       }

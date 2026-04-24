@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
 import 'package:craftr_mobile/features/expenses/expense_money.dart';
+import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -642,19 +644,181 @@ class _ExpensesPageState extends State<ExpensesPage> {
         .delete();
   }
 
-  Future<void> _setExpenseConfirmed(
+  String _isoDate(DateTime d) {
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
+
+  Future<void> _effectivizeSingleCardExpense(
+    BuildContext context,
     String familyId,
     String expenseId,
+    String paymentMethodId,
   ) async {
-    await FirebaseFirestore.instance
-        .collection('families')
-        .doc(familyId)
-        .collection('expenses')
-        .doc(expenseId)
-        .update({
-      'status': ExpenseLifecycle.confirmed,
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Fecha efectiva (impacto contable)',
+    );
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Efectivizar gasto'),
+        content: Text(
+          'Se marcará como confirmado con fecha efectiva ${_formatDate(picked)} '
+          'según la regla de tarjeta del producto.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) {
+      return;
+    }
+    try {
+      final callable = craftrFunctions().httpsCallable('registerCardPayment');
+      final res = await callable.call<Map<String, dynamic>>({
+        'familyId': familyId,
+        'paymentMethodId': paymentMethodId,
+        'effectiveDate': _isoDate(picked),
+        'expenseIds': [expenseId],
+      });
+      final n = (res.data['affectedCount'] as num?)?.toInt() ?? 0;
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(n > 0 ? 'Listo: $n gasto actualizado.' : 'No hubo cambios.')),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'No se pudo efectivizar')),
+      );
+    }
+  }
+
+  Future<void> _registerCardCycleClose(
+    BuildContext context,
+    String familyId,
+    String paymentMethodId,
+  ) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Fecha de cierre del resumen (incluye compras hasta ese día)',
+    );
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Registrar cierre de resumen'),
+        content: Text(
+          'Los gastos pendientes de esta tarjeta con fecha de compra hasta '
+          '${_formatDate(picked)} pasan a confirmados con esa fecha efectiva.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Aplicar')),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) {
+      return;
+    }
+    try {
+      final callable = craftrFunctions().httpsCallable('registerCardCycleClose');
+      final res = await callable.call<Map<String, dynamic>>({
+        'familyId': familyId,
+        'paymentMethodId': paymentMethodId,
+        'closingDate': _isoDate(picked),
+      });
+      final n = (res.data['affectedCount'] as num?)?.toInt() ?? 0;
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cierre registrado: $n gastos efectivizados.')),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'No se pudo registrar el cierre')),
+      );
+    }
+  }
+
+  Future<void> _registerCardPaymentAllPending(
+    BuildContext context,
+    String familyId,
+    String paymentMethodId,
+  ) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Fecha en que considerás pagado el saldo pendiente',
+    );
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Registrar pago de tarjeta'),
+        content: Text(
+          'Se efectivizarán todos los gastos pendientes de esta tarjeta '
+          'con fecha efectiva ${_formatDate(picked)}.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Aplicar')),
+        ],
+      ),
+    );
+    if (go != true || !context.mounted) {
+      return;
+    }
+    try {
+      final callable = craftrFunctions().httpsCallable('registerCardPayment');
+      final res = await callable.call<Map<String, dynamic>>({
+        'familyId': familyId,
+        'paymentMethodId': paymentMethodId,
+        'effectiveDate': _isoDate(picked),
+      });
+      final n = (res.data['affectedCount'] as num?)?.toInt() ?? 0;
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Pago registrado: $n gastos efectivizados.')),
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'No se pudo registrar el pago')),
+      );
+    }
   }
 }
 
@@ -923,40 +1087,71 @@ class _ExpensesContent extends StatelessWidget {
                             child: Material(
                               color: isCard ? scheme.primaryContainer.withValues(alpha: 0.35) : scheme.surfaceContainerHigh,
                               borderRadius: BorderRadius.circular(16),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                                leading: Icon(
-                                  isCard ? Icons.credit_card_rounded : Icons.payments_outlined,
-                                  color: scheme.primary,
-                                ),
-                                title: Text(n, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text(
-                                  [
-                                    PaymentMethodTypes.label(t),
-                                    if (isCard && lastFour != null && lastFour.isNotEmpty) '· ****$lastFour',
-                                  ].join(' '),
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                                trailing: state == null
-                                    ? null
-                                    : PopupMenuButton<String>(
-                                        onSelected: (action) async {
-                                          if (action == 'edit') {
-                                            await state._upsertPaymentMethod(
-                                              context: context,
-                                              familyId: familyId,
-                                              methodId: d.id,
-                                              initialData: m,
-                                            );
-                                          } else if (action == 'delete') {
-                                            await state._deletePaymentMethod(context, familyId, d.id);
-                                          }
-                                        },
-                                        itemBuilder: (context) => const [
-                                          PopupMenuItem(value: 'edit', child: Text('Editar')),
-                                          PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    leading: Icon(
+                                      isCard ? Icons.credit_card_rounded : Icons.payments_outlined,
+                                      color: scheme.primary,
+                                    ),
+                                    title: Text(n, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    subtitle: Text(
+                                      [
+                                        PaymentMethodTypes.label(t),
+                                        if (isCard && lastFour != null && lastFour.isNotEmpty) '· ****$lastFour',
+                                      ].join(' '),
+                                      style: Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                    trailing: state == null
+                                        ? null
+                                        : PopupMenuButton<String>(
+                                            onSelected: (action) async {
+                                              if (action == 'edit') {
+                                                await state._upsertPaymentMethod(
+                                                  context: context,
+                                                  familyId: familyId,
+                                                  methodId: d.id,
+                                                  initialData: m,
+                                                );
+                                              } else if (action == 'delete') {
+                                                await state._deletePaymentMethod(context, familyId, d.id);
+                                              }
+                                            },
+                                            itemBuilder: (context) => const [
+                                              PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                              PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                                            ],
+                                          ),
+                                  ),
+                                  if (isCard && state != null)
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                                      child: Wrap(
+                                        spacing: 4,
+                                        runSpacing: 0,
+                                        children: [
+                                          TextButton(
+                                            onPressed: () => state._registerCardCycleClose(
+                                              context,
+                                              familyId,
+                                              d.id,
+                                            ),
+                                            child: const Text('Cierre de resumen'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => state._registerCardPaymentAllPending(
+                                              context,
+                                              familyId,
+                                              d.id,
+                                            ),
+                                            child: const Text('Pago (todos los pendientes)'),
+                                          ),
                                         ],
                                       ),
+                                    ),
+                                ],
                               ),
                             ),
                           );
@@ -1066,7 +1261,15 @@ class _ExpensesContent extends StatelessWidget {
                                       } else if (action == 'delete') {
                                         await state._deleteExpense(context, familyId, doc.id);
                                       } else if (action == 'confirm') {
-                                        await state._setExpenseConfirmed(familyId, doc.id);
+                                        final pm = data['paymentMethodId'] as String?;
+                                        if (pm != null && pm.isNotEmpty) {
+                                          await state._effectivizeSingleCardExpense(
+                                            context,
+                                            familyId,
+                                            doc.id,
+                                            pm,
+                                          );
+                                        }
                                       }
                                     },
                                     itemBuilder: (context) => [
@@ -1074,7 +1277,7 @@ class _ExpensesContent extends StatelessWidget {
                                       if (pending)
                                         const PopupMenuItem(
                                           value: 'confirm',
-                                          child: Text('Marcar como confirmado'),
+                                          child: Text('Efectivizar (fecha de pago)'),
                                         ),
                                       const PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                                     ],
