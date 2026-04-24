@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
+import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -77,10 +79,11 @@ class RecipesPage extends StatelessWidget {
                     children: [
                       Text(
                         'Recetario',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                        ),
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
+                            ),
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -99,18 +102,33 @@ class RecipesPage extends StatelessWidget {
                           children: [
                             Text(
                               'Importar desde la web',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: scheme.primary,
-                              ),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: scheme.primary,
+                                  ),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Pronto vas a poder pegar un enlace y extraer ingredientes y pasos automáticamente.',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                height: 1.45,
-                              ),
+                              'Pegá un enlace y extraemos ingredientes y pasos con IA para revisar antes de guardar.',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    height: 1.45,
+                                  ),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton.icon(
+                              onPressed: () =>
+                                  _importRecipeFromUrlFlow(context, familyId),
+                              icon: const Icon(Icons.link_rounded),
+                              label: const Text('Importar URL'),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Aviso legal (§7.5): respetá copyright y términos del sitio fuente.',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(color: scheme.onSurfaceVariant),
                             ),
                           ],
                         ),
@@ -388,6 +406,92 @@ class RecipesPage extends StatelessWidget {
     }
   }
 
+  static Future<void> _importRecipeFromUrlFlow(
+    BuildContext context,
+    String familyId,
+  ) async {
+    final urlCtrl = TextEditingController();
+    final url = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Importar receta desde URL'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: urlCtrl,
+              keyboardType: TextInputType.url,
+              decoration: const InputDecoration(
+                labelText: 'URL https://',
+                hintText: 'https://sitio.com/receta',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Se traerá contenido público del sitio para armar un borrador editable.',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, urlCtrl.text.trim()),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+    if (url == null || url.isEmpty || !context.mounted) {
+      return;
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Importando receta...')),
+    );
+    try {
+      final callable = craftrFunctions().httpsCallable('importRecipeFromUrl');
+      final result = await callable.call<Map<String, dynamic>>({
+        'familyId': familyId,
+        'url': url,
+      });
+      final payload = Map<String, dynamic>.from(result.data);
+      final draft = _ImportedRecipeDraft.fromCallable(payload).toRecipeDraft();
+      final legalDisclaimer = payload['legalDisclaimer'] as String?;
+      if (!context.mounted) {
+        return;
+      }
+      if (legalDisclaimer != null && legalDisclaimer.trim().isNotEmpty) {
+        messenger.showSnackBar(SnackBar(content: Text(legalDisclaimer)));
+      }
+      await _openEditor(
+        context,
+        familyId: familyId,
+        recipeId: null,
+        initial: draft,
+      );
+    } on FirebaseFunctionsException catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(content: Text(e.message ?? 'No se pudo importar la receta')),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Error inesperado al importar receta')),
+      );
+    }
+  }
+
   static Future<void> _toggleFavorite(
     String familyId,
     String recipeId,
@@ -444,6 +548,75 @@ class RecipesPage extends StatelessWidget {
         .collection('recipes')
         .doc(recipeId)
         .delete();
+  }
+}
+
+class _ImportedRecipeDraft {
+  const _ImportedRecipeDraft({
+    required this.titulo,
+    required this.descripcion,
+    required this.ingredientes,
+    required this.pasos,
+    required this.tiempoMin,
+    required this.porciones,
+    required this.tags,
+  });
+
+  final String titulo;
+  final String descripcion;
+  final List<String> ingredientes;
+  final List<String> pasos;
+  final int tiempoMin;
+  final int porciones;
+  final List<String> tags;
+
+  static _ImportedRecipeDraft fromCallable(Map<String, dynamic> payload) {
+    final draft =
+        (payload['draft'] as Map?)?.cast<String, dynamic>() ??
+        <String, dynamic>{};
+    return _ImportedRecipeDraft(
+      titulo: (draft['titulo'] as String? ?? '').trim(),
+      descripcion: (draft['descripcion'] as String? ?? '').trim(),
+      ingredientes: _toStringList(draft['ingredientes']),
+      pasos: _toStringList(draft['pasos']),
+      tiempoMin: _toPositiveInt(draft['tiempoMin'], fallback: 15),
+      porciones: _toPositiveInt(draft['porciones'], fallback: 2),
+      tags: _toStringList(draft['tags']),
+    );
+  }
+
+  RecipeDraft toRecipeDraft() {
+    return RecipeDraft(
+      titulo: titulo,
+      descripcion: descripcion,
+      ingredientes: ingredientes,
+      pasos: pasos,
+      tiempoMin: tiempoMin,
+      porciones: porciones,
+      favorita: false,
+      tags: tags,
+    );
+  }
+
+  static List<String> _toStringList(Object? value) {
+    if (value is! List) {
+      return const [];
+    }
+    return value
+        .whereType<String>()
+        .map((entry) => entry.trim())
+        .where((entry) => entry.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  static int _toPositiveInt(Object? value, {required int fallback}) {
+    if (value is int && value > 0) {
+      return value;
+    }
+    if (value is num && value > 0) {
+      return value.round();
+    }
+    return fallback;
   }
 }
 
@@ -542,7 +715,9 @@ class _RecipeEditorPreview extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('· ', style: theme.textTheme.bodyMedium),
-                    Expanded(child: Text(line, style: theme.textTheme.bodyMedium)),
+                    Expanded(
+                      child: Text(line, style: theme.textTheme.bodyMedium),
+                    ),
                   ],
                 ),
               ),
@@ -575,7 +750,9 @@ class _RecipeEditorPreview extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Expanded(child: Text(line, style: theme.textTheme.bodyMedium)),
+                    Expanded(
+                      child: Text(line, style: theme.textTheme.bodyMedium),
+                    ),
                   ],
                 ),
               );
