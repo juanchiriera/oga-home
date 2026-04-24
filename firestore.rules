@@ -148,6 +148,8 @@ service cloud.firestore {
             || request.resource.data.paymentMethodId is string)
           && (!('status' in request.resource.data)
             || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled'])
+          && (!('currency' in request.resource.data)
+            || request.resource.data.currency in ['ARS', 'USD', 'EUR']);
           && (!('recurringTemplateId' in request.resource.data)
             || request.resource.data.recurringTemplateId is string)
           && (!('recurringPeriodKey' in request.resource.data)
@@ -167,6 +169,8 @@ service cloud.firestore {
             || request.resource.data.paymentMethodId is string)
           && (!('status' in request.resource.data)
             || request.resource.data.status in ['confirmed', 'pending_card_cycle', 'cancelled'])
+          && (!('currency' in request.resource.data)
+            || request.resource.data.currency in ['ARS', 'USD', 'EUR']);
           && (!('recurringTemplateId' in request.resource.data)
             || request.resource.data.recurringTemplateId is string)
           && (!('recurringPeriodKey' in request.resource.data)
