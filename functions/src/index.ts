@@ -44,3 +44,5 @@ export {
   processExpenseImport,
   startExpenseImport,
 } from "./callables/expenseImportCallables.js";
+
+export { suggestManualExpenseCategory } from "./callables/suggestExpenseCategoryCallables.js";
