@@ -4,43 +4,21 @@ import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
 import { geminiApiKey } from "./recipeCallables.js";
+import {
+  assertFamilyMember,
+  buildSystemPromptText,
+  contentsFromPriorAndUser,
+  loadPriorMessages,
+  maxMessageChars,
+  requireCallAuth,
+} from "./assistantCore.js";
+import type { FireMessage } from "./assistantCore.js";
 
 const region = "southamerica-east1";
 
 const geminiModel = defineString("ASSISTANT_GEMINI_MODEL", {
   default: "gemini-2.0-flash",
 });
-
-const maxMessageChars = 8000;
-const historyTurns = 20;
-
-function requireAuth(request: { auth?: { uid: string } | null }): string {
-  if (!request.auth?.uid) {
-    throw new HttpsError("unauthenticated", "Login required");
-  }
-  return request.auth.uid;
-}
-
-async function assertFamilyMember(
-  db: admin.firestore.Firestore,
-  familyId: string,
-  uid: string,
-): Promise<void> {
-  const snap = await db
-    .collection("families")
-    .doc(familyId)
-    .collection("members")
-    .doc(uid)
-    .get();
-  if (!snap.exists) {
-    throw new HttpsError("permission-denied", "No sos miembro de esta familia");
-  }
-}
-
-type FireMessage = {
-  role: string;
-  text: string;
-};
 
 function extractReplyText(body: unknown): string {
   const json = body as {
@@ -63,12 +41,7 @@ async function callGeminiChat(params: {
     model,
   )}:generateContent?key=${encodeURIComponent(key)}`;
 
-  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-  for (const m of params.prior) {
-    const role = m.role === "assistant" ? "model" : "user";
-    contents.push({ role, parts: [{ text: m.text }] });
-  }
-  contents.push({ role: "user", parts: [{ text: params.userText }] });
+  const contents = contentsFromPriorAndUser(params.prior, params.userText);
 
   const response = await fetch(endpoint, {
     method: "POST",
@@ -107,13 +80,13 @@ async function callGeminiChat(params: {
 
 /**
  * Persiste turno usuario+asistente en `families/{familyId}/assistantThreads/{threadId}/messages`
- * y devuelve la respuesta (respuesta completa en un único round-trip; streaming vía SSE/callable
- * queda como mejora futura).
+ * (respuesta completa en un único round-trip). El cliente debería preferir
+ * [familyAssistantChatStream] (chunks NDJSON + stream Gemini).
  */
 export const familyAssistantChat = onCall(
   { region, secrets: [geminiApiKey] },
   async (request) => {
-    const uid = requireAuth(request);
+    const uid = requireCallAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
     const rawThread = request.data?.threadId;
     const threadIdIn =
@@ -157,29 +130,8 @@ export const familyAssistantChat = onCall(
     }
 
     const messagesCol = threadRef.collection("messages");
-    const historySnap = await messagesCol
-      .orderBy("createdAt", "desc")
-      .limit(historyTurns)
-      .get();
-
-    const prior: FireMessage[] = historySnap.docs
-      .map((d) => {
-        const data = d.data();
-        return {
-          role: String(data.role ?? ""),
-          text: String(data.text ?? ""),
-        };
-      })
-      .filter((m) => (m.role === "user" || m.role === "assistant") && m.text.length > 0)
-      .reverse();
-
-    const systemPrompt = [
-      "Sos el asistente de CraftR, una app para familias en español rioplatense.",
-      "Ayudás con hogar: gastos, despensa/stock, recetas, notas y organización.",
-      "Sé conciso, amable y práctico. Si pedís datos que no tenés, sugerí qué puede cargar la familia en la app.",
-      "No inventés datos financieros ni nombres de personas. No ejecutés acciones en la app: solo conversás (las herramientas vendrán después).",
-    ].join(" ");
-
+    const prior = await loadPriorMessages(messagesCol);
+    const systemPrompt = buildSystemPromptText();
     const reply = await callGeminiChat({
       systemPrompt,
       prior,
@@ -205,8 +157,7 @@ export const familyAssistantChat = onCall(
       createdBy: "assistant",
     });
 
-    const title =
-      text.length > 48 ? `${text.slice(0, 47)}…` : text;
+    const title = text.length > 48 ? `${text.slice(0, 47)}…` : text;
 
     if (isNewThread) {
       batch.set(threadRef, {

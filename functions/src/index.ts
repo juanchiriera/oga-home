@@ -48,3 +48,4 @@ export {
 export { suggestManualExpenseCategory } from "./callables/suggestExpenseCategoryCallables.js";
 
 export { familyAssistantChat } from "./callables/assistantCallables.js";
+export { familyAssistantChatStream } from "./callables/assistantStream.js";

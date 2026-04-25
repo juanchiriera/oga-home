@@ -1,15 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show SocketException;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
-import 'dart:async';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
-/// Chat del asistente por familia: historial en Firestore, turnos vía callable
-/// [familyAssistantChat]. Requiere red (banner claro si no hay conectividad).
+/// Chat del asistente por familia: historial en Firestore, turnos vía
+/// [familyAssistantChatStream] (NDJSON, chunks de texto; requiere red).
 class FamilyAssistantPage extends StatelessWidget {
   const FamilyAssistantPage({super.key});
 
@@ -73,6 +75,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   String? _activeThreadId;
   bool _sending = false;
   bool? _online;
+  String? _streamBuffer;
 
   @override
   void initState() {
@@ -108,40 +111,99 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     if (text.isEmpty || _sending) return;
     if (_online == false) return;
 
-    setState(() => _sending = true);
-    try {
-      final data = <String, dynamic>{
-        'familyId': widget.familyId,
-        'message': text,
-      };
-      final tid = _activeThreadId;
-      if (tid != null && tid.isNotEmpty) {
-        data['threadId'] = tid;
-      }
+    setState(() {
+      _sending = true;
+      _streamBuffer = null;
+    });
+    _controller.clear();
 
-      final result = await craftrFunctions()
-          .httpsCallable('familyAssistantChat')
-          .call(data);
-
-      final map = Map<String, dynamic>.from(result.data as Map);
-      final threadId = map['threadId'] as String?;
-      if (threadId != null && threadId.isNotEmpty && mounted) {
-        setState(() => _activeThreadId = threadId);
-      }
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (idToken == null) {
       if (mounted) {
-        _controller.clear();
+        setState(() => _sending = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sin sesión')),
+        );
       }
-    } on FirebaseFunctionsException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'No se pudo enviar el mensaje')),
-      );
+      return;
+    }
+
+    final uri = Uri.parse(familyAssistantStreamUrl());
+    final request = http.Request('POST', uri);
+    request.headers['Authorization'] = 'Bearer $idToken';
+    request.headers['Content-Type'] = 'application/json; charset=utf-8';
+    request.body = jsonEncode({
+      'familyId': widget.familyId,
+      if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
+        'threadId': _activeThreadId!,
+      'message': text,
+    });
+
+    final client = http.Client();
+    var streamAccum = '';
+    try {
+      final response = await client.send(request);
+      if (response.statusCode != 200) {
+        final buf = StringBuffer();
+        await for (final s in response.stream.transform(utf8.decoder)) {
+          buf.write(s);
+        }
+        throw Exception('HTTP ${response.statusCode}: ${buf.toString()}');
+      }
+      await for (final line in response.stream
+          .transform(utf8.decoder)
+          .transform(const LineSplitter())) {
+        if (line.isEmpty) {
+          continue;
+        }
+        final map = jsonDecode(line) as Map<String, dynamic>;
+        final t = map['type'] as String?;
+        if (t == 'meta') {
+          final threadId = map['threadId'] as String?;
+          if (threadId != null && threadId.isNotEmpty && mounted) {
+            setState(() => _activeThreadId = threadId);
+          }
+        } else if (t == 'delta') {
+          final piece = map['text'] as String? ?? '';
+          if (piece.isEmpty) {
+            continue;
+          }
+          streamAccum += piece;
+          if (mounted) {
+            setState(() => _streamBuffer = streamAccum);
+          }
+        } else if (t == 'error') {
+          final m = map['message'] as String? ?? 'Error del asistente';
+          if (mounted) {
+            setState(() => _streamBuffer = null);
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(m)));
+          }
+          return;
+        } else if (t == 'done') {
+          if (mounted) {
+            setState(() => _streamBuffer = null);
+          }
+          return;
+        }
+      }
+    } on SocketException {
+      if (mounted) {
+        setState(() => _streamBuffer = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sin conexión')),
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        setState(() => _streamBuffer = null);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
+      client.close();
       if (mounted) {
         setState(() => _sending = false);
       }
@@ -149,7 +211,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   }
 
   void _openThread(String? threadId) {
-    setState(() => _activeThreadId = threadId);
+    setState(() {
+      _activeThreadId = threadId;
+      _streamBuffer = null;
+    });
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
     }
@@ -285,6 +350,8 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                   _MessagesList(
                     familyId: widget.familyId,
                     threadId: threadId,
+                    streamingReply: _streamBuffer,
+                    sending: _sending,
                   ),
               ],
             ),
@@ -352,10 +419,14 @@ class _MessagesList extends StatelessWidget {
   const _MessagesList({
     required this.familyId,
     required this.threadId,
+    this.streamingReply,
+    this.sending = false,
   });
 
   final String familyId;
   final String threadId;
+  final String? streamingReply;
+  final bool sending;
 
   @override
   Widget build(BuildContext context) {
@@ -378,47 +449,91 @@ class _MessagesList extends StatelessWidget {
           );
         }
         final docs = snap.data!.docs;
-        if (docs.isEmpty) {
+        final hasStreamPreview =
+            streamingReply != null && streamingReply!.isNotEmpty;
+        if (docs.isEmpty && !hasStreamPreview && !sending) {
           return const SizedBox.shrink();
         }
         return Column(
-          children: docs.map((d) {
-            final data = d.data();
-            final role = data['role'] as String? ?? '';
-            final text = data['text'] as String? ?? '';
-            final isUser = role == 'user';
-            return Align(
-              alignment:
-                  isUser ? Alignment.centerRight : Alignment.centerLeft,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.sizeOf(context).width * 0.82,
-                ),
-                decoration: BoxDecoration(
-                  color: isUser
-                      ? scheme.primaryContainer
-                      : scheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.only(
-                    topLeft: const Radius.circular(18),
-                    topRight: const Radius.circular(18),
-                    bottomLeft: Radius.circular(isUser ? 18 : 4),
-                    bottomRight: Radius.circular(isUser ? 4 : 18),
+          children: [
+            ...docs.map((d) {
+              final data = d.data();
+              final role = data['role'] as String? ?? '';
+              final text = data['text'] as String? ?? '';
+              final isUser = role == 'user';
+              return Align(
+                alignment:
+                    isUser ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.82,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isUser
+                        ? scheme.primaryContainer
+                        : scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(18),
+                      topRight: const Radius.circular(18),
+                      bottomLeft: Radius.circular(isUser ? 18 : 4),
+                      bottomRight: Radius.circular(isUser ? 4 : 18),
+                    ),
+                  ),
+                  child: Text(
+                    text,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isUser
+                          ? scheme.onPrimaryContainer
+                          : scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-                child: Text(
-                  text,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: isUser
-                        ? scheme.onPrimaryContainer
-                        : scheme.onSurfaceVariant,
+              );
+            }),
+            if (sending && !hasStreamPreview)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  child: const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            else if (hasStreamPreview)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.82,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(18),
+                    ),
+                  ),
+                  child: Text(
+                    streamingReply!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ),
-            );
-          }).toList(),
+          ],
         );
       },
     );
