@@ -46,3 +46,5 @@ export {
 } from "./callables/expenseImportCallables.js";
 
 export { suggestManualExpenseCategory } from "./callables/suggestExpenseCategoryCallables.js";
+
+export { familyAssistantChat } from "./callables/assistantCallables.js";
