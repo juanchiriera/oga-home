@@ -14,6 +14,71 @@ const geminiModel = defineString("EXPENSE_IMPORT_GEMINI_MODEL", {
   default: "gemini-2.5-flash",
 });
 
+/** Gemini rate limits / overload: bounded retries, respect Retry-When possible. */
+const GEMINI_OCR_MAX_ATTEMPTS = 4;
+const GEMINI_OCR_BASE_BACKOFF_MS = 900;
+const GEMINI_OCR_MAX_BACKOFF_MS = 45_000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(headers: Headers): number | null {
+  const raw = headers.get("retry-after");
+  if (!raw) {
+    return null;
+  }
+  const seconds = Number(raw);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
+  return null;
+}
+
+async function fetchGeminiGenerateContent(
+  endpoint: string,
+  apiKey: string,
+  body: Record<string, unknown>,
+): Promise<Response> {
+  let lastResponse: Response | null = null;
+  for (let attempt = 0; attempt < GEMINI_OCR_MAX_ATTEMPTS; attempt++) {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      body: JSON.stringify(body),
+    });
+    lastResponse = response;
+    if (response.ok) {
+      return response;
+    }
+    const status = response.status;
+    const retriable =
+      (status === 429 || status === 503) && attempt < GEMINI_OCR_MAX_ATTEMPTS - 1;
+    if (!retriable) {
+      return response;
+    }
+    const errorSnippet = (await response.text()).slice(0, 400);
+    const headerDelay = parseRetryAfterMs(response.headers);
+    const exponential =
+      GEMINI_OCR_BASE_BACKOFF_MS * 2 ** attempt + Math.floor(Math.random() * 400);
+    const waitMs = Math.min(
+      GEMINI_OCR_MAX_BACKOFF_MS,
+      Math.max(headerDelay ?? 0, exponential),
+    );
+    logger.warn("expenseImport:gemini_retry", {
+      attempt,
+      status,
+      waitMs,
+      snippet: errorSnippet,
+    });
+    await sleep(waitMs);
+  }
+  return lastResponse as Response;
+}
+
 type ImportLine = {
   amount: number;
   categoryKey: string;
@@ -54,40 +119,49 @@ class GeminiOcrProvider implements ExpenseImportOcrProvider {
 
     const endpoint =
       `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel.value()}:generateContent`;
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey.value(),
+    const response = await fetchGeminiGenerateContent(endpoint, geminiApiKey.value(), {
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
       },
-      body: JSON.stringify({
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: input.mimeType,
-                  data: input.base64Data,
-                },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: input.mimeType,
+                data: input.base64Data,
               },
-            ],
-          },
-        ],
-      }),
+            },
+          ],
+        },
+      ],
     });
 
     if (!response.ok) {
       const errorText = await response.text();
+      if (response.status === 429) {
+        logger.error("expenseImport:gemini_429", {
+          snippet: errorText.slice(0, 500),
+        });
+        throw new HttpsError(
+          "resource-exhausted",
+          "El servicio de IA recibió demasiadas solicitudes. Esperá unos minutos y volvé a intentar.",
+          { status: 429 },
+        );
+      }
+      logger.error("expenseImport:gemini_http_error", {
+        status: response.status,
+        snippet: errorText.slice(0, 500),
+      });
       throw new HttpsError(
         "internal",
-        `Gemini request failed (${response.status})`,
-        { errorText },
+        response.status === 503
+          ? "El servicio de IA no está disponible por ahora. Probá de nuevo más tarde."
+          : `No se pudo analizar el archivo (código ${response.status}).`,
+        { status: response.status, errorText: errorText.slice(0, 2000) },
       );
     }
 
@@ -220,86 +294,89 @@ export const startExpenseImport = onCall({ region }, async (request) => {
   };
 });
 
-export const processExpenseImport = onCall({ region, secrets: [geminiApiKey] }, async (request) => {
-  const uid = requireAuth(request);
-  const familyId = String(request.data?.familyId ?? "").trim();
-  const importJobId = String(request.data?.importJobId ?? "").trim();
-  if (!familyId || !importJobId) {
-    throw new HttpsError("invalid-argument", "familyId e importJobId son obligatorios");
-  }
+export const processExpenseImport = onCall(
+  { region, secrets: [geminiApiKey], timeoutSeconds: 180 },
+  async (request) => {
+    const uid = requireAuth(request);
+    const familyId = String(request.data?.familyId ?? "").trim();
+    const importJobId = String(request.data?.importJobId ?? "").trim();
+    if (!familyId || !importJobId) {
+      throw new HttpsError("invalid-argument", "familyId e importJobId son obligatorios");
+    }
 
-  const db = admin.firestore();
-  await assertFamilyMember(db, familyId, uid);
-  const jobRef = importJobRef(db, familyId, importJobId);
-  const jobSnap = await jobRef.get();
-  if (!jobSnap.exists) {
-    throw new HttpsError("not-found", "ImportJob no encontrado");
-  }
+    const db = admin.firestore();
+    await assertFamilyMember(db, familyId, uid);
+    const jobRef = importJobRef(db, familyId, importJobId);
+    const jobSnap = await jobRef.get();
+    if (!jobSnap.exists) {
+      throw new HttpsError("not-found", "ImportJob no encontrado");
+    }
 
-  const storagePath = String(jobSnap.get("storagePath") ?? "").trim();
-  const mimeType = String(jobSnap.get("mimeType") ?? "application/octet-stream");
-  if (!storagePath) {
-    throw new HttpsError("failed-precondition", "ImportJob sin storagePath");
-  }
+    const storagePath = String(jobSnap.get("storagePath") ?? "").trim();
+    const mimeType = String(jobSnap.get("mimeType") ?? "application/octet-stream");
+    if (!storagePath) {
+      throw new HttpsError("failed-precondition", "ImportJob sin storagePath");
+    }
 
-  const paymentMethodsSnap = await db
-    .collection("families")
-    .doc(familyId)
-    .collection("paymentMethods")
-    .orderBy("name")
-    .get();
-  const paymentMethods = paymentMethodsSnap.docs.map((doc) => ({
-    id: doc.id,
-    type: String(doc.get("type") ?? "other"),
-    name: String(doc.get("name") ?? ""),
-  }));
-  if (!paymentMethods.length) {
-    throw new HttpsError(
-      "failed-precondition",
-      "Necesitás al menos un método de pago para importar",
-    );
-  }
+    const paymentMethodsSnap = await db
+      .collection("families")
+      .doc(familyId)
+      .collection("paymentMethods")
+      .orderBy("name")
+      .get();
+    const paymentMethods = paymentMethodsSnap.docs.map((doc) => ({
+      id: doc.id,
+      type: String(doc.get("type") ?? "other"),
+      name: String(doc.get("name") ?? ""),
+    }));
+    if (!paymentMethods.length) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Necesitás al menos un método de pago para importar",
+      );
+    }
 
-  try {
-    await jobRef.update({
-      status: "processing",
-      processingStartedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    try {
+      await jobRef.update({
+        status: "processing",
+        processingStartedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      });
 
-    const file = admin.storage().bucket().file(storagePath);
-    const [buffer] = await file.download();
-    const provider: ExpenseImportOcrProvider = new GeminiOcrProvider();
-    const nowIsoDate = new Date().toISOString().slice(0, 10);
-    const lines = await provider.extractLines({
-      mimeType,
-      base64Data: buffer.toString("base64"),
-      paymentMethods,
-      nowIsoDate,
-    });
+      const file = admin.storage().bucket().file(storagePath);
+      const [buffer] = await file.download();
+      const provider: ExpenseImportOcrProvider = new GeminiOcrProvider();
+      const nowIsoDate = new Date().toISOString().slice(0, 10);
+      const lines = await provider.extractLines({
+        mimeType,
+        base64Data: buffer.toString("base64"),
+        paymentMethods,
+        nowIsoDate,
+      });
 
-    await jobRef.update({
-      status: "awaiting_confirmation",
-      parsedAt: FieldValue.serverTimestamp(),
-      parsedBy: uid,
-      proposedLines: lines,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+      await jobRef.update({
+        status: "awaiting_confirmation",
+        parsedAt: FieldValue.serverTimestamp(),
+        parsedBy: uid,
+        proposedLines: lines,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
 
-    return {
-      importJobId,
-      status: "awaiting_confirmation",
-      proposedCount: lines.length,
-    };
-  } catch (error) {
-    await jobRef.update({
-      status: "failed",
-      errorMessage: (error as Error).message ?? "Error de procesamiento",
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-    throw error;
-  }
-});
+      return {
+        importJobId,
+        status: "awaiting_confirmation",
+        proposedCount: lines.length,
+      };
+    } catch (error) {
+      await jobRef.update({
+        status: "failed",
+        errorMessage: (error as Error).message ?? "Error de procesamiento",
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      throw error;
+    }
+  },
+);
 
 export const confirmExpenseImport = onCall({ region }, async (request) => {
   const uid = requireAuth(request);
