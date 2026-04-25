@@ -1,0 +1,78 @@
+import * as admin from "firebase-admin";
+import { HttpsError } from "firebase-functions/v2/https";
+
+export const maxMessageChars = 8000;
+export const historyTurns = 20;
+
+export function requireCallAuth(request: { auth?: { uid: string } | null }): string {
+  if (!request.auth?.uid) {
+    throw new HttpsError("unauthenticated", "Login required");
+  }
+  return request.auth.uid;
+}
+
+export async function assertFamilyMember(
+  db: admin.firestore.Firestore,
+  familyId: string,
+  uid: string,
+): Promise<void> {
+  const snap = await db
+    .collection("families")
+    .doc(familyId)
+    .collection("members")
+    .doc(uid)
+    .get();
+  if (!snap.exists) {
+    throw new HttpsError("permission-denied", "No sos miembro de esta familia");
+  }
+}
+
+export type FireMessage = {
+  role: string;
+  text: string;
+};
+
+export async function loadPriorMessages(
+  messagesCol: admin.firestore.CollectionReference,
+): Promise<FireMessage[]> {
+  const historySnap = await messagesCol
+    .orderBy("createdAt", "desc")
+    .limit(historyTurns)
+    .get();
+
+  return historySnap.docs
+    .map((d) => {
+      const data = d.data();
+      return {
+        role: String(data.role ?? ""),
+        text: String(data.text ?? ""),
+      };
+    })
+    .filter(
+      (m) =>
+        (m.role === "user" || m.role === "assistant") && m.text.length > 0,
+    )
+    .reverse();
+}
+
+export function buildSystemPromptText(): string {
+  return [
+    "Sos el asistente de CraftR, una app para familias en español rioplatense.",
+    "Ayudás con hogar: gastos, despensa/stock, recetas, notas y organización.",
+    "Sé conciso, amable y práctico. Si pedís datos que no tenés, sugerí qué puede cargar la familia en la app.",
+    "No inventés datos financieros ni nombres de personas. No ejecutés acciones en la app: solo conversás (las herramientas vendrán después).",
+  ].join(" ");
+}
+
+export function contentsFromPriorAndUser(
+  prior: FireMessage[],
+  userText: string,
+): Array<{ role: string; parts: Array<{ text: string }> }> {
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  for (const m of prior) {
+    const role = m.role === "assistant" ? "model" : "user";
+    contents.push({ role, parts: [{ text: m.text }] });
+  }
+  contents.push({ role: "user", parts: [{ text: userText }] });
+  return contents;
+}
