@@ -268,6 +268,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
         !pmIds.contains(selectedPaymentMethodId)) {
       selectedPaymentMethodId = _defaultPaymentMethodId(methodsSnap.docs)!;
     }
+    var isSuggestingCategory = false;
 
     final ok = await showDialog<bool>(
       context: context,
@@ -327,6 +328,154 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         setLocal(() => selectedCategory = value);
                       }
                     },
+                  ),
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: isSuggestingCategory
+                          ? null
+                          : () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              setLocal(() => isSuggestingCategory = true);
+                              try {
+                                final amount = double.tryParse(
+                                  amountController.text.replaceAll(',', '.'),
+                                );
+                                final callable = craftrFunctions()
+                                    .httpsCallable('suggestManualExpenseCategory');
+                                final res =
+                                    await callable.call<Map<String, dynamic>>(
+                                  <String, dynamic>{
+                                    'familyId': familyId,
+                                    'merchant': merchantController.text.trim(),
+                                    'note': noteController.text.trim(),
+                                    if (amount != null && amount > 0)
+                                      'amount': amount,
+                                  },
+                                );
+                                final data = res.data;
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                final ck = data['categoryKey'] as String?;
+                                final suggestedName =
+                                    data['suggestedNewCategoryName']
+                                        as String?;
+                                if (ck != null && ck.isNotEmpty) {
+                                  setLocal(() => selectedCategory = ck);
+                                  String? label;
+                                  for (final c in kExpenseCategories) {
+                                    if (c.key == ck) {
+                                      label = c.label;
+                                      break;
+                                    }
+                                  }
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        label != null
+                                            ? 'Categoría sugerida: $label'
+                                            : 'Categoría sugerida',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                if (suggestedName != null &&
+                                    suggestedName.trim().isNotEmpty) {
+                                  final useOther = await showDialog<bool>(
+                                    context: ctx,
+                                    builder: (dCtx) => AlertDialog(
+                                      title: const Text(
+                                        'Categoría fuera del catálogo',
+                                      ),
+                                      content: Text(
+                                        'La IA sugiere el nombre «$suggestedName» para este gasto. '
+                                        'Las categorías personalizadas aún no están en la app. '
+                                        '¿Querés usar «Otros» y agregar el texto a la nota, '
+                                        'o elegir vos una categoría en el listado?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dCtx, false),
+                                          child: const Text('Elegir en listado'),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dCtx, true),
+                                          child: const Text('Usar Otros + nota'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (!context.mounted) {
+                                    return;
+                                  }
+                                  if (useOther == true) {
+                                    setLocal(() {
+                                      selectedCategory = 'other';
+                                      final n = noteController.text.trim();
+                                      final add =
+                                          'Sugerido: $suggestedName';
+                                      noteController.text = n.isEmpty
+                                          ? add
+                                          : '$n — $add';
+                                    });
+                                    messenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Categoría «Otros» con la sugerencia en la nota.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+                                messenger.showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'No se pudo proponer una categoría. '
+                                      'Añadí comercio o nota e intentá de nuevo, '
+                                      'o elegí la categoría manualmente.',
+                                    ),
+                                  ),
+                                );
+                              } on FirebaseFunctionsException catch (e) {
+                                if (context.mounted) {
+                                  messenger.showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        e.message ??
+                                            'Error al sugerir categoría',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                if (context.mounted) {
+                                  setLocal(() {
+                                    isSuggestingCategory = false;
+                                  });
+                                }
+                              }
+                            },
+                      icon: isSuggestingCategory
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.auto_awesome_outlined, size: 18),
+                      label: Text(
+                        isSuggestingCategory
+                            ? 'Sugiriendo…'
+                            : 'Sugerir categoría (IA)',
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
