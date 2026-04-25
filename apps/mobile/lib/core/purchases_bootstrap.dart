@@ -1,12 +1,19 @@
+import 'package:craftr_mobile/core/monetization.dart';
 import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 Future<void> bootstrapPurchases() async {
+  if (!MonetizationConfig.billingLive) {
+    debugPrint('RevenueCat bootstrap skipped: BILLING_LIVE=false.');
+    return;
+  }
   final apiKey = RevenueCatConfig.apiKey;
   if (apiKey == null) {
     debugPrint(
-      'RevenueCat bootstrap skipped: missing key for this platform.',
+      'RevenueCat bootstrap skipped: missing REVENUECAT_*_API_KEY. '
+      'DEV: copy apps/mobile/config/dev/revenuecat.keys.sh.example to '
+      'revenuecat.keys.sh and run apps/mobile/scripts/run_dev.sh',
     );
     return;
   }

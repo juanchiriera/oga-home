@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:craftr_mobile/core/monetization.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 
@@ -57,6 +58,17 @@ class EntitlementsRemoteConfig {
   }
 
   void _syncState() {
+    if (!MonetizationConfig.billingLive) {
+      const nextState = EntitlementsState(
+        allOn: true,
+        iaAssistantEnabled: true,
+      );
+      if (state.value.allOn != nextState.allOn ||
+          state.value.iaAssistantEnabled != nextState.iaAssistantEnabled) {
+        state.value = nextState;
+      }
+      return;
+    }
     final nextState = EntitlementsState(
       allOn: _remoteConfig.getBool(_allOnKey),
       iaAssistantEnabled: _remoteConfig.getBool(_iaAssistantKey),

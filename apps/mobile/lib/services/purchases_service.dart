@@ -1,9 +1,11 @@
+import 'package:craftr_mobile/core/monetization.dart';
 import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class PurchasesService {
-  bool get isConfigured => RevenueCatConfig.isConfigured;
+  bool get isConfigured =>
+      MonetizationConfig.billingLive && RevenueCatConfig.isConfigured;
 
   Future<void> logIn(String appUserId) async {
     if (!isConfigured) {

@@ -1,4 +1,5 @@
 import 'package:craftr_mobile/core/flavor.dart';
+import 'package:craftr_mobile/core/monetization.dart';
 import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
@@ -25,12 +26,14 @@ class HomeDashboardPage extends StatefulWidget {
 
 class _HomeDashboardPageState extends State<HomeDashboardPage> {
   final _purchasesService = PurchasesService();
-  late Future<_BillingUiState> _billingState;
+  Future<_BillingUiState>? _billingState;
 
   @override
   void initState() {
     super.initState();
-    _billingState = _loadBillingState();
+    if (MonetizationConfig.billingLive) {
+      _billingState = _loadBillingState();
+    }
   }
 
   Future<_BillingUiState> _loadBillingState() async {
@@ -155,42 +158,43 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              FutureBuilder<_BillingUiState>(
-                future: _billingState,
-                builder: (context, snap) {
-                  final state = snap.data;
-                  if (snap.connectionState == ConnectionState.waiting &&
-                      state == null) {
-                    return CozyCard(
-                      color: scheme.surfaceContainer,
-                      child: const Row(
-                        children: [
-                          SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          SizedBox(width: 12),
-                          Expanded(child: Text('Cargando planes sandbox...')),
+              if (MonetizationConfig.billingLive && _billingState != null)
+                FutureBuilder<_BillingUiState>(
+                  future: _billingState,
+                  builder: (context, snap) {
+                    final state = snap.data;
+                    if (snap.connectionState == ConnectionState.waiting &&
+                        state == null) {
+                      return CozyCard(
+                        color: scheme.surfaceContainer,
+                        child: const Row(
+                          children: [
+                            SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            SizedBox(width: 12),
+                            Expanded(child: Text('Cargando planes sandbox...')),
+                          ],
+                        ),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _BillingStateCard(
+                          state: state ?? const _BillingUiState.error(),
+                          onRetry: _refreshBillingState,
+                        ),
+                        if (RevenueCatConfig.isConfigured) ...[
+                          const SizedBox(height: 10),
+                          _RevenueCatUiActions(),
                         ],
-                      ),
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _BillingStateCard(
-                        state: state ?? const _BillingUiState.error(),
-                        onRetry: _refreshBillingState,
-                      ),
-                      if (RevenueCatConfig.isConfigured) ...[
-                        const SizedBox(height: 10),
-                        _RevenueCatUiActions(),
                       ],
-                    ],
-                  );
-                },
-              ),
+                    );
+                  },
+                ),
               const SizedBox(height: 20),
               if (familyId == null || familyId.isEmpty) ...[
                 CozyCard(
