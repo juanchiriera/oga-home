@@ -10,7 +10,7 @@ const maxHtmlCharsForPrompt = 20_000;
 
 export const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const geminiModel = defineString("GEMINI_RECIPE_IMPORT_MODEL", {
-  default: "gemini-2.0-flash",
+  default: "gemini-2.5-flash",
 });
 
 type RecipeImportDraft = {
@@ -165,6 +165,23 @@ function toPositiveInt(value: unknown, fallback: number): number {
   return fallback;
 }
 
+function normalizeGeminiModelId(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("models/")) {
+    return trimmed.slice("models/".length);
+  }
+  return trimmed;
+}
+
+function parseJsonFromModelText(text: string): unknown {
+  let t = text.trim();
+  const fence = /^```(?:json)?\s*([\s\S]*?)```$/m.exec(t);
+  if (fence) {
+    t = fence[1].trim();
+  }
+  return JSON.parse(t);
+}
+
 function normalizeDraft(raw: unknown, sourceUrl: string): RecipeImportDraft {
   const map = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const ingredientes = toStringList(map.ingredientes);
@@ -186,53 +203,75 @@ async function callGeminiForRecipeDraft(
   html: string,
 ): Promise<RecipeImportDraft> {
   const key = geminiApiKey.value();
-  const model = geminiModel.value();
+  const model = normalizeGeminiModelId(geminiModel.value());
   const promptHtml = html.slice(0, maxHtmlCharsForPrompt);
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      model,
-    )}:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text:
-                  "Extrae una receta del HTML y devuelve SOLO JSON con claves: " +
-                  "titulo, descripcion, ingredientes (array), pasos (array), " +
-                  "tiempoMin (int), porciones (int), tags (array)." +
-                  `\nURL: ${url}\nHTML: ${promptHtml}`,
-              },
-            ],
-          },
-        ],
-      }),
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-goog-api-key": key,
     },
-  );
+    body: JSON.stringify({
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.2,
+      },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text:
+                "Extrae una receta del HTML y devolvé SOLO JSON válido (sin markdown), con claves: " +
+                "titulo, descripcion, ingredientes (array de strings), pasos (array de strings), " +
+                "tiempoMin (int), porciones (int), tags (array de strings)." +
+                `\nURL: ${url}\nHTML: ${promptHtml}`,
+            },
+          ],
+        },
+      ],
+    }),
+  });
   if (!response.ok) {
-    throw new HttpsError("internal", "Gemini no pudo procesar la receta");
+    const errorText = await response.text();
+    logger.error("importRecipeFromUrl:gemini_http_error", {
+      status: response.status,
+      model,
+      errorText: errorText.slice(0, 800),
+    });
+    throw new HttpsError("internal", "Gemini no pudo procesar la receta", {
+      status: response.status,
+    });
   }
   const body = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    promptFeedback?: { blockReason?: string };
+    candidates?: Array<{
+      finishReason?: string;
+      content?: { parts?: Array<{ text?: string }> };
+    }>;
   };
+  const blockReason = body.promptFeedback?.blockReason;
+  if (blockReason) {
+    logger.warn("importRecipeFromUrl:gemini_prompt_blocked", { blockReason });
+    throw new HttpsError(
+      "failed-precondition",
+      "El contenido no pudo procesarse por políticas de seguridad del modelo",
+    );
+  }
   const text = body.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
+  if (!text?.trim()) {
+    const finishReason = body.candidates?.[0]?.finishReason;
+    logger.warn("importRecipeFromUrl:gemini_empty_candidate", { finishReason });
     throw new HttpsError("failed-precondition", "No se obtuvo contenido parseable");
   }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(text);
+    parsed = parseJsonFromModelText(text);
   } catch {
+    logger.error("importRecipeFromUrl:gemini_json_parse", {
+      snippet: text.slice(0, 240),
+    });
     throw new HttpsError("failed-precondition", "La respuesta de IA no fue JSON válido");
   }
   return normalizeDraft(parsed, url);
