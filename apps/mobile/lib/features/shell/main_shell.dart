@@ -8,11 +8,17 @@ import 'package:craftr_mobile/features/recipes/recipes_page.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
 import 'package:flutter/material.dart';
 
-/// Navegación principal tipo “cozy” M3: barra inferior + secciones placeholder.
+/// Navegación principal tipo “cozy” M3: barra inferior + asistente vía FAB
+/// (hoja o panel flotante) para no saturar la [NavigationBar].
 class MainShell extends StatefulWidget {
-  const MainShell({super.key, this.initialTab = 0});
+  const MainShell({
+    super.key,
+    this.initialTab = 0,
+    this.openAssistantOnLaunch = false,
+  });
 
   final int initialTab;
+  final bool openAssistantOnLaunch;
 
   static int tabFromQuery(String? tab) {
     switch (tab?.toLowerCase()) {
@@ -30,12 +36,18 @@ class MainShell extends StatefulWidget {
         return 4;
       case 'ia':
       case 'assistant':
-        return 5;
+        return 0;
       case 'inicio':
       case 'home':
       default:
         return 0;
     }
+  }
+
+  /// `?tab=assistant` o `?tab=ia` abre el asistente en un panel (junto con [openAssistantOnLaunch]).
+  static bool shouldOpenAssistantFromQuery(String? tab) {
+    final t = tab?.toLowerCase();
+    return t == 'assistant' || t == 'ia';
   }
 
   @override
@@ -49,6 +61,17 @@ class _MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _index = widget.initialTab;
+    if (widget.openAssistantOnLaunch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        final ent = MainShellEntitlementsScope.of(context);
+        if (ent.allOn || ent.iaAssistantEnabled) {
+          _openAssistantPanel(context);
+        }
+      });
+    }
   }
 
   @override
@@ -57,6 +80,44 @@ class _MainShellState extends State<MainShell> {
     if (oldWidget.initialTab != widget.initialTab) {
       _index = widget.initialTab;
     }
+  }
+
+  void _openAssistantPanel(BuildContext context) {
+    final h = MediaQuery.sizeOf(context).height;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: false,
+      showDragHandle: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          child: Center(
+            child: Material(
+              color: Theme.of(sheetContext).colorScheme.surface,
+              elevation: 6,
+              shadowColor: Colors.black26,
+              borderRadius: BorderRadius.circular(20),
+              clipBehavior: Clip.antiAlias,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 560,
+                  maxHeight: h * 0.92,
+                  minHeight: h * 0.5,
+                ),
+                child: SizedBox(
+                  height: h * 0.9,
+                  child: FamilyAssistantPage(
+                    onClose: () => Navigator.of(sheetContext).pop(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -72,17 +133,24 @@ class _MainShellState extends State<MainShell> {
       const RecipesPage(),
       const SharedNotesPage(),
     ];
-    if (iaEnabled) {
-      pages.add(const FamilyAssistantPage());
-    }
     final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
     return Scaffold(
-      body: IndexedStack(index: selectedIndex, children: pages),
+      body: IndexedStack(
+        index: selectedIndex,
+        children: pages,
+      ),
+      floatingActionButton: iaEnabled
+          ? FloatingActionButton(
+              onPressed: () => _openAssistantPanel(context),
+              tooltip: 'Asistente',
+              child: const Icon(Icons.auto_awesome),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
+        destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
@@ -108,12 +176,6 @@ class _MainShellState extends State<MainShell> {
             selectedIcon: Icon(Icons.note_alt),
             label: 'Notas',
           ),
-          if (iaEnabled)
-            const NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: 'IA',
-            ),
         ],
       ),
     );

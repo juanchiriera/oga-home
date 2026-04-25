@@ -13,7 +13,10 @@ import 'package:http/http.dart' as http;
 /// Chat del asistente por familia: historial en Firestore, turnos vía
 /// [familyAssistantChatStream] (NDJSON, chunks de texto; requiere red).
 class FamilyAssistantPage extends StatelessWidget {
-  const FamilyAssistantPage({super.key});
+  const FamilyAssistantPage({super.key, this.onClose});
+
+  /// Si se muestra en un panel modal, se usa un botón cerrar en el app bar.
+  final VoidCallback? onClose;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +32,20 @@ class FamilyAssistantPage extends StatelessWidget {
           .snapshots(includeMetadataChanges: true),
       builder: (context, userSnap) {
         if (!userSnap.hasData) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            extendBodyBehindAppBar: onClose != null,
+            appBar: onClose == null
+                ? null
+                : sanctuaryAppBar(
+                    context,
+                    title: 'Asistente',
+                    leading: IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Cerrar',
+                      onPressed: onClose,
+                    ),
+                  ),
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
         final familyId = userSnap.data!.data()?['activeFamilyId'] as String?;
@@ -40,6 +55,13 @@ class FamilyAssistantPage extends StatelessWidget {
             appBar: sanctuaryAppBar(
               context,
               title: 'Asistente',
+              leading: onClose == null
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Cerrar',
+                      onPressed: onClose,
+                    ),
             ),
             body: Center(
               child: Padding(
@@ -53,16 +75,23 @@ class FamilyAssistantPage extends StatelessWidget {
             ),
           );
         }
-        return _FamilyAssistantBody(familyId: familyId);
+        return _FamilyAssistantBody(
+          familyId: familyId,
+          onClose: onClose,
+        );
       },
     );
   }
 }
 
 class _FamilyAssistantBody extends StatefulWidget {
-  const _FamilyAssistantBody({required this.familyId});
+  const _FamilyAssistantBody({
+    required this.familyId,
+    this.onClose,
+  });
 
   final String familyId;
+  final VoidCallback? onClose;
 
   @override
   State<_FamilyAssistantBody> createState() => _FamilyAssistantBodyState();
@@ -215,9 +244,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _activeThreadId = threadId;
       _streamBuffer = null;
     });
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
+    _scaffoldKey.currentState?.closeEndDrawer();
   }
 
   @override
@@ -233,6 +260,13 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       appBar: sanctuaryAppBar(
         context,
         title: 'Asistente',
+        leading: widget.onClose == null
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Cerrar',
+                onPressed: widget.onClose,
+              ),
         actions: [
           IconButton(
             tooltip: 'Conversaciones',
