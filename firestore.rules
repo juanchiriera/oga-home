@@ -327,6 +327,17 @@ service cloud.firestore {
         allow read: if isFamilyMember(familyId);
         allow write: if false;
       }
+
+      // Chat asistente: lectura para miembros; escritura solo Admin SDK (callable).
+      match /assistantThreads/{threadId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+
+        match /messages/{messageId} {
+          allow read: if isFamilyMember(familyId);
+          allow write: if false;
+        }
+      }
     }
 
     match /{document=**} {

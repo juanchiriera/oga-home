@@ -1,6 +1,7 @@
 import 'package:craftr_mobile/core/flavor.dart';
 import 'package:craftr_mobile/core/entitlements_scope.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
+import 'package:craftr_mobile/features/assistant/family_assistant_page.dart';
 import 'package:craftr_mobile/features/home/home_dashboard_page.dart';
 import 'package:craftr_mobile/features/notes/shared_notes_page.dart';
 import 'package:craftr_mobile/features/recipes/recipes_page.dart';
@@ -72,12 +73,7 @@ class _MainShellState extends State<MainShell> {
       const SharedNotesPage(),
     ];
     if (iaEnabled) {
-      pages.add(
-        const _PlaceholderPage(
-          title: 'Asistente',
-          icon: Icons.chat_bubble_outline,
-        ),
-      );
+      pages.add(const FamilyAssistantPage());
     }
     final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
@@ -118,29 +114,6 @@ class _MainShellState extends State<MainShell> {
               selectedIcon: Icon(Icons.chat_bubble),
               label: 'IA',
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderPage extends StatelessWidget {
-  const _PlaceholderPage({required this.title, required this.icon});
-
-  final String title;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text('Próximamente', style: Theme.of(context).textTheme.bodyMedium),
         ],
       ),
     );
