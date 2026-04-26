@@ -1,5 +1,5 @@
 /**
- * OpenRouter: API compatible con OpenAI Chat Completions.
+ * Cliente hacia el endpoint de Chat Completions de OpenRouter (mensajes, JSON mode, stream SSE).
  * @see https://openrouter.ai/docs/quickstart
  */
 export const OPENROUTER_CHAT_COMPLETIONS_URL =
@@ -10,7 +10,7 @@ export type LlmTextChatMessage = {
   content: string;
 };
 
-/** @deprecated use LlmTextChatMessage; nombre histórico */
+/** @deprecated usar `LlmTextChatMessage` */
 export type OpenAiTextChatMessage = LlmTextChatMessage;
 
 /**
@@ -154,7 +154,7 @@ export function extractChatCompletionMessageText(body: unknown): string {
   return String(text).trim();
 }
 
-/** Delta de contenido en stream SSE (formato OpenAI / OpenRouter). */
+/** Delta de contenido en stream SSE (eventos `data:` del flujo Chat Completions). */
 export function extractOpenAiStreamDelta(obj: unknown): string {
   const j = obj as {
     choices?: Array<{ delta?: { content?: string | null } }>;

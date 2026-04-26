@@ -1,12 +1,13 @@
 # Producto y backlog — App familia + asistente IA
 
-**Versión del documento:** 1.3  
-**Última actualización:** 2026-04-19  
+**Versión del documento:** 1.4  
+**Última actualización:** 2026-04-26  
 **Propósito:** Marco de referencia para historias de usuario, refinamiento y trazabilidad de alcance. No sustituye diseño visual final ni contratos de API versionados.
 
 **Cambios v1.1:** Se cierran **ADR-001** (stack **Flutter**) y **ADR-002** (cobro **por familia**).  
 **Cambios v1.2:** Se cierran **ADR-003** (**RevenueCat** para billing móvil) y **ADR-004** (**backend completo en Firebase**).  
-**Cambios v1.3:** Se cierran **ADR-005** (**Gemini** como LLM por defecto, **proveedor configurable**) y **ADR-006** (**modo offline con caché**).
+**Cambios v1.3:** Se cierran **ADR-005** (LLM por defecto y **proveedor configurable**) y **ADR-006** (**modo offline con caché**).  
+**Cambios v1.4:** La documentación de **ADR-005** y secciones de IA alinean el backend documentado a **OpenRouter** (unificación; sin referencias a proveedores LLM anteriores en este producto).
 
 ---
 
@@ -45,7 +46,7 @@ Aplicación **nativa iOS y Android** con cliente en **Flutter** para **hogares /
 - **Multi-moneda** en gastos; **moneda por defecto: ARS** a nivel familia (configurable al crear el hogar).
 - **Backend:** plataforma **Firebase** (Auth, Firestore, Cloud Functions, Storage, reglas de seguridad, jobs programados donde aplique) — ver **ADR-004**.
 - **Pagos móviles:** **RevenueCat** delante de App Store / Google Play — ver **ADR-003**.
-- **IA generativa:** **Google Gemini** como modelo por defecto en servidor; capa de proveedor **configurable** (otro modelo o endpoint sin redeploy masivo) — ver **ADR-005**.
+- **IA generativa:** **OpenRouter** como acceso unificado a modelos en servidor (catálogo y API única); parámetros **configurables** (modelo por flujo, sin redeploy masivo) — ver **ADR-005**.
 - **Conectividad:** **caché offline** de datos en cliente (Firestore persistence) con cola de escrituras y UX clara sin red — ver **ADR-006**.
 
 ### 1.3 Fuera de alcance v1 (explícito)
@@ -94,7 +95,7 @@ Registrar la opción elegida al cerrar cada decisión. Mientras esté abierta, e
 | ADR-002 | Unidad de cobro               | Por **familia** / por usuario                    | **Aceptado: por familia**                        | Un solo estado de pago por hogar; todos los miembros comparten entitlements; “asientos” u otro modelo por miembro queda como evolución comercial opcional.                                                                                                                                                                                                                                                                                                                                                                                |
 | ADR-003 | Proveedor billing móvil       | StoreKit + Play Billing directo / **RevenueCat** | **Aceptado: RevenueCat**                         | SDK en Flutter; productos y ofertas en App Store Connect / Play Console; webhooks a Cloud Functions para sincronizar estado de suscripción por familia; reporting y experimentación en dashboard RC.                                                                                                                                                                                                                                                                                                                                      |
 | ADR-004 | Backend                       | BaaS / mixto / **Firebase end-to-end**           | **Aceptado: Firebase (stack completo)**          | Auth (Google), Firestore (datos + reglas), Cloud Functions (HTTPS / Callable / triggers / webhooks RevenueCat), Storage (adjuntos, audio), Scheduler o Functions programadas (gastos recurrentes). IA y herramientas del asistente se ejecutan en Functions con credenciales aisladas.                                                                                                                                                                                                                                                    |
-| ADR-005 | Proveedor LLM / transcripción | OpenAI / Google / Anthropic / mixto              | **Aceptado: Gemini por defecto + configuración** | **LLM principal:** API **Gemini** (p. ej. Gemini API o Vertex AI según despliegue). **Configurabilidad:** en Cloud Functions, capa tipo *provider* + parámetros en **Secret Manager** / variables de entorno / **Remote Config** (modelo, temperatura, límites) para poder cambiar de proveedor o variante sin acoplar el resto del dominio. **Audio a texto:** pipeline configurable (p. ej. Gemini multimodal, Cloud Speech-to-Text u otro) con la misma idea de abstracción. Políticas de retención y región documentadas por entorno. |
+| ADR-005 | Proveedor LLM / transcripción | Gateway / catálogos múltiples / mixto              | **Aceptado: OpenRouter + configuración** | **LLM en servidor:** **OpenRouter** (API de Chat Completions, un solo punto de integración; el modelo concreto se elige por ID en su catálogo). **Configurabilidad:** en Cloud Functions, **Secret Manager** (`OPENROUTER_API_KEY`) y parámetros de entorno (`OPENROUTER_*_MODEL`, límites, atribución opcional) y/o **Remote Config** según se implemente, para cambiar de modelo o variantes sin acoplar el resto del dominio. **Audio a texto:** pipeline configurable (p. ej. Cloud Speech-to-Text u otro servicio) con la misma idea de abstracción, independiente del gateway de chat. Políticas de retención y región documentadas por entorno. |
 | ADR-006 | Modo offline                  | Online-only / **caché + cola**                   | **Aceptado: offline-cache**                      | **Firestore:** persistencia local habilitada en Flutter; lectura con datos cacheados sin red. **Escrituras:** encoladas y sincronizadas al volver conectividad; indicadores “pendiente de sincronizar” y manejo básico de conflictos (último escritor gana o resolución explícita en casos críticos). **Requiere red obligatoria:** asistente conversacional, llamadas a Functions que no tengan sustituto local, compras in-app, subida de archivos a Storage, pipelines IA de importación.                                              |
 
 
@@ -143,11 +144,11 @@ Registrar la opción elegida al cerrar cada decisión. Mientras esté abierta, e
 - **Alcance:** no es “offline-first completo” para todos los flujos; las funciones que dependen de servidor (listado en **ADR-006**) muestran pantalla o banner “Sin conexión” con acciones diferidas cuando aplique.
 - **Conflictos:** política v1 explícita — preferir **última escritura gana** en campos simples; para contención fuerte (p. ej. mismo documento) documentar fallback (merge por campo o aviso al usuario).
 
-### 4.8 IA: Gemini y configurabilidad (ADR-005)
+### 4.8 IA: OpenRouter y configurabilidad (ADR-005)
 
-- Las **Cloud Functions** del asistente y de importación (ticket, recetas) invocan el **SDK/API de Gemini** por defecto.
-- **Configuración externa:** nombre o ID de modelo, región/proyecto Vertex si aplica, top_p / temperatura acotados, y límites de tokens en configuración desplegable (no hardcodear en lógica de negocio).
-- **Cambio de proveedor:** contrato interno único (`generateCompletion`, `transcribeAudio`, etc.) permite sustituir implementación (otro LLM) manteniendo las mismas herramientas y validaciones.
+- Las **Cloud Functions** del asistente y de importación (ticket, recetas) invocan la **API de OpenRouter** (HTTP, esquema Chat Completions) con el modelo elegido vía parámetros de despliegue.
+- **Configuración externa:** ID de modelo por flujo (asistente, recetas, gastos/visión), temperatura y límites de tokens acotados, en variables de entorno o equivalente desplegable (no hardcodear en lógica de negocio).
+- **Cambio de modelo:** se realiza ajustando los identificadores de modelo en OpenRouter (mismo contrato de API) y validaciones de negocio existentes; las herramientas del asistente no dependen de un proveedor concreto distinto a este gateway.
 - **Costos y cuotas:** límites por familia/usuario en Functions; degradación elegante si se excede cuota.
 
 ---
@@ -178,7 +179,7 @@ flowchart LR
 
 
 
-**Flujo resumido:** el cliente **Flutter** usa **Firebase Auth** (Google), lee/escribe **Firestore** según reglas (con **persistencia local** para modo offline-cache), y llama **Callable/HTTPS Functions** para lógica privilegiada, webhooks (**RevenueCat** → Functions) y **asistente con herramientas** (LLM **Gemini** en servidor, capa configurable). **RevenueCat** habla con las tiendas; los eventos consolidan el estado de suscripción en Firestore. Adjuntos y audio en **Cloud Storage**.
+**Flujo resumido:** el cliente **Flutter** usa **Firebase Auth** (Google), lee/escribe **Firestore** según reglas (con **persistencia local** para modo offline-cache), y llama **Callable/HTTPS Functions** para lógica privilegiada, webhooks (**RevenueCat** → Functions) y **asistente con herramientas** (LLM vía **OpenRouter** en servidor, modelos y límites configurables). **RevenueCat** habla con las tiendas; los eventos consolidan el estado de suscripción en Firestore. Adjuntos y audio en **Cloud Storage**.
 
 ---
 
@@ -585,7 +586,7 @@ Navigation bar inferior (5 destinos: Home, Gastos, Stock, Recetas, Más — con 
 | Complejidad tarjeta + cuotas + FX | Retraso, bugs contables | Reglas explícitas acotadas; UI de “pendientes”; tests de tabla                            |
 | IA escribe datos incorrectos      | Pérdida de confianza    | Confirmación; logs; edición fácil                                                         |
 | Import recetas URL frágil / legal | Bloqueos                | Fetch conservador; TOS visible; fallback manual                                           |
-| Costo IA alto                     | Margen                  | Cuotas familia; caching; modelos baratos en extracción; **Gemini** con límites vía config |
+| Costo IA alto                     | Margen                  | Cuotas familia; caching; modelos baratos en extracción; **OpenRouter** con límites vía config |
 | Conflictos offline / sync         | Datos inconsistentes    | Política v1 en §4.7; tests de cola; UX “pendiente”                                        |
 | Billing estados inconsistentes    | Revenue                 | Webhooks RC idempotentes → Firestore; pantalla recuperación; logs en Functions            |
 
@@ -601,7 +602,7 @@ Una historia se considera **terminada** cuando:
 3. UI tiene **estados vacío, carga y error**.
 4. **Accesibilidad básica:** contraste en ambos temas; texto escalable sin solapamiento crítico.
 5. **Sincronización:** cambios visibles para otro miembro en tiempo razonable (near real-time o pull-to-refresh explícito documentado); con **offline-cache**, escrituras locales encoladas se replican al reconectar sin pérdida silenciosa (o error visible si falla).
-6. Si afecta al asistente: herramienta equivalente o actualización de `tools_version` documentada; el asistente **no** debe simular éxito sin red si el flujo exige Functions/Gemini.
+6. Si afecta al asistente: herramienta equivalente o actualización de `tools_version` documentada; el asistente **no** debe simular éxito sin red si el flujo exige Functions/LLM (OpenRouter).
 
 ---
 

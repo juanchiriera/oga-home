@@ -56,6 +56,20 @@ export const securePing = onRequest(
 
 Despliega solo después de `firebase functions:secrets:set OPENROUTER_API_KEY` en ese proyecto.
 
+### Parámetros de OpenRouter (no secretos)
+
+Además de la clave, las Functions usan parámetros de entorno (Firebase **params** / `firebase functions:config` según el flujo del equipo) para el **ID de modelo** por caso de uso. Los nombres alinean la documentación con el código:
+
+| Parámetro | Rol típico |
+| --------- | ---------- |
+| `OPENROUTER_RECIPE_IMPORT_MODEL` | Importación de receta desde URL (HTML) |
+| `OPENROUTER_ASSISTANT_MODEL` | Asistente (chat y stream) |
+| `OPENROUTER_EXPENSE_MODEL` | Sugerencia de categoría e importación con visión (ticket / resumen) |
+| `OPENROUTER_HTTP_REFERER` | Opcional: URL de atribución para el dashboard de OpenRouter |
+| `OPENROUTER_APP_TITLE` | Opcional: título de app en atribución (p. ej. `Famil-IA`) |
+
+Los IDs de modelo siguen el catálogo de OpenRouter (p. ej. `openai/gpt-4o-mini`); se pueden cambiar sin conmutar de proveedor de integración. Ver [OpenRouter - Models](https://openrouter.ai/models).
+
 ### RevenueCat webhook (E3-02)
 
 - Function: `revenuecatWebhook` (HTTPS, Functions v2).

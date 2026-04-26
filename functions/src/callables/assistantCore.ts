@@ -77,7 +77,7 @@ export function contentsFromPriorAndUser(
   return contents;
 }
 
-/** Mensajes para OpenAI Chat Completions (`user` / `assistant`). */
+/** Construye turnos de chat para el LLM (`user` / `assistant`), p. ej. hacia OpenRouter. */
 export function openAiMessagesFromPriorAndUser(
   prior: FireMessage[],
   userText: string,
