@@ -34,7 +34,7 @@ export function openRouterRequestHeaders(apiKey: string): Record<string, string>
   });
 }
 
-type RecipeImportDraft = {
+export type RecipeImportDraft = {
   titulo: string;
   descripcion: string;
   ingredientes: string[];
@@ -117,7 +117,7 @@ function cleanHtml(raw: string): string {
     .trim();
 }
 
-async function fetchHtml(url: string): Promise<{ html: string; fetchedBytes: number }> {
+export async function fetchHtml(url: string): Promise<{ html: string; fetchedBytes: number }> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs);
   try {
@@ -211,7 +211,7 @@ function normalizeDraft(raw: unknown, sourceUrl: string): RecipeImportDraft {
   };
 }
 
-async function callOpenRouterForRecipeDraft(
+export async function callOpenRouterForRecipeDraft(
   url: string,
   html: string,
 ): Promise<RecipeImportDraft> {
@@ -261,6 +261,30 @@ async function callOpenRouterForRecipeDraft(
     throw new HttpsError("failed-precondition", "La respuesta de IA no fue JSON válido");
   }
   return normalizeDraft(parsed, url);
+}
+
+/** Uso interno (p. ej. herramienta del asistente): mismo flujo que el callable sin persistir receta. */
+export async function draftRecipeFromUrlAsMember(
+  db: admin.firestore.Firestore,
+  familyId: string,
+  uid: string,
+  url: string,
+): Promise<{ draft: RecipeImportDraft; meta: { sourceUrl: string; fetchedBytes: number } }> {
+  const sourceUrl = normalizeUrl(url);
+  await assertFamilyMember(db, familyId, uid);
+  await assertRecipeImportEntitlement(db, familyId);
+  const { html, fetchedBytes } = await fetchHtml(sourceUrl);
+  const draft = await callOpenRouterForRecipeDraft(sourceUrl, html);
+  logger.info("draftRecipeFromUrlAsMember", {
+    familyId,
+    uid,
+    sourceUrl,
+    fetchedBytes,
+  });
+  return {
+    draft,
+    meta: { sourceUrl, fetchedBytes },
+  };
 }
 
 export const importRecipeFromUrl = onCall(

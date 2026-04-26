@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { defineString } from "firebase-functions/params";
+import { defineSecret, defineString } from "firebase-functions/params";
 
 import {
   OPENROUTER_CHAT_COMPLETIONS_URL,
@@ -18,11 +18,18 @@ import {
   requireCallAuth,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
+import { runAssistantGeminiWithTools } from "./assistantGeminiChat.js";
+import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
 
 const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
   default: "openai/gpt-4o-mini",
+});
+
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const geminiAssistantModel = defineString("GEMINI_ASSISTANT_MODEL", {
+  default: "gemini-2.0-flash",
 });
 
 async function callOpenRouterChat(params: {
@@ -69,7 +76,7 @@ async function callOpenRouterChat(params: {
  * [familyAssistantChatStream] (chunks NDJSON + stream del proveedor).
  */
 export const familyAssistantChat = onCall(
-  { region, secrets: [openRouterApiKey] },
+  { region, secrets: [openRouterApiKey, geminiApiKey] },
   async (request) => {
     const uid = requireCallAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
@@ -79,6 +86,11 @@ export const familyAssistantChat = onCall(
         ? String(rawThread).trim()
         : "";
     const text = String(request.data?.message ?? request.data?.text ?? "").trim();
+    const clientRequestIdRaw = request.data?.clientRequestId;
+    const clientRequestId =
+      clientRequestIdRaw != null && String(clientRequestIdRaw).trim() !== ""
+        ? String(clientRequestIdRaw).trim()
+        : undefined;
 
     if (!familyId) {
       throw new HttpsError("invalid-argument", "familyId es obligatorio");
@@ -116,12 +128,26 @@ export const familyAssistantChat = onCall(
 
     const messagesCol = threadRef.collection("messages");
     const prior = await loadPriorMessages(messagesCol);
-    const systemPrompt = buildSystemPromptText();
-    const reply = await callOpenRouterChat({
-      systemPrompt,
-      prior,
-      userText: text,
-    });
+    const gKey = geminiApiKey.value()?.trim();
+    const reply = gKey
+      ? await runAssistantGeminiWithTools({
+          apiKey: gKey,
+          modelName: geminiAssistantModel.value().trim(),
+          prior,
+          userText: text,
+          toolCtx: {
+            db,
+            familyId,
+            userId: uid,
+            conversationId: threadId,
+            clientRequestId,
+          },
+        })
+      : await callOpenRouterChat({
+          systemPrompt: buildSystemPromptText(),
+          prior,
+          userText: text,
+        });
 
     const now = admin.firestore.FieldValue.serverTimestamp();
     const batch = db.batch();
@@ -170,6 +196,7 @@ export const familyAssistantChat = onCall(
     return {
       threadId,
       replyText: reply,
+      toolsVersion: ASSISTANT_TOOLS_VERSION,
     };
   },
 );

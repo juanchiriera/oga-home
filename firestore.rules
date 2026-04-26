@@ -338,6 +338,18 @@ service cloud.firestore {
           allow write: if false;
         }
       }
+
+      // §8.3 AssistantActionLog — solo Cloud Functions (Admin SDK).
+      match /assistantActionLog/{logId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
+
+      // Idempotencia tool calls (client_request_id + tool); solo Admin SDK.
+      match /assistantToolIdempotency/{docId} {
+        allow read: if isFamilyMember(familyId);
+        allow write: if false;
+      }
     }
 
     match /{document=**} {
