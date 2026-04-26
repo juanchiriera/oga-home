@@ -450,7 +450,6 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     final topPad = MediaQuery.paddingOf(context).top + kToolbarHeight + 8;
     final offline = _online == false;
     final threadId = _activeThreadId;
-    final hasLocalMessages = _localMessages.isNotEmpty;
 
     return Scaffold(
       key: _scaffoldKey,
