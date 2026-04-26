@@ -90,6 +90,11 @@ export const familyAssistantChatStream = onRequest(
       message?: string;
       text?: string;
       clientRequestId?: string;
+      batchMeta?: {
+        buffer_size?: number | string;
+        delay_ms?: number | string;
+        tokens_saved_estimados?: number | string;
+      };
       threadCreateCause?: string;
     };
     try {
@@ -114,6 +119,13 @@ export const familyAssistantChatStream = onRequest(
     const bodyCri =
       body.clientRequestId != null ? String(body.clientRequestId).trim() : "";
     const clientRequestId = headerCri || bodyCri || undefined;
+    const rawBatchMeta = body.batchMeta ?? {};
+    const batchSize = Math.max(1, Number(rawBatchMeta.buffer_size ?? 1) || 1);
+    const delayMs = Math.max(0, Number(rawBatchMeta.delay_ms ?? 0) || 0);
+    const tokensSavedEstimados = Math.max(
+      0,
+      Number(rawBatchMeta.tokens_saved_estimados ?? 0) || 0,
+    );
     const threadCreateCause =
       body.threadCreateCause != null &&
       String(body.threadCreateCause).trim() !== ""
@@ -290,6 +302,9 @@ export const familyAssistantChatStream = onRequest(
       userChars: text.length,
       replyChars: reply.length,
       provider: "openrouter",
+      buffer_size: batchSize,
+      delay_ms: delayMs,
+      tokens_saved_estimados: tokensSavedEstimados,
     });
 
     writeNd(res, { type: "done" });

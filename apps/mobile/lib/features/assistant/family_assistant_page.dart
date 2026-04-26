@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_message_buffer.dart';
 import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -102,6 +103,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     threadsStore: FirestoreAssistantConversationThreadsStore(),
   );
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  late final AssistantMessageBuffer _messageBuffer;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _threadsSub;
   String? _activeThreadId;
   String? _uid;
@@ -114,6 +116,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   void initState() {
     super.initState();
+    _messageBuffer = AssistantMessageBuffer(onFlush: _sendBufferedBatch);
     _uid = FirebaseAuth.instance.currentUser?.uid;
     _refreshConnectivity();
     _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
@@ -136,6 +139,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _messageBuffer.dispose();
     _threadsSub?.cancel();
     _controller.dispose();
     super.dispose();
@@ -290,10 +294,18 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     }
 
     setState(() {
+      _streamBuffer = null;
+    });
+    _controller.clear();
+    _messageBuffer.queue(text);
+  }
+
+  Future<void> _sendBufferedBatch(BufferedAssistantBatch batch) async {
+    if (!mounted) return;
+    setState(() {
       _sending = true;
       _streamBuffer = null;
     });
-
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null) {
       if (mounted) {
@@ -317,8 +329,12 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       'familyId': widget.familyId,
       if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
         'threadId': _activeThreadId!,
-      'message': localMessage.text,
-      'clientMessageId': localMessage.clientMessageId,
+      'message': batch.message,
+      'batchMeta': {
+        'buffer_size': batch.bufferSize,
+        'delay_ms': batch.delayMs,
+        'tokens_saved_estimados': batch.tokensSavedEstimated,
+      },
     });
 
     final client = http.Client();
