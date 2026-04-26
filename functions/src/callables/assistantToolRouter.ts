@@ -26,6 +26,7 @@ const EXPENSE_CATEGORIES: Array<{ key: string; label: string; system: boolean }>
   { key: "leisure", label: "Ocio", system: true },
   { key: "other", label: "Otros", system: true },
 ];
+const ALLOWED_EXPENSE_CURRENCIES = new Set(["ARS", "USD", "EUR"]);
 
 const SUPPORTED_EXPENSE_CURRENCIES = new Set(["ARS", "USD", "EUR"]);
 const CASH_PAYMENT_METHOD_TYPE = "cash";
@@ -338,6 +339,84 @@ async function handleListExpenses(
   }
   return {
     response: { ok: true, expenses: filtered, count: filtered.length },
+    auditResult: "ok",
+  };
+}
+
+async function handleCreateExpense(
+  ctx: ToolRouterContext,
+  raw: Record<string, unknown>,
+): Promise<ToolExecutionResult> {
+  const amount = Number(raw.amount ?? 0);
+  const currency = String(raw.currency ?? "").trim().toUpperCase();
+  const categoryKey = String(raw.category_key ?? "").trim();
+  const occurredAtIso = String(raw.occurred_at ?? "").trim();
+  const paymentMethodId = String(raw.payment_method_id ?? "").trim();
+  const merchant = raw.merchant != null ? String(raw.merchant).trim() : "";
+  const note = raw.note != null ? String(raw.note).trim() : "";
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return rejected("amount debe ser un número mayor a 0");
+  }
+  if (!ALLOWED_EXPENSE_CURRENCIES.has(currency)) {
+    return rejected("currency debe ser ARS, USD o EUR");
+  }
+  if (!EXPENSE_CATEGORIES.some((x) => x.key === categoryKey)) {
+    return rejected("category_key no es una categoría permitida");
+  }
+
+  let occurredAt: Timestamp;
+  try {
+    occurredAt = utcStartOfDay(parseIsoDateOnly(occurredAtIso));
+  } catch (e) {
+    return rejected((e as Error).message);
+  }
+
+  let status = "confirmed";
+  let resolvedPaymentMethodId: string | null = null;
+  if (paymentMethodId) {
+    const paymentMethodSnap = await ctx.db
+      .collection("families")
+      .doc(ctx.familyId)
+      .collection("paymentMethods")
+      .doc(paymentMethodId)
+      .get();
+    if (!paymentMethodSnap.exists) {
+      return rejected("payment_method_id no es válido");
+    }
+    const paymentMethodType = String(paymentMethodSnap.get("type") ?? "").trim();
+    status = paymentMethodType === "credit_card" ? "pending_card_cycle" : "confirmed";
+    resolvedPaymentMethodId = paymentMethodId;
+  }
+
+  const now = FieldValue.serverTimestamp();
+  const ref = await ctx.db.collection("families").doc(ctx.familyId).collection("expenses").add({
+    amount,
+    currency,
+    categoryKey,
+    occurredAt,
+    paymentMethodId: resolvedPaymentMethodId,
+    merchant,
+    note,
+    status,
+    source: "chatbot",
+    createdBy: ctx.userId,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return {
+    response: {
+      ok: true,
+      expense_id: ref.id,
+      auto_executed: true,
+      source: "chatbot",
+      amount,
+      currency,
+      category_key: categoryKey,
+      occurred_at: occurredAtIso,
+      status,
+    },
     auditResult: "ok",
   };
 }
@@ -749,6 +828,7 @@ export async function executeAssistantTool(
         payloadHash,
         payloadRedacted: { ...payloadRedacted, idempotent_replay: true },
         result: "ok",
+        source: toolName === "create_expense" ? "chatbot" : "assistant_tool",
       });
       return { response: cached, auditResult: "ok" };
     }
@@ -766,6 +846,7 @@ export async function executeAssistantTool(
     payloadHash,
     payloadRedacted,
     result: out.auditResult,
+    source: toolName === "create_expense" ? "chatbot" : "assistant_tool",
   });
 
   if (

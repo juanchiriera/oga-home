@@ -64,6 +64,7 @@ export async function appendAssistantActionLog(params: {
   payloadHash: string;
   payloadRedacted: Record<string, unknown>;
   result: AssistantAuditResult;
+  source?: string;
 }): Promise<string> {
   const col = params.db
     .collection("families")
@@ -80,6 +81,7 @@ export async function appendAssistantActionLog(params: {
     payloadHash: params.payloadHash,
     payloadRedacted: params.payloadRedacted,
     result: params.result,
+    source: params.source ?? "assistant_tool",
     toolsVersion: ASSISTANT_TOOLS_VERSION,
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });

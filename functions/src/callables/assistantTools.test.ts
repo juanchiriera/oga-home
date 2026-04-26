@@ -8,7 +8,7 @@ import {
   registerPlannerToolExecution,
 } from "./assistantOpenRouterTools.js";
 import { hashToolPayload, redactToolArgsForAudit } from "./assistantToolAudit.js";
-import { idempotencyDocId } from "./assistantToolIdempotency.js";
+import { idempotencyDocId, toolUsesIdempotencyStore } from "./assistantToolIdempotency.js";
 
 describe("assistant tools helpers", () => {
   it("hashToolPayload es estable ante orden de keys", () => {
@@ -31,6 +31,10 @@ describe("assistant tools helpers", () => {
     expect(idempotencyDocId("abc", "create_note")).not.toBe(
       idempotencyDocId("abc", "create_recipe"),
     );
+  });
+
+  it("create_expense usa almacén de idempotencia", () => {
+    expect(toolUsesIdempotencyStore("create_expense")).toBe(true);
   });
 
   it("chunkTextForNdjson parte el texto", () => {

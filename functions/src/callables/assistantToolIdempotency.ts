@@ -60,6 +60,7 @@ export async function writeIdempotentToolResult(
 /** Herramientas que persisten en Firestore o efectos costosos repetibles con el mismo id de cliente. */
 export function toolUsesIdempotencyStore(toolName: string): boolean {
   return (
+    toolName === "create_expense" ||
     toolName === "create_stock_item" ||
     toolName === "update_stock_status" ||
     toolName === "create_note" ||
