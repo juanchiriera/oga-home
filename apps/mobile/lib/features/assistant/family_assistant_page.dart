@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io' show SocketException;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
@@ -444,6 +445,91 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     _scaffoldKey.currentState?.closeEndDrawer();
   }
 
+  String _formatHistoryFallbackDate(dynamic rawTimestamp) {
+    if (rawTimestamp is! Timestamp) {
+      return 'Conversación';
+    }
+    final date = rawTimestamp.toDate();
+    final dd = date.day.toString().padLeft(2, '0');
+    final mm = date.month.toString().padLeft(2, '0');
+    final yyyy = date.year.toString();
+    final hh = date.hour.toString().padLeft(2, '0');
+    final min = date.minute.toString().padLeft(2, '0');
+    return '$dd/$mm/$yyyy $hh:$min';
+  }
+
+  String _threadTitle(Map<String, dynamic> data) {
+    final conversationTitle = (data['conversationTitle'] as String?)?.trim();
+    if (conversationTitle != null && conversationTitle.isNotEmpty) {
+      return conversationTitle;
+    }
+    return _formatHistoryFallbackDate(data['createdAt'] ?? data['updatedAt']);
+  }
+
+  Future<void> _renameThreadTitle({
+    required String threadId,
+    required String currentTitle,
+  }) async {
+    final controller = TextEditingController(text: currentTitle);
+    final newTitle = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Renombrar conversación'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            minLines: 1,
+            maxLines: 2,
+            textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              hintText: 'Ej: Plan semanal de comidas',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.text.trim()),
+              child: const Text('Guardar'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+
+    if (!mounted || newTitle == null || newTitle.isEmpty) {
+      return;
+    }
+
+    try {
+      final callable = craftrFunctions().httpsCallable(
+        'renameAssistantThreadTitle',
+      );
+      await callable.call({
+        'familyId': widget.familyId,
+        'threadId': threadId,
+        'conversationTitle': newTitle,
+      });
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.message ?? 'No se pudo renombrar la conversación'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo renombrar la conversación')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -518,14 +604,22 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                       itemCount: docs.length,
                       itemBuilder: (context, i) {
                         final d = docs[i];
-                        final title =
-                            d.data()['title'] as String? ?? 'Conversación';
+                        final data = d.data();
+                        final title = _threadTitle(data);
                         final selected = d.id == _activeThreadId;
                         return ListTile(
                           title: Text(
                             title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.edit_outlined),
+                            tooltip: 'Renombrar',
+                            onPressed: () => _renameThreadTitle(
+                              threadId: d.id,
+                              currentTitle: title,
+                            ),
                           ),
                           selected: selected,
                           onTap: () => _openThread(d.id),
