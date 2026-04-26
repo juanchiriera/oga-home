@@ -2,16 +2,22 @@ import * as admin from "firebase-admin";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { defineSecret, defineString } from "firebase-functions/params";
+import { defineString } from "firebase-functions/params";
+
+import {
+  OPENAI_CHAT_COMPLETIONS_URL,
+  buildExpenseVisionChatPayload,
+  extractChatCompletionMessageText,
+} from "../llm/openaiApi.js";
+import { openaiApiKey } from "./recipeCallables.js";
 
 const region = "southamerica-east1";
 const pendingCardCycle = "pending_card_cycle";
 const confirmed = "confirmed";
 const creditCardType = "credit_card";
 
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
-const geminiModel = defineString("EXPENSE_IMPORT_GEMINI_MODEL", {
-  default: "gemini-2.5-flash",
+const openaiExpenseModel = defineString("OPENAI_EXPENSE_MODEL", {
+  default: "gpt-4o-mini",
 });
 
 type ImportLine = {
@@ -35,7 +41,7 @@ interface ExpenseImportOcrProvider {
   extractLines(input: OcrProviderInput): Promise<ImportLine[]>;
 }
 
-class GeminiOcrProvider implements ExpenseImportOcrProvider {
+class OpenAiVisionOcrProvider implements ExpenseImportOcrProvider {
   async extractLines(input: OcrProviderInput): Promise<ImportLine[]> {
     const prompt = [
       "Sos un parser de tickets y resúmenes de tarjeta.",
@@ -52,60 +58,36 @@ class GeminiOcrProvider implements ExpenseImportOcrProvider {
       "amount debe ser > 0.",
     ].join("\n");
 
-    const endpoint =
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel.value()}:generateContent`;
-    const response = await fetch(endpoint, {
+    const dataUrl = `data:${input.mimeType};base64,${input.base64Data}`;
+    const model = openaiExpenseModel.value().trim();
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey.value(),
+        Authorization: `Bearer ${openaiApiKey.value()}`,
       },
-      body: JSON.stringify({
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType: input.mimeType,
-                  data: input.base64Data,
-                },
-              },
-            ],
-          },
-        ],
-      }),
+      body: JSON.stringify(buildExpenseVisionChatPayload(model, prompt, dataUrl)),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       throw new HttpsError(
         "internal",
-        `Gemini request failed (${response.status})`,
+        `OpenAI request failed (${response.status})`,
         { errorText },
       );
     }
 
-    const json = (await response.json()) as {
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-      }>;
-    };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    if (!text.trim()) {
-      throw new HttpsError("data-loss", "Gemini no devolvió contenido");
+    const text = extractChatCompletionMessageText(await response.json());
+    if (!text) {
+      throw new HttpsError("data-loss", "OpenAI no devolvió contenido");
     }
 
     let parsed: { lines?: Array<Record<string, unknown>> };
     try {
       parsed = JSON.parse(text) as { lines?: Array<Record<string, unknown>> };
     } catch {
-      throw new HttpsError("data-loss", "Gemini devolvió JSON inválido");
+      throw new HttpsError("data-loss", "OpenAI devolvió JSON inválido");
     }
 
     const byId = new Map(input.paymentMethods.map((method) => [method.id, method]));
@@ -208,8 +190,8 @@ export const startExpenseImport = onCall({ region }, async (request) => {
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
     provider: {
-      ocrMode: "gemini_multimodal_v1",
-      providerKey: "gemini",
+      ocrMode: "openai_vision_v1",
+      providerKey: "openai",
     },
   });
 
@@ -220,7 +202,7 @@ export const startExpenseImport = onCall({ region }, async (request) => {
   };
 });
 
-export const processExpenseImport = onCall({ region, secrets: [geminiApiKey] }, async (request) => {
+export const processExpenseImport = onCall({ region, secrets: [openaiApiKey] }, async (request) => {
   const uid = requireAuth(request);
   const familyId = String(request.data?.familyId ?? "").trim();
   const importJobId = String(request.data?.importJobId ?? "").trim();
@@ -269,7 +251,7 @@ export const processExpenseImport = onCall({ region, secrets: [geminiApiKey] }, 
 
     const file = admin.storage().bucket().file(storagePath);
     const [buffer] = await file.download();
-    const provider: ExpenseImportOcrProvider = new GeminiOcrProvider();
+    const provider: ExpenseImportOcrProvider = new OpenAiVisionOcrProvider();
     const nowIsoDate = new Date().toISOString().slice(0, 10);
     const lines = await provider.extractLines({
       mimeType,

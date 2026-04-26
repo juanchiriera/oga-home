@@ -2,6 +2,14 @@
 
 Google Sign-In requiere `google-services.json` (Android) y configuración iOS; además definí `FIREBASE_*` vía `--dart-define` o reemplazá `lib/core/firebase_options.dart` con la salida de `flutterfire configure`.
 
+## RevenueCat (entorno dev)
+
+1. En [RevenueCat](https://app.revenuecat.com/) → **Project settings → API keys**, copiá las claves públicas de **Google Play** y **App Store** del proyecto que usás para dev.
+2. `cp config/dev/revenuecat.keys.sh.example config/dev/revenuecat.keys.sh` y pegá las claves (el archivo `revenuecat.keys.sh` no se versiona).
+3. Desde `apps/mobile`: `./scripts/run_dev.sh` (equivale a `flutter run --flavor dev` más los `--dart-define` de RevenueCat).
+
+Sin ese paso, el SDK no se configura y verás el mensaje de bootstrap en consola.
+
 Deep links soportados:
 
 - Invitación: `craftr://invite/<token>` (Android + iOS).

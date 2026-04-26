@@ -4,6 +4,7 @@ firebase-debug.*.log
 functions/node_modules/
 functions/lib/
 functions/.env.oga-home
+functions/.env.smoke
 
 # Dart tooling (workspace root)
 .dart_tool/
@@ -21,3 +22,6 @@ apps/mobile/android/app/profile/
 apps/mobile/android/app/release/
 apps/mobile/*.iml
 apps/mobile/.idea/
+
+# RevenueCat: claves públicas locales para dev (ver config/dev/revenuecat.keys.sh.example)
+apps/mobile/config/dev/revenuecat.keys.sh

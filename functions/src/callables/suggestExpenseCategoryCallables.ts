@@ -3,12 +3,17 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
-import { geminiApiKey } from "./recipeCallables.js";
+import {
+  OPENAI_CHAT_COMPLETIONS_URL,
+  buildExpenseCategoryChatPayload,
+  extractChatCompletionMessageText,
+} from "../llm/openaiApi.js";
+import { openaiApiKey } from "./recipeCallables.js";
 
 const region = "southamerica-east1";
 
-const geminiModel = defineString("EXPENSE_IMPORT_GEMINI_MODEL", {
-  default: "gemini-2.5-flash",
+const openaiExpenseModel = defineString("OPENAI_EXPENSE_MODEL", {
+  default: "gpt-4o-mini",
 });
 
 /** Must match `kExpenseCategories` / import flow keys in the mobile app. */
@@ -61,13 +66,13 @@ async function assertFamilyMember(
   }
 }
 
-type GeminiSuggest = {
+type CategorySuggest = {
   categoryKey?: unknown;
   confidence?: unknown;
   suggestedNewCategoryName?: unknown;
 };
 
-function normalizeResult(raw: GeminiSuggest): {
+function normalizeResult(raw: CategorySuggest): {
   categoryKey: string | null;
   confidence: number;
   suggestedNewCategoryName: string | null;
@@ -103,7 +108,7 @@ function normalizeResult(raw: GeminiSuggest): {
  * el cliente pida confirmación (no crea categorías en Firestore).
  */
 export const suggestManualExpenseCategory = onCall(
-  { region, secrets: [geminiApiKey] },
+  { region, secrets: [openaiApiKey] },
   async (request) => {
     const uid = requireAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
@@ -157,32 +162,19 @@ export const suggestManualExpenseCategory = onCall(
       amountLine || "Monto: (no indicado o no numérico)",
     ].join("\n");
 
-    const endpoint =
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel.value()}:generateContent`;
-
-    const response = await fetch(endpoint, {
+    const model = openaiExpenseModel.value().trim();
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey.value(),
+        Authorization: `Bearer ${openaiApiKey.value()}`,
       },
-      body: JSON.stringify({
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.2,
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-      }),
+      body: JSON.stringify(buildExpenseCategoryChatPayload(model, prompt)),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error("suggestManualExpenseCategory:gemini_error", {
+      logger.error("suggestManualExpenseCategory:openai_error", {
         familyId,
         status: response.status,
         errorText: errorText.slice(0, 500),
@@ -194,19 +186,14 @@ export const suggestManualExpenseCategory = onCall(
       );
     }
 
-    const json = (await response.json()) as {
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-      }>;
-    };
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-    if (!text.trim()) {
+    const text = extractChatCompletionMessageText(await response.json());
+    if (!text) {
       throw new HttpsError("internal", "La IA no devolvió contenido");
     }
 
-    let parsed: GeminiSuggest;
+    let parsed: CategorySuggest;
     try {
-      parsed = JSON.parse(text) as GeminiSuggest;
+      parsed = JSON.parse(text) as CategorySuggest;
     } catch {
       logger.error("suggestManualExpenseCategory:json_parse", {
         familyId,

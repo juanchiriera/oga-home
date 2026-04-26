@@ -3,64 +3,52 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
-import { geminiApiKey } from "./recipeCallables.js";
+import {
+  OPENAI_CHAT_COMPLETIONS_URL,
+  buildAssistantChatPayload,
+  extractChatCompletionMessageText,
+} from "../llm/openaiApi.js";
+import { openaiApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
   buildSystemPromptText,
-  contentsFromPriorAndUser,
   loadPriorMessages,
   maxMessageChars,
+  openAiMessagesFromPriorAndUser,
   requireCallAuth,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
 
 const region = "southamerica-east1";
 
-const geminiModel = defineString("ASSISTANT_GEMINI_MODEL", {
-  default: "gemini-2.0-flash",
+const openaiAssistantModel = defineString("OPENAI_ASSISTANT_MODEL", {
+  default: "gpt-4o-mini",
 });
 
-function extractReplyText(body: unknown): string {
-  const json = body as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-  const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-  return String(text).trim();
-}
-
-async function callGeminiChat(params: {
+async function callOpenAiChat(params: {
   systemPrompt: string;
   prior: FireMessage[];
   userText: string;
 }): Promise<string> {
-  const key = geminiApiKey.value();
-  const model = geminiModel.value();
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model,
-  )}:generateContent?key=${encodeURIComponent(key)}`;
+  const key = openaiApiKey.value();
+  const model = openaiAssistantModel.value().trim();
+  const messages = [
+    { role: "system" as const, content: params.systemPrompt },
+    ...openAiMessagesFromPriorAndUser(params.prior, params.userText),
+  ];
 
-  const contents = contentsFromPriorAndUser(params.prior, params.userText);
-
-  const response = await fetch(endpoint, {
+  const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: params.systemPrompt }],
-      },
-      generationConfig: {
-        temperature: 0.5,
-        maxOutputTokens: 2048,
-      },
-      contents,
-    }),
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify(buildAssistantChatPayload(model, messages)),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    logger.error("familyAssistantChat:gemini_error", {
+    logger.error("familyAssistantChat:openai_error", {
       status: response.status,
       errorText: errorText.slice(0, 500),
     });
@@ -71,7 +59,7 @@ async function callGeminiChat(params: {
     );
   }
 
-  const reply = extractReplyText(await response.json());
+  const reply = extractChatCompletionMessageText(await response.json());
   if (!reply) {
     throw new HttpsError("internal", "El asistente no devolvió texto");
   }
@@ -81,10 +69,10 @@ async function callGeminiChat(params: {
 /**
  * Persiste turno usuario+asistente en `families/{familyId}/assistantThreads/{threadId}/messages`
  * (respuesta completa en un único round-trip). El cliente debería preferir
- * [familyAssistantChatStream] (chunks NDJSON + stream Gemini).
+ * [familyAssistantChatStream] (chunks NDJSON + stream OpenAI).
  */
 export const familyAssistantChat = onCall(
-  { region, secrets: [geminiApiKey] },
+  { region, secrets: [openaiApiKey] },
   async (request) => {
     const uid = requireCallAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
@@ -132,7 +120,7 @@ export const familyAssistantChat = onCall(
     const messagesCol = threadRef.collection("messages");
     const prior = await loadPriorMessages(messagesCol);
     const systemPrompt = buildSystemPromptText();
-    const reply = await callGeminiChat({
+    const reply = await callOpenAiChat({
       systemPrompt,
       prior,
       userText: text,

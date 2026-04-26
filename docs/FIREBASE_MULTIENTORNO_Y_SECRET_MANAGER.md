@@ -25,7 +25,7 @@ Crea secretos **por proyecto** (mismos nombres en cada uno para simplificar CI):
 
 | Nombre sugerido            | Uso                                      |
 | -------------------------- | ---------------------------------------- |
-| `GEMINI_API_KEY`           | Llamadas Gemini desde Cloud Functions    |
+| `OPENAI_API_KEY`           | Llamadas OpenAI (Chat Completions) desde Cloud Functions |
 | `RC_WEBHOOK_SECRET`        | Verificación HMAC de webhooks RevenueCat |
 | `RC_WEBHOOK_SIGNATURE_HEADER` | Header de firma webhook (default `X-RevenueCat-Signature`) |
 
@@ -33,7 +33,7 @@ Por proyecto:
 
 ```bash
 gcloud config set project REPLACE_ME_CRAFTR_DEV
-echo -n "valor" | gcloud secrets create GEMINI_API_KEY --data-file=-
+echo -n "valor" | gcloud secrets create OPENAI_API_KEY --data-file=-
 # Repetir en stg/prod y otorgar acceso a la cuenta de servicio de Cloud Functions
 ```
 
@@ -43,18 +43,18 @@ En Functions v2 los secretos se declaran con `defineSecret` y se enlazan al depl
 import { defineSecret } from "firebase-functions/params";
 import { onRequest } from "firebase-functions/v2/https";
 
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const openaiApiKey = defineSecret("OPENAI_API_KEY");
 
 export const securePing = onRequest(
-  { secrets: [geminiApiKey] },
+  { secrets: [openaiApiKey] },
   (_req, res) => {
-    void geminiApiKey.value();
+    void openaiApiKey.value();
     res.status(200).send("ok");
   },
 );
 ```
 
-Despliega solo después de `firebase functions:secrets:set GEMINI_API_KEY` en ese proyecto.
+Despliega solo después de `firebase functions:secrets:set OPENAI_API_KEY` en ese proyecto.
 
 ### RevenueCat webhook (E3-02)
 
@@ -67,7 +67,7 @@ Despliega solo después de `firebase functions:secrets:set GEMINI_API_KEY` en es
 
 ## 4. Flutter: sin secretos en repo
 
-- **Nunca** commitear API keys de Gemini, tokens de RevenueCat server-side, etc.
+- **Nunca** commitear API keys de OpenAI, tokens de RevenueCat server-side, etc.
 - Variables **no sensibles** (solo identificadores de proyecto Firebase) pueden pasarse como:
 
 ```bash

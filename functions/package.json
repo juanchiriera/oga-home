@@ -7,6 +7,9 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
+    "test": "vitest run",
+    "test:smoke": "vitest run --config vitest.smoke.config.ts",
+    "test:watch": "vitest",
     "deploy": "firebase deploy --only functions",
     "serve": "npm run build && firebase emulators:start --only functions"
   },
@@ -16,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.5"
   }
 }

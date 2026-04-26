@@ -2,20 +2,26 @@ import * as admin from "firebase-admin";
 import { HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
-import { geminiApiKey } from "./recipeCallables.js";
+import {
+  OPENAI_CHAT_COMPLETIONS_URL,
+  buildAssistantStreamPayload,
+  extractOpenAiStreamDelta,
+  parseSseDataLines,
+} from "../llm/openaiApi.js";
+import { openaiApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
   buildSystemPromptText,
-  contentsFromPriorAndUser,
   loadPriorMessages,
   maxMessageChars,
+  openAiMessagesFromPriorAndUser,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
 
 const region = "southamerica-east1";
 
-const geminiModel = defineString("ASSISTANT_GEMINI_MODEL", {
-  default: "gemini-2.0-flash",
+const openaiAssistantModel = defineString("OPENAI_ASSISTANT_MODEL", {
+  default: "gpt-4o-mini",
 });
 
 type NdEvent =
@@ -26,36 +32,6 @@ type NdEvent =
 
 function writeNd(res: { write: (s: string) => boolean }, ev: NdEvent) {
   res.write(`${JSON.stringify(ev)}\n`);
-}
-
-function extractStreamDelta(obj: unknown): string {
-  const j = obj as {
-    candidates?: Array<{
-      content?: { parts?: Array<{ text?: string }> };
-    }>;
-  };
-  const parts = j.candidates?.[0]?.content?.parts;
-  if (!parts?.length) {
-    return "";
-  }
-  return parts.map((p) => p.text ?? "").join("");
-}
-
-/** Parsea líneas `data: {...}` del stream SSE de Gemini. */
-function parseSseDataLines(buffer: string): { lines: string[]; rest: string } {
-  const lines: string[] = [];
-  const parts = buffer.split("\n");
-  const rest = parts.pop() ?? "";
-  for (const raw of parts) {
-    const line = raw.replace(/\r$/, "");
-    if (line.startsWith("data: ")) {
-      const payload = line.slice(6).trim();
-      if (payload && payload !== "[DONE]") {
-        lines.push(payload);
-      }
-    }
-  }
-  return { lines, rest };
 }
 
 function sendJsonError(
@@ -76,7 +52,7 @@ function sendJsonError(
 export const familyAssistantChatStream = onRequest(
   {
     region,
-    secrets: [geminiApiKey],
+    secrets: [openaiApiKey],
     cors: true,
     timeoutSeconds: 300,
     memory: "512MiB",
@@ -182,13 +158,13 @@ export const familyAssistantChatStream = onRequest(
     const messagesCol = threadRef.collection("messages");
     const prior: FireMessage[] = await loadPriorMessages(messagesCol);
     const systemPrompt = buildSystemPromptText();
-    const contents = contentsFromPriorAndUser(prior, text);
+    const chatMessages = [
+      { role: "system" as const, content: systemPrompt },
+      ...openAiMessagesFromPriorAndUser(prior, text),
+    ];
 
-    const key = geminiApiKey.value();
-    const model = geminiModel.value();
-    const streamUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-      model,
-    )}:streamGenerateContent?key=${encodeURIComponent(key)}&alt=sse`;
+    const key = openaiApiKey.value();
+    const model = openaiAssistantModel.value().trim();
 
     res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -225,20 +201,19 @@ export const familyAssistantChatStream = onRequest(
       return;
     }
 
-    const gRes = await fetch(streamUrl, {
+    const oaRes = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        generationConfig: { temperature: 0.5, maxOutputTokens: 2048 },
-        contents,
-      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify(buildAssistantStreamPayload(model, chatMessages)),
     });
 
-    if (!gRes.ok) {
-      const errTxt = await gRes.text();
-      logger.error("familyAssistantChatStream:gemini_http", {
-        status: gRes.status,
+    if (!oaRes.ok) {
+      const errTxt = await oaRes.text();
+      logger.error("familyAssistantChatStream:openai_http", {
+        status: oaRes.status,
         errTxt: errTxt.slice(0, 500),
       });
       writeNd(res, {
@@ -249,13 +224,13 @@ export const familyAssistantChatStream = onRequest(
       return;
     }
 
-    if (!gRes.body) {
+    if (!oaRes.body) {
       writeNd(res, { type: "error", message: "Respuesta vacía del asistente" });
       res.end();
       return;
     }
 
-    const reader = gRes.body.getReader();
+    const reader = oaRes.body.getReader();
     const dec = new TextDecoder();
     let carry = "";
     let fullText = "";
@@ -276,7 +251,7 @@ export const familyAssistantChatStream = onRequest(
           } catch {
             continue;
           }
-          const piece = extractStreamDelta(parsed);
+          const piece = extractOpenAiStreamDelta(parsed);
           if (piece) {
             fullText += piece;
             writeNd(res, { type: "delta", text: piece });
@@ -290,7 +265,7 @@ export const familyAssistantChatStream = onRequest(
           if (payload && payload !== "[DONE]") {
             try {
               const parsed: unknown = JSON.parse(payload);
-              const piece = extractStreamDelta(parsed);
+              const piece = extractOpenAiStreamDelta(parsed);
               if (piece) {
                 fullText += piece;
                 writeNd(res, { type: "delta", text: piece });
@@ -302,7 +277,7 @@ export const familyAssistantChatStream = onRequest(
         }
       }
     } catch (e) {
-      logger.error("familyAssistantChatStream:read_gemini", e);
+      logger.error("familyAssistantChatStream:read_openai", e);
       writeNd(res, { type: "error", message: "Error al leer la respuesta" });
       res.end();
       return;

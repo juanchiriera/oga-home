@@ -76,3 +76,17 @@ export function contentsFromPriorAndUser(
   contents.push({ role: "user", parts: [{ text: userText }] });
   return contents;
 }
+
+/** Mensajes para OpenAI Chat Completions (`user` / `assistant`). */
+export function openAiMessagesFromPriorAndUser(
+  prior: FireMessage[],
+  userText: string,
+): Array<{ role: "user" | "assistant"; content: string }> {
+  const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (const m of prior) {
+    const role = m.role === "assistant" ? "assistant" : "user";
+    messages.push({ role, content: m.text });
+  }
+  messages.push({ role: "user", content: userText });
+  return messages;
+}

@@ -1,0 +1,12 @@
+# RevenueCat (DEV): claves públicas del proyecto en RevenueCat.
+#
+# 1. Copiá este archivo a `revenuecat.keys.sh` (misma carpeta).
+# 2. En RevenueCat → Project settings → API keys, copiá:
+#    - App specific → Google Play (Android): suele empezar con goog_
+#    - App specific → App Store (iOS): suele empezar con appl_
+# 3. Ejecutá la app con: ./scripts/run_dev.sh
+#
+# `revenuecat.keys.sh` está en .gitignore; no lo subas al repo.
+
+export REVENUECAT_ANDROID_API_KEY="goog_REEMPLAZAR"
+export REVENUECAT_IOS_API_KEY="appl_REEMPLAZAR"
