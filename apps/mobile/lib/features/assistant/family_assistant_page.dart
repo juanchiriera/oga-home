@@ -5,6 +5,7 @@ import 'dart:io' show SocketException;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_message_buffer.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -75,20 +76,14 @@ class FamilyAssistantPage extends StatelessWidget {
             ),
           );
         }
-        return _FamilyAssistantBody(
-          familyId: familyId,
-          onClose: onClose,
-        );
+        return _FamilyAssistantBody(familyId: familyId, onClose: onClose);
       },
     );
   }
 }
 
 class _FamilyAssistantBody extends StatefulWidget {
-  const _FamilyAssistantBody({
-    required this.familyId,
-    this.onClose,
-  });
+  const _FamilyAssistantBody({required this.familyId, this.onClose});
 
   final String familyId;
   final VoidCallback? onClose;
@@ -101,6 +96,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _controller = TextEditingController();
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  late final AssistantMessageBuffer _messageBuffer;
   String? _activeThreadId;
   bool _sending = false;
   bool? _online;
@@ -109,9 +105,9 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   void initState() {
     super.initState();
+    _messageBuffer = AssistantMessageBuffer(onFlush: _sendBufferedBatch);
     _refreshConnectivity();
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
       if (!mounted) return;
       setState(() => _online = _hasConnectivity(results));
     });
@@ -120,6 +116,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _messageBuffer.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -141,18 +138,25 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     if (_online == false) return;
 
     setState(() {
-      _sending = true;
       _streamBuffer = null;
     });
     _controller.clear();
+    _messageBuffer.queue(text);
+  }
 
+  Future<void> _sendBufferedBatch(BufferedAssistantBatch batch) async {
+    if (!mounted) return;
+    setState(() {
+      _sending = true;
+      _streamBuffer = null;
+    });
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null) {
       if (mounted) {
         setState(() => _sending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sin sesión')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sin sesión')));
       }
       return;
     }
@@ -165,7 +169,12 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       'familyId': widget.familyId,
       if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
         'threadId': _activeThreadId!,
-      'message': text,
+      'message': batch.message,
+      'batchMeta': {
+        'buffer_size': batch.bufferSize,
+        'delay_ms': batch.delayMs,
+        'tokens_saved_estimados': batch.tokensSavedEstimated,
+      },
     });
 
     final client = http.Client();
@@ -179,9 +188,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         }
         throw Exception('HTTP ${response.statusCode}: ${buf.toString()}');
       }
-      await for (final line in response.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())) {
+      await for (final line
+          in response.stream
+              .transform(utf8.decoder)
+              .transform(const LineSplitter())) {
         if (line.isEmpty) {
           continue;
         }
@@ -220,16 +230,16 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     } on SocketException {
       if (mounted) {
         setState(() => _streamBuffer = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sin conexión')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sin conexión')));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _streamBuffer = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       client.close();
@@ -284,9 +294,9 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
                   'Historial',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               ListTile(
@@ -422,8 +432,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed:
-                        offline || _sending ? null : _send,
+                    onPressed: offline || _sending ? null : _send,
                     style: FilledButton.styleFrom(
                       shape: const CircleBorder(),
                       padding: const EdgeInsets.all(14),
@@ -496,12 +505,15 @@ class _MessagesList extends StatelessWidget {
               final text = data['text'] as String? ?? '';
               final isUser = role == 'user';
               return Align(
-                alignment:
-                    isUser ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: isUser
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.sizeOf(context).width * 0.82,
                   ),
@@ -532,7 +544,10 @@ class _MessagesList extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   child: const SizedBox(
                     width: 20,
                     height: 20,
@@ -545,8 +560,10 @@ class _MessagesList extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.sizeOf(context).width * 0.82,
                   ),
