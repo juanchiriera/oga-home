@@ -4,11 +4,11 @@ import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
   buildAssistantChatPayload,
   extractChatCompletionMessageText,
-} from "../llm/openaiApi.js";
-import { openaiApiKey } from "./recipeCallables.js";
+} from "../llm/openRouterApi.js";
+import { openRouterApiKey, openRouterRequestHeaders } from "./recipeCallables.js";
 import {
   assertFamilyMember,
   buildSystemPromptText,
@@ -21,34 +21,31 @@ import type { FireMessage } from "./assistantCore.js";
 
 const region = "southamerica-east1";
 
-const openaiAssistantModel = defineString("OPENAI_ASSISTANT_MODEL", {
-  default: "gpt-4o-mini",
+const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
+  default: "openai/gpt-4o-mini",
 });
 
-async function callOpenAiChat(params: {
+async function callOpenRouterChat(params: {
   systemPrompt: string;
   prior: FireMessage[];
   userText: string;
 }): Promise<string> {
-  const key = openaiApiKey.value();
-  const model = openaiAssistantModel.value().trim();
+  const key = openRouterApiKey.value();
+  const model = openRouterAssistantModel.value().trim();
   const messages = [
     { role: "system" as const, content: params.systemPrompt },
     ...openAiMessagesFromPriorAndUser(params.prior, params.userText),
   ];
 
-  const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+  const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
+    headers: openRouterRequestHeaders(key),
     body: JSON.stringify(buildAssistantChatPayload(model, messages)),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    logger.error("familyAssistantChat:openai_error", {
+    logger.error("familyAssistantChat:openrouter_error", {
       status: response.status,
       errorText: errorText.slice(0, 500),
     });
@@ -69,10 +66,10 @@ async function callOpenAiChat(params: {
 /**
  * Persiste turno usuario+asistente en `families/{familyId}/assistantThreads/{threadId}/messages`
  * (respuesta completa en un único round-trip). El cliente debería preferir
- * [familyAssistantChatStream] (chunks NDJSON + stream OpenAI).
+ * [familyAssistantChatStream] (chunks NDJSON + stream del proveedor).
  */
 export const familyAssistantChat = onCall(
-  { region, secrets: [openaiApiKey] },
+  { region, secrets: [openRouterApiKey] },
   async (request) => {
     const uid = requireCallAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
@@ -120,7 +117,7 @@ export const familyAssistantChat = onCall(
     const messagesCol = threadRef.collection("messages");
     const prior = await loadPriorMessages(messagesCol);
     const systemPrompt = buildSystemPromptText();
-    const reply = await callOpenAiChat({
+    const reply = await callOpenRouterChat({
       systemPrompt,
       prior,
       userText: text,

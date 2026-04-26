@@ -1,38 +1,36 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
+  buildOpenRouterHeaders,
   extractChatCompletionMessageText,
-} from "./openaiApi.js";
+} from "./openRouterApi.js";
 
 /**
- * Prueba de humo contra la API real de OpenAI.
+ * Prueba de humo contra la API real de OpenRouter.
  *
  * No se commitea ninguna clave: usá variable de entorno.
  *
- *   OPENAI_API_KEY=sk-... npm run test:smoke
+ *   OPENROUTER_API_KEY=sk-or-v1-... npm run test:smoke
  *
- * Opcional: `OPENAI_SMOKE_MODEL` (default `gpt-4o-mini`).
+ * Opcional: `OPENROUTER_SMOKE_MODEL` (default `openai/gpt-4o-mini`).
  */
-describe("OpenAI API smoke (live)", () => {
+describe("OpenRouter API smoke (live)", () => {
   beforeAll(() => {
-    if (!process.env.OPENAI_API_KEY?.trim()) {
+    if (!process.env.OPENROUTER_API_KEY?.trim()) {
       throw new Error(
-        "OPENAI_API_KEY no está definida. Ej.: OPENAI_API_KEY=sk-... npm run test:smoke",
+        "OPENROUTER_API_KEY no está definida. Ej.: OPENROUTER_API_KEY=sk-or-... npm run test:smoke",
       );
     }
   });
 
   it("chat completions responde con JSON mode", async () => {
-    const key = process.env.OPENAI_API_KEY!.trim();
-    const model = process.env.OPENAI_SMOKE_MODEL?.trim() || "gpt-4o-mini";
+    const key = process.env.OPENROUTER_API_KEY!.trim();
+    const model = process.env.OPENROUTER_SMOKE_MODEL?.trim() || "openai/gpt-4o-mini";
 
-    const res = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+    const res = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
+      headers: buildOpenRouterHeaders(key, { appTitle: "famil-ia-smoke" }),
       body: JSON.stringify({
         model,
         max_tokens: 48,
@@ -41,8 +39,7 @@ describe("OpenAI API smoke (live)", () => {
         messages: [
           {
             role: "user",
-            content:
-              'Devolvé SOLO JSON con forma exacta: {"ping":"pong","n":1}',
+            content: 'Devolvé SOLO JSON con forma exacta: {"ping":"pong","n":1}',
           },
         ],
       }),

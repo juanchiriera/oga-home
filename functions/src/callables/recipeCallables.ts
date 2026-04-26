@@ -4,20 +4,35 @@ import * as logger from "firebase-functions/logger";
 import { defineSecret, defineString } from "firebase-functions/params";
 
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
+  buildOpenRouterHeaders,
   buildRecipeImportChatPayload,
   extractChatCompletionMessageText,
-} from "../llm/openaiApi.js";
+} from "../llm/openRouterApi.js";
 
 const region = "southamerica-east1";
 const fetchTimeoutMs = 8000;
 const maxHtmlBytes = 800_000;
 const maxHtmlCharsForPrompt = 20_000;
 
-export const openaiApiKey = defineSecret("OPENAI_API_KEY");
-const openaiRecipeModel = defineString("OPENAI_RECIPE_IMPORT_MODEL", {
-  default: "gpt-4o-mini",
+export const openRouterApiKey = defineSecret("OPENROUTER_API_KEY");
+const openRouterRecipeModel = defineString("OPENROUTER_RECIPE_IMPORT_MODEL", {
+  default: "openai/gpt-4o-mini",
 });
+const openRouterHttpReferer = defineString("OPENROUTER_HTTP_REFERER", {
+  default: "",
+});
+const openRouterAppTitle = defineString("OPENROUTER_APP_TITLE", {
+  default: "Famil-IA",
+});
+
+/** Cabeceras para `fetch` a OpenRouter (incluye atribución opcional). */
+export function openRouterRequestHeaders(apiKey: string): Record<string, string> {
+  return buildOpenRouterHeaders(apiKey, {
+    httpReferer: openRouterHttpReferer.value().trim() || undefined,
+    appTitle: openRouterAppTitle.value().trim() || "Famil-IA",
+  });
+}
 
 type RecipeImportDraft = {
   titulo: string;
@@ -196,12 +211,12 @@ function normalizeDraft(raw: unknown, sourceUrl: string): RecipeImportDraft {
   };
 }
 
-async function callOpenAiForRecipeDraft(
+async function callOpenRouterForRecipeDraft(
   url: string,
   html: string,
 ): Promise<RecipeImportDraft> {
-  const key = openaiApiKey.value();
-  const model = openaiRecipeModel.value().trim();
+  const key = openRouterApiKey.value();
+  const model = openRouterRecipeModel.value().trim();
   const payload = buildRecipeImportChatPayload(
     model,
     url,
@@ -209,23 +224,20 @@ async function callOpenAiForRecipeDraft(
     maxHtmlCharsForPrompt,
   );
 
-  const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+  const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${key}`,
-    },
+    headers: openRouterRequestHeaders(key),
     body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    logger.error("importRecipeFromUrl:openai_http_error", {
+    logger.error("importRecipeFromUrl:openrouter_http_error", {
       status: response.status,
       model,
       errorText: errorText.slice(0, 800),
     });
-    throw new HttpsError("internal", "OpenAI no pudo procesar la receta", {
+    throw new HttpsError("internal", "No se pudo procesar la receta con el proveedor de IA", {
       status: response.status,
     });
   }
@@ -236,14 +248,14 @@ async function callOpenAiForRecipeDraft(
   const text = extractChatCompletionMessageText(body);
   if (!text) {
     const finishReason = body.choices?.[0]?.finish_reason;
-    logger.warn("importRecipeFromUrl:openai_empty_choice", { finishReason });
+    logger.warn("importRecipeFromUrl:openrouter_empty_choice", { finishReason });
     throw new HttpsError("failed-precondition", "No se obtuvo contenido parseable");
   }
   let parsed: unknown;
   try {
     parsed = parseJsonFromModelText(text);
   } catch {
-    logger.error("importRecipeFromUrl:openai_json_parse", {
+    logger.error("importRecipeFromUrl:openrouter_json_parse", {
       snippet: text.slice(0, 240),
     });
     throw new HttpsError("failed-precondition", "La respuesta de IA no fue JSON válido");
@@ -252,7 +264,7 @@ async function callOpenAiForRecipeDraft(
 }
 
 export const importRecipeFromUrl = onCall(
-  { region, secrets: [openaiApiKey] },
+  { region, secrets: [openRouterApiKey] },
   async (request) => {
     const uid = requireAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
@@ -263,7 +275,7 @@ export const importRecipeFromUrl = onCall(
     await assertRecipeImportEntitlement(db, familyId);
 
     const { html, fetchedBytes } = await fetchHtml(sourceUrl);
-    const draft = await callOpenAiForRecipeDraft(sourceUrl, html);
+    const draft = await callOpenRouterForRecipeDraft(sourceUrl, html);
     logger.info("importRecipeFromUrl", {
       familyId,
       uid,

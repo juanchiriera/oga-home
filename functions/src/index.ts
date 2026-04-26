@@ -37,7 +37,7 @@ export {
   registerCardPayment,
 } from "./callables/expenseCallables.js";
 
-export { openaiApiKey, importRecipeFromUrl } from "./callables/recipeCallables.js";
+export { openRouterApiKey, importRecipeFromUrl } from "./callables/recipeCallables.js";
 
 export {
   confirmExpenseImport,

@@ -3,12 +3,12 @@ import { HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
   buildAssistantStreamPayload,
   extractOpenAiStreamDelta,
   parseSseDataLines,
-} from "../llm/openaiApi.js";
-import { openaiApiKey } from "./recipeCallables.js";
+} from "../llm/openRouterApi.js";
+import { openRouterApiKey, openRouterRequestHeaders } from "./recipeCallables.js";
 import {
   assertFamilyMember,
   buildSystemPromptText,
@@ -20,8 +20,8 @@ import type { FireMessage } from "./assistantCore.js";
 
 const region = "southamerica-east1";
 
-const openaiAssistantModel = defineString("OPENAI_ASSISTANT_MODEL", {
-  default: "gpt-4o-mini",
+const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
+  default: "openai/gpt-4o-mini",
 });
 
 type NdEvent =
@@ -52,7 +52,7 @@ function sendJsonError(
 export const familyAssistantChatStream = onRequest(
   {
     region,
-    secrets: [openaiApiKey],
+    secrets: [openRouterApiKey],
     cors: true,
     timeoutSeconds: 300,
     memory: "512MiB",
@@ -163,8 +163,8 @@ export const familyAssistantChatStream = onRequest(
       ...openAiMessagesFromPriorAndUser(prior, text),
     ];
 
-    const key = openaiApiKey.value();
-    const model = openaiAssistantModel.value().trim();
+    const key = openRouterApiKey.value();
+    const model = openRouterAssistantModel.value().trim();
 
     res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -201,18 +201,15 @@ export const familyAssistantChatStream = onRequest(
       return;
     }
 
-    const oaRes = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+    const oaRes = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
+      headers: openRouterRequestHeaders(key),
       body: JSON.stringify(buildAssistantStreamPayload(model, chatMessages)),
     });
 
     if (!oaRes.ok) {
       const errTxt = await oaRes.text();
-      logger.error("familyAssistantChatStream:openai_http", {
+      logger.error("familyAssistantChatStream:openrouter_http", {
         status: oaRes.status,
         errTxt: errTxt.slice(0, 500),
       });
@@ -277,7 +274,7 @@ export const familyAssistantChatStream = onRequest(
         }
       }
     } catch (e) {
-      logger.error("familyAssistantChatStream:read_openai", e);
+      logger.error("familyAssistantChatStream:read_stream", e);
       writeNd(res, { type: "error", message: "Error al leer la respuesta" });
       res.end();
       return;

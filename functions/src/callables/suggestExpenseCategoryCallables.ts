@@ -4,16 +4,16 @@ import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
   buildExpenseCategoryChatPayload,
   extractChatCompletionMessageText,
-} from "../llm/openaiApi.js";
-import { openaiApiKey } from "./recipeCallables.js";
+} from "../llm/openRouterApi.js";
+import { openRouterApiKey, openRouterRequestHeaders } from "./recipeCallables.js";
 
 const region = "southamerica-east1";
 
-const openaiExpenseModel = defineString("OPENAI_EXPENSE_MODEL", {
-  default: "gpt-4o-mini",
+const openRouterExpenseModel = defineString("OPENROUTER_EXPENSE_MODEL", {
+  default: "openai/gpt-4o-mini",
 });
 
 /** Must match `kExpenseCategories` / import flow keys in the mobile app. */
@@ -108,7 +108,7 @@ function normalizeResult(raw: CategorySuggest): {
  * el cliente pida confirmación (no crea categorías en Firestore).
  */
 export const suggestManualExpenseCategory = onCall(
-  { region, secrets: [openaiApiKey] },
+  { region, secrets: [openRouterApiKey] },
   async (request) => {
     const uid = requireAuth(request);
     const familyId = String(request.data?.familyId ?? "").trim();
@@ -162,19 +162,17 @@ export const suggestManualExpenseCategory = onCall(
       amountLine || "Monto: (no indicado o no numérico)",
     ].join("\n");
 
-    const model = openaiExpenseModel.value().trim();
-    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+    const model = openRouterExpenseModel.value().trim();
+    const key = openRouterApiKey.value();
+    const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${openaiApiKey.value()}`,
-      },
+      headers: openRouterRequestHeaders(key),
       body: JSON.stringify(buildExpenseCategoryChatPayload(model, prompt)),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      logger.error("suggestManualExpenseCategory:openai_error", {
+      logger.error("suggestManualExpenseCategory:openrouter_error", {
         familyId,
         status: response.status,
         errorText: errorText.slice(0, 500),

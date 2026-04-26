@@ -5,19 +5,19 @@ import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
   buildExpenseVisionChatPayload,
   extractChatCompletionMessageText,
-} from "../llm/openaiApi.js";
-import { openaiApiKey } from "./recipeCallables.js";
+} from "../llm/openRouterApi.js";
+import { openRouterApiKey, openRouterRequestHeaders } from "./recipeCallables.js";
 
 const region = "southamerica-east1";
 const pendingCardCycle = "pending_card_cycle";
 const confirmed = "confirmed";
 const creditCardType = "credit_card";
 
-const openaiExpenseModel = defineString("OPENAI_EXPENSE_MODEL", {
-  default: "gpt-4o-mini",
+const openRouterExpenseModel = defineString("OPENROUTER_EXPENSE_MODEL", {
+  default: "openai/gpt-4o-mini",
 });
 
 type ImportLine = {
@@ -41,7 +41,7 @@ interface ExpenseImportOcrProvider {
   extractLines(input: OcrProviderInput): Promise<ImportLine[]>;
 }
 
-class OpenAiVisionOcrProvider implements ExpenseImportOcrProvider {
+class OpenRouterVisionOcrProvider implements ExpenseImportOcrProvider {
   async extractLines(input: OcrProviderInput): Promise<ImportLine[]> {
     const prompt = [
       "Sos un parser de tickets y resúmenes de tarjeta.",
@@ -59,13 +59,11 @@ class OpenAiVisionOcrProvider implements ExpenseImportOcrProvider {
     ].join("\n");
 
     const dataUrl = `data:${input.mimeType};base64,${input.base64Data}`;
-    const model = openaiExpenseModel.value().trim();
-    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+    const model = openRouterExpenseModel.value().trim();
+    const key = openRouterApiKey.value();
+    const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${openaiApiKey.value()}`,
-      },
+      headers: openRouterRequestHeaders(key),
       body: JSON.stringify(buildExpenseVisionChatPayload(model, prompt, dataUrl)),
     });
 
@@ -73,21 +71,21 @@ class OpenAiVisionOcrProvider implements ExpenseImportOcrProvider {
       const errorText = await response.text();
       throw new HttpsError(
         "internal",
-        `OpenAI request failed (${response.status})`,
+        `Solicitud al proveedor de visión falló (${response.status})`,
         { errorText },
       );
     }
 
     const text = extractChatCompletionMessageText(await response.json());
     if (!text) {
-      throw new HttpsError("data-loss", "OpenAI no devolvió contenido");
+      throw new HttpsError("data-loss", "El proveedor de IA no devolvió contenido");
     }
 
     let parsed: { lines?: Array<Record<string, unknown>> };
     try {
       parsed = JSON.parse(text) as { lines?: Array<Record<string, unknown>> };
     } catch {
-      throw new HttpsError("data-loss", "OpenAI devolvió JSON inválido");
+      throw new HttpsError("data-loss", "El proveedor de IA devolvió JSON inválido");
     }
 
     const byId = new Map(input.paymentMethods.map((method) => [method.id, method]));
@@ -190,8 +188,8 @@ export const startExpenseImport = onCall({ region }, async (request) => {
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
     provider: {
-      ocrMode: "openai_vision_v1",
-      providerKey: "openai",
+      ocrMode: "openrouter_vision_v1",
+      providerKey: "openrouter",
     },
   });
 
@@ -202,7 +200,9 @@ export const startExpenseImport = onCall({ region }, async (request) => {
   };
 });
 
-export const processExpenseImport = onCall({ region, secrets: [openaiApiKey] }, async (request) => {
+export const processExpenseImport = onCall(
+  { region, secrets: [openRouterApiKey] },
+  async (request) => {
   const uid = requireAuth(request);
   const familyId = String(request.data?.familyId ?? "").trim();
   const importJobId = String(request.data?.importJobId ?? "").trim();
@@ -251,7 +251,7 @@ export const processExpenseImport = onCall({ region, secrets: [openaiApiKey] }, 
 
     const file = admin.storage().bucket().file(storagePath);
     const [buffer] = await file.download();
-    const provider: ExpenseImportOcrProvider = new OpenAiVisionOcrProvider();
+    const provider: ExpenseImportOcrProvider = new OpenRouterVisionOcrProvider();
     const nowIsoDate = new Date().toISOString().slice(0, 10);
     const lines = await provider.extractLines({
       mimeType,

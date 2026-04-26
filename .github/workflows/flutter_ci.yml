@@ -45,12 +45,12 @@ jobs:
         run: npm ci
       - name: Typecheck
         run: npm run build
-      - name: Unit tests (OpenAI contracts)
+      - name: Unit tests (LLM / OpenRouter contracts)
         run: npm test
 
-  # Requiere el secret del repositorio OPENAI_API_KEY. Omitido en PRs desde forks (sin acceso al secret).
+  # Requiere el secret del repositorio OPENROUTER_API_KEY. Omitido en PRs desde forks (sin acceso al secret).
   functions_smoke:
-    name: Functions OpenAI smoke
+    name: Functions OpenRouter smoke
     needs: functions_test
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
@@ -66,9 +66,9 @@ jobs:
           cache-dependency-path: functions/package-lock.json
       - name: Install
         run: npm ci
-      - name: Live OpenAI smoke (secrets.OPENAI_API_KEY)
+      - name: Live OpenRouter smoke (secrets.OPENROUTER_API_KEY)
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: npm run test:smoke
 
   build_android:

@@ -1,11 +1,40 @@
-/** URL de Chat Completions usada por todas las integraciones OpenAI del backend. */
-export const OPENAI_CHAT_COMPLETIONS_URL =
-  "https://api.openai.com/v1/chat/completions" as const;
+/**
+ * OpenRouter: API compatible con OpenAI Chat Completions.
+ * @see https://openrouter.ai/docs/quickstart
+ */
+export const OPENROUTER_CHAT_COMPLETIONS_URL =
+  "https://openrouter.ai/api/v1/chat/completions" as const;
 
-export type OpenAiTextChatMessage = {
+export type LlmTextChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
+
+/** @deprecated use LlmTextChatMessage; nombre histórico */
+export type OpenAiTextChatMessage = LlmTextChatMessage;
+
+/**
+ * Cabeceras recomendadas por OpenRouter (Authorization + JSON).
+ * `HTTP-Referer` y `X-OpenRouter-Title` son opcionales (atribución / rankings en openrouter.ai).
+ */
+export function buildOpenRouterHeaders(
+  apiKey: string,
+  opts?: { httpReferer?: string; appTitle?: string },
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  };
+  const ref = opts?.httpReferer?.trim();
+  if (ref) {
+    headers["HTTP-Referer"] = ref;
+  }
+  const title = opts?.appTitle?.trim();
+  if (title) {
+    headers["X-OpenRouter-Title"] = title;
+  }
+  return headers;
+}
 
 export function buildRecipeImportChatPayload(
   model: string,
@@ -34,12 +63,12 @@ export function buildRecipeImportChatPayload(
 
 export function buildAssistantChatPayload(
   model: string,
-  messages: OpenAiTextChatMessage[],
+  messages: LlmTextChatMessage[],
 ): {
   model: string;
   temperature: number;
   max_tokens: number;
-  messages: OpenAiTextChatMessage[];
+  messages: LlmTextChatMessage[];
 } {
   return {
     model,
@@ -51,13 +80,13 @@ export function buildAssistantChatPayload(
 
 export function buildAssistantStreamPayload(
   model: string,
-  messages: OpenAiTextChatMessage[],
+  messages: LlmTextChatMessage[],
 ): {
   model: string;
   stream: true;
   temperature: number;
   max_tokens: number;
-  messages: OpenAiTextChatMessage[];
+  messages: LlmTextChatMessage[];
 } {
   return {
     model,
@@ -125,6 +154,7 @@ export function extractChatCompletionMessageText(body: unknown): string {
   return String(text).trim();
 }
 
+/** Delta de contenido en stream SSE (formato OpenAI / OpenRouter). */
 export function extractOpenAiStreamDelta(obj: unknown): string {
   const j = obj as {
     choices?: Array<{ delta?: { content?: string | null } }>;
@@ -133,7 +163,7 @@ export function extractOpenAiStreamDelta(obj: unknown): string {
   return c != null ? String(c) : "";
 }
 
-/** Parsea líneas `data: {...}` del stream SSE de OpenAI. */
+/** Parsea líneas `data: {...}` del stream SSE. */
 export function parseSseDataLines(buffer: string): { lines: string[]; rest: string } {
   const lines: string[] = [];
   const parts = buffer.split("\n");

@@ -1,28 +1,48 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  OPENAI_CHAT_COMPLETIONS_URL,
+  OPENROUTER_CHAT_COMPLETIONS_URL,
   buildAssistantChatPayload,
   buildAssistantStreamPayload,
   buildExpenseCategoryChatPayload,
   buildExpenseVisionChatPayload,
+  buildOpenRouterHeaders,
   buildRecipeImportChatPayload,
   extractChatCompletionMessageText,
   extractOpenAiStreamDelta,
   parseSseDataLines,
-} from "./openaiApi.js";
+} from "./openRouterApi.js";
 
-describe("OPENAI_CHAT_COMPLETIONS_URL", () => {
-  it("apunta al endpoint de Chat Completions v1", () => {
-    expect(OPENAI_CHAT_COMPLETIONS_URL).toBe("https://api.openai.com/v1/chat/completions");
+describe("OPENROUTER_CHAT_COMPLETIONS_URL", () => {
+  it("apunta al endpoint de Chat Completions v1 de OpenRouter", () => {
+    expect(OPENROUTER_CHAT_COMPLETIONS_URL).toBe(
+      "https://openrouter.ai/api/v1/chat/completions",
+    );
+  });
+});
+
+describe("buildOpenRouterHeaders", () => {
+  it("incluye Authorization y Content-Type; atribución solo si viene", () => {
+    expect(buildOpenRouterHeaders("k")).toEqual({
+      "Content-Type": "application/json",
+      Authorization: "Bearer k",
+    });
+    expect(
+      buildOpenRouterHeaders("k", { httpReferer: "https://a.app", appTitle: "A" }),
+    ).toEqual({
+      "Content-Type": "application/json",
+      Authorization: "Bearer k",
+      "HTTP-Referer": "https://a.app",
+      "X-OpenRouter-Title": "A",
+    });
   });
 });
 
 describe("buildRecipeImportChatPayload", () => {
   it("usa json_object y recorta HTML al máximo indicado", () => {
     const html = "x".repeat(100);
-    const p = buildRecipeImportChatPayload("gpt-4o-mini", "https://ejemplo.com/r", html, 20);
-    expect(p.model).toBe("gpt-4o-mini");
+    const p = buildRecipeImportChatPayload("openai/gpt-4o-mini", "https://ejemplo.com/r", html, 20);
+    expect(p.model).toBe("openai/gpt-4o-mini");
     expect(p.temperature).toBe(0.2);
     expect(p.response_format).toEqual({ type: "json_object" });
     expect(p.messages).toHaveLength(1);
@@ -39,7 +59,7 @@ describe("buildAssistantChatPayload", () => {
       { role: "system" as const, content: "Sos un asistente." },
       { role: "user" as const, content: "Hola" },
     ];
-    const p = buildAssistantChatPayload("gpt-4o-mini", messages);
+    const p = buildAssistantChatPayload("openai/gpt-4o-mini", messages);
     expect(p.stream).toBeUndefined();
     expect(p.max_tokens).toBe(2048);
     expect(p.temperature).toBe(0.5);
@@ -53,7 +73,7 @@ describe("buildAssistantStreamPayload", () => {
       { role: "system" as const, content: "Sys" },
       { role: "user" as const, content: "Hi" },
     ];
-    const p = buildAssistantStreamPayload("gpt-4o-mini", messages);
+    const p = buildAssistantStreamPayload("openai/gpt-4o-mini", messages);
     expect(p.stream).toBe(true);
     expect(p.max_tokens).toBe(2048);
   });
@@ -62,7 +82,7 @@ describe("buildAssistantStreamPayload", () => {
 describe("buildExpenseVisionChatPayload", () => {
   it("envía texto + image_url data URL", () => {
     const p = buildExpenseVisionChatPayload(
-      "gpt-4o-mini",
+      "openai/gpt-4o-mini",
       "Parseá el ticket",
       "data:image/png;base64,abcd",
     );
@@ -78,7 +98,7 @@ describe("buildExpenseVisionChatPayload", () => {
 
 describe("buildExpenseCategoryChatPayload", () => {
   it("es un único turno usuario con JSON mode", () => {
-    const p = buildExpenseCategoryChatPayload("gpt-4o-mini", '{"foo":1}');
+    const p = buildExpenseCategoryChatPayload("openai/gpt-4o-mini", '{"foo":1}');
     expect(p.messages).toEqual([{ role: "user", content: '{"foo":1}' }]);
     expect(p.response_format.type).toBe("json_object");
   });
