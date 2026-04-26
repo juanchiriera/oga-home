@@ -13,6 +13,24 @@ export type LlmTextChatMessage = {
 /** @deprecated usar `LlmTextChatMessage` */
 export type OpenAiTextChatMessage = LlmTextChatMessage;
 
+/** Llamada a función en respuestas tool-use (OpenAI / OpenRouter). */
+export type OpenRouterToolCall = {
+  id: string;
+  type?: "function";
+  function: { name: string; arguments: string };
+};
+
+/** Mensajes para chat completions con herramientas. */
+export type ChatMessageWithTools =
+  | { role: "system"; content: string }
+  | { role: "user"; content: string }
+  | {
+      role: "assistant";
+      content: string | null;
+      tool_calls?: OpenRouterToolCall[];
+    }
+  | { role: "tool"; tool_call_id: string; content: string };
+
 /**
  * Cabeceras recomendadas por OpenRouter (Authorization + JSON).
  * `HTTP-Referer` y `X-OpenRouter-Title` son opcionales (atribución / rankings en openrouter.ai).
@@ -95,6 +113,53 @@ export function buildAssistantStreamPayload(
     max_tokens: 2048,
     messages,
   };
+}
+
+export function buildAssistantToolsChatPayload(
+  model: string,
+  messages: ChatMessageWithTools[],
+  tools: Array<{
+    type: "function";
+    function: { name: string; description: string; parameters: Record<string, unknown> };
+  }>,
+): {
+  model: string;
+  temperature: number;
+  max_tokens: number;
+  messages: ChatMessageWithTools[];
+  tools: typeof tools;
+  tool_choice: "auto";
+} {
+  return {
+    model,
+    temperature: 0.5,
+    max_tokens: 2048,
+    messages,
+    tools,
+    tool_choice: "auto",
+  };
+}
+
+export function extractAssistantToolCompletion(body: unknown): {
+  content: string | null;
+  tool_calls: OpenRouterToolCall[] | undefined;
+} {
+  const json = body as {
+    choices?: Array<{
+      message?: {
+        content?: string | null;
+        tool_calls?: OpenRouterToolCall[];
+      };
+    }>;
+  };
+  const msg = json.choices?.[0]?.message;
+  const rawCalls = msg?.tool_calls;
+  const tool_calls =
+    rawCalls && Array.isArray(rawCalls) && rawCalls.length > 0 ? rawCalls : undefined;
+  const c = msg?.content;
+  const content =
+    c != null && String(c).trim().length > 0 ? String(c).trim() : null;
+  return { content, tool_calls };
 }
 
 export function buildExpenseVisionChatPayload(

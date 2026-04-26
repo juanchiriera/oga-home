@@ -1,34 +1,21 @@
 import * as admin from "firebase-admin";
 import { HttpsError, onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { defineSecret, defineString } from "firebase-functions/params";
-import {
-  OPENROUTER_CHAT_COMPLETIONS_URL,
-  buildAssistantStreamPayload,
-  extractOpenAiStreamDelta,
-  parseSseDataLines,
-} from "../llm/openRouterApi.js";
-import { openRouterApiKey, openRouterRequestHeaders } from "./recipeCallables.js";
+import { defineString } from "firebase-functions/params";
+import { openRouterApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
-  buildSystemPromptText,
   loadPriorMessages,
   maxMessageChars,
-  openAiMessagesFromPriorAndUser,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
-import { chunkTextForNdjson, runAssistantGeminiWithTools } from "./assistantGeminiChat.js";
+import { chunkTextForNdjson, runAssistantOpenRouterWithTools } from "./assistantOpenRouterTools.js";
 import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
 
 const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
   default: "openai/gpt-4o-mini",
-});
-
-const geminiApiKey = defineSecret("GEMINI_API_KEY");
-const geminiAssistantModel = defineString("GEMINI_ASSISTANT_MODEL", {
-  default: "gemini-2.0-flash",
 });
 
 type NdEvent =
@@ -56,12 +43,12 @@ function sendJsonError(
  * Cuerpo JSON: { familyId, threadId?, message | text, clientRequestId? }.
  * Cabeceras opcionales: `X-Client-Request-Id` (idempotencia en herramientas mutantes).
  * Respuesta: `application/x-ndjson` con chunks: meta → delta* → done | error.
- * Cabecera `tools_version`: catálogo §8.2 (actualmente 1). Con `GEMINI_API_KEY`, el modelo usa Gemini + tools.
+ * Cabecera `tools_version`: catálogo §8.2 (actualmente 1). Modelo vía OpenRouter con tools.
  */
 export const familyAssistantChatStream = onRequest(
   {
     region,
-    secrets: [openRouterApiKey, geminiApiKey],
+    secrets: [openRouterApiKey],
     cors: true,
     timeoutSeconds: 300,
     memory: "512MiB",
@@ -177,8 +164,6 @@ export const familyAssistantChatStream = onRequest(
     const messagesCol = threadRef.collection("messages");
     const prior: FireMessage[] = await loadPriorMessages(messagesCol);
 
-    const gKey = geminiApiKey.value()?.trim();
-
     res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("X-Accel-Buffering", "no");
@@ -219,120 +204,28 @@ export const familyAssistantChatStream = onRequest(
     }
 
     let reply: string;
-
-    if (gKey) {
-      try {
-        reply = await runAssistantGeminiWithTools({
-          apiKey: gKey,
-          modelName: geminiAssistantModel.value().trim(),
-          prior,
-          userText: text,
-          toolCtx: {
-            db,
-            familyId,
-            userId: uid,
-            conversationId: threadId,
-            clientRequestId,
-          },
-        });
-      } catch (e) {
-        logger.error("familyAssistantChatStream:gemini", e);
-        writeNd(res, { type: "error", message: "No se pudo obtener respuesta del asistente" });
-        res.end();
-        return;
-      }
-      for (const piece of chunkTextForNdjson(reply, 48)) {
-        writeNd(res, { type: "delta", text: piece });
-      }
-    } else {
-      const systemPrompt = buildSystemPromptText();
-      const chatMessages = [
-        { role: "system" as const, content: systemPrompt },
-        ...openAiMessagesFromPriorAndUser(prior, text),
-      ];
-      const key = openRouterApiKey.value();
-      const model = openRouterAssistantModel.value().trim();
-
-      const oaRes = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
-        method: "POST",
-        headers: openRouterRequestHeaders(key),
-        body: JSON.stringify(buildAssistantStreamPayload(model, chatMessages)),
+    try {
+      reply = await runAssistantOpenRouterWithTools({
+        apiKey: openRouterApiKey.value(),
+        model: openRouterAssistantModel.value().trim(),
+        prior,
+        userText: text,
+        toolCtx: {
+          db,
+          familyId,
+          userId: uid,
+          conversationId: threadId,
+          clientRequestId,
+        },
       });
-
-      if (!oaRes.ok) {
-        const errTxt = await oaRes.text();
-        logger.error("familyAssistantChatStream:openrouter_http", {
-          status: oaRes.status,
-          errTxt: errTxt.slice(0, 500),
-        });
-        writeNd(res, {
-          type: "error",
-          message: "No se pudo obtener respuesta del asistente",
-        });
-        res.end();
-        return;
-      }
-
-      if (!oaRes.body) {
-        writeNd(res, { type: "error", message: "Respuesta vacía del asistente" });
-        res.end();
-        return;
-      }
-
-      const reader = oaRes.body.getReader();
-      const dec = new TextDecoder();
-      let carry = "";
-      let fullText = "";
-
-      try {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) {
-            break;
-          }
-          carry += dec.decode(value, { stream: true });
-          const { lines, rest } = parseSseDataLines(carry);
-          carry = rest;
-          for (const dataLine of lines) {
-            let parsed: unknown;
-            try {
-              parsed = JSON.parse(dataLine);
-            } catch {
-              continue;
-            }
-            const piece = extractOpenAiStreamDelta(parsed);
-            if (piece) {
-              fullText += piece;
-              writeNd(res, { type: "delta", text: piece });
-            }
-          }
-        }
-        if (carry.length > 0) {
-          const tail = carry.replace(/\r$/, "");
-          if (tail.startsWith("data: ")) {
-            const payload = tail.slice(6).trim();
-            if (payload && payload !== "[DONE]") {
-              try {
-                const parsed: unknown = JSON.parse(payload);
-                const piece = extractOpenAiStreamDelta(parsed);
-                if (piece) {
-                  fullText += piece;
-                  writeNd(res, { type: "delta", text: piece });
-                }
-              } catch {
-                // ignore
-              }
-            }
-          }
-        }
-      } catch (e) {
-        logger.error("familyAssistantChatStream:read_stream", e);
-        writeNd(res, { type: "error", message: "Error al leer la respuesta" });
-        res.end();
-        return;
-      }
-
-      reply = fullText.trim();
+    } catch (e) {
+      logger.error("familyAssistantChatStream:openrouter_tools", e);
+      writeNd(res, { type: "error", message: "No se pudo obtener respuesta del asistente" });
+      res.end();
+      return;
+    }
+    for (const piece of chunkTextForNdjson(reply, 48)) {
+      writeNd(res, { type: "delta", text: piece });
     }
 
     if (!reply.trim()) {
@@ -367,7 +260,7 @@ export const familyAssistantChatStream = onRequest(
       isNewThread,
       userChars: text.length,
       replyChars: reply.length,
-      provider: gKey ? "gemini" : "openrouter",
+      provider: "openrouter",
     });
 
     writeNd(res, { type: "done" });

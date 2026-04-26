@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import * as admin from "firebase-admin";
 
-import type { FireMessage } from "./assistantCore.js";
 import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 export type AssistantAuditResult = "ok" | "rejected" | "error";
@@ -85,19 +84,4 @@ export async function appendAssistantActionLog(params: {
     createdAt: admin.firestore.FieldValue.serverTimestamp(),
   });
   return ref.id;
-}
-
-export function geminiHistoryFromPrior(prior: FireMessage[]): Array<{
-  role: "user" | "model";
-  parts: Array<{ text: string }>;
-}> {
-  const out: Array<{ role: "user" | "model"; parts: Array<{ text: string }> }> = [];
-  for (const m of prior) {
-    if (m.role === "assistant") {
-      out.push({ role: "model", parts: [{ text: m.text }] });
-    } else if (m.role === "user") {
-      out.push({ role: "user", parts: [{ text: m.text }] });
-    }
-  }
-  return out;
 }

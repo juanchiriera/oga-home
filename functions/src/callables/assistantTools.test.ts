@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { chunkTextForNdjson } from "./assistantGeminiChat.js";
+import { chunkTextForNdjson } from "./assistantOpenRouterTools.js";
 import { hashToolPayload, redactToolArgsForAudit } from "./assistantToolAudit.js";
 import { idempotencyDocId } from "./assistantToolIdempotency.js";
 
