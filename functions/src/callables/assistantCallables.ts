@@ -3,65 +3,21 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { defineString } from "firebase-functions/params";
 
-import {
-  OPENROUTER_CHAT_COMPLETIONS_URL,
-  buildAssistantChatPayload,
-  extractChatCompletionMessageText,
-} from "../llm/openRouterApi.js";
-import { openRouterApiKey, openRouterRequestHeaders } from "./recipeCallables.js";
+import { openRouterApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
-  buildSystemPromptText,
   loadPriorMessages,
   maxMessageChars,
-  openAiMessagesFromPriorAndUser,
   requireCallAuth,
 } from "./assistantCore.js";
-import type { FireMessage } from "./assistantCore.js";
+import { runAssistantOpenRouterWithTools } from "./assistantOpenRouterTools.js";
+import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
 
 const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
   default: "openai/gpt-4o-mini",
 });
-
-async function callOpenRouterChat(params: {
-  systemPrompt: string;
-  prior: FireMessage[];
-  userText: string;
-}): Promise<string> {
-  const key = openRouterApiKey.value();
-  const model = openRouterAssistantModel.value().trim();
-  const messages = [
-    { role: "system" as const, content: params.systemPrompt },
-    ...openAiMessagesFromPriorAndUser(params.prior, params.userText),
-  ];
-
-  const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
-    method: "POST",
-    headers: openRouterRequestHeaders(key),
-    body: JSON.stringify(buildAssistantChatPayload(model, messages)),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    logger.error("familyAssistantChat:openrouter_error", {
-      status: response.status,
-      errorText: errorText.slice(0, 500),
-    });
-    throw new HttpsError(
-      "internal",
-      "No se pudo obtener respuesta del asistente",
-      { status: response.status },
-    );
-  }
-
-  const reply = extractChatCompletionMessageText(await response.json());
-  if (!reply) {
-    throw new HttpsError("internal", "El asistente no devolvió texto");
-  }
-  return reply;
-}
 
 /**
  * Persiste turno usuario+asistente en `families/{familyId}/assistantThreads/{threadId}/messages`
@@ -79,6 +35,11 @@ export const familyAssistantChat = onCall(
         ? String(rawThread).trim()
         : "";
     const text = String(request.data?.message ?? request.data?.text ?? "").trim();
+    const clientRequestIdRaw = request.data?.clientRequestId;
+    const clientRequestId =
+      clientRequestIdRaw != null && String(clientRequestIdRaw).trim() !== ""
+        ? String(clientRequestIdRaw).trim()
+        : undefined;
 
     if (!familyId) {
       throw new HttpsError("invalid-argument", "familyId es obligatorio");
@@ -116,12 +77,26 @@ export const familyAssistantChat = onCall(
 
     const messagesCol = threadRef.collection("messages");
     const prior = await loadPriorMessages(messagesCol);
-    const systemPrompt = buildSystemPromptText();
-    const reply = await callOpenRouterChat({
-      systemPrompt,
-      prior,
-      userText: text,
-    });
+
+    let reply: string;
+    try {
+      reply = await runAssistantOpenRouterWithTools({
+        apiKey: openRouterApiKey.value(),
+        model: openRouterAssistantModel.value().trim(),
+        prior,
+        userText: text,
+        toolCtx: {
+          db,
+          familyId,
+          userId: uid,
+          conversationId: threadId,
+          clientRequestId,
+        },
+      });
+    } catch (e) {
+      logger.error("familyAssistantChat:openrouter_tools", e);
+      throw new HttpsError("internal", "No se pudo obtener respuesta del asistente");
+    }
 
     const now = admin.firestore.FieldValue.serverTimestamp();
     const batch = db.batch();
@@ -170,6 +145,7 @@ export const familyAssistantChat = onCall(
     return {
       threadId,
       replyText: reply,
+      toolsVersion: ASSISTANT_TOOLS_VERSION,
     };
   },
 );
