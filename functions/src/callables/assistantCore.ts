@@ -69,6 +69,65 @@ export function buildSystemPromptText(): string {
   ].join(" ");
 }
 
+function stripDiacritics(value: string): string {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function normalizeForComparison(value: string): string {
+  return stripDiacritics(value).toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/**
+ * Fallback de título de conversación cuando no hay resumen semántico válido.
+ * Formato: dd/mm/yyyy hh:mm
+ */
+export function formatConversationFallbackTitle(date: Date): string {
+  const pad2 = (n: number) => String(n).padStart(2, "0");
+  const day = pad2(date.getDate());
+  const month = pad2(date.getMonth() + 1);
+  const year = String(date.getFullYear());
+  const hour = pad2(date.getHours());
+  const minute = pad2(date.getMinutes());
+  return `${day}/${month}/${year} ${hour}:${minute}`;
+}
+
+/**
+ * Acepta/rechaza un título generado por IA para evitar usar eco literal del mensaje.
+ */
+export function sanitizeConversationTitleCandidate(
+  candidate: string | null | undefined,
+  firstUserMessage: string,
+): string | null {
+  const cleaned = String(candidate ?? "")
+    .trim()
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length < 3) {
+    return null;
+  }
+
+  const trimmed = cleaned.length > 80 ? cleaned.slice(0, 80).trim() : cleaned;
+  const normalizedTitle = normalizeForComparison(trimmed);
+  const normalizedFirstMessage = normalizeForComparison(firstUserMessage);
+
+  if (!normalizedTitle) {
+    return null;
+  }
+
+  // Evita título que sea básicamente el primer mensaje del usuario.
+  if (
+    normalizedTitle === normalizedFirstMessage ||
+    (normalizedFirstMessage.startsWith(normalizedTitle) &&
+      normalizedTitle.length >= Math.floor(normalizedFirstMessage.length * 0.8))
+  ) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 export function contentsFromPriorAndUser(
   prior: FireMessage[],
   userText: string,

@@ -28,6 +28,48 @@ const EXPENSE_CATEGORIES: Array<{ key: string; label: string; system: boolean }>
 ];
 const ALLOWED_EXPENSE_CURRENCIES = new Set(["ARS", "USD", "EUR"]);
 
+const SUPPORTED_EXPENSE_CURRENCIES = new Set(["ARS", "USD", "EUR"]);
+const CASH_PAYMENT_METHOD_TYPE = "cash";
+const DEFAULT_EXPENSE_CATEGORY_KEY = "other";
+
+export const CREATE_EXPENSE_FIELDS_POLICY = {
+  critical: ["amount"] as const,
+  inferable: [
+    "currency",
+    "category_key",
+    "occurred_at",
+    "payment_method_id",
+    "merchant",
+    "note",
+  ] as const,
+};
+
+type CreateExpenseAssumption = {
+  field: (typeof CREATE_EXPENSE_FIELDS_POLICY.inferable)[number];
+  value: unknown;
+  reason: string;
+};
+
+type CreateExpenseDefaultsContext = {
+  currency: string;
+  occurredAtIso: string;
+  paymentMethodId: string | null;
+};
+
+export type CreateExpenseResolvedDraft = {
+  draft: {
+    amount?: number;
+    currency: string;
+    category_key: string;
+    occurred_at: string;
+    payment_method_id: string | null;
+    merchant: string;
+    note: string;
+  };
+  assumptions: CreateExpenseAssumption[];
+  missingCritical: Array<(typeof CREATE_EXPENSE_FIELDS_POLICY.critical)[number]>;
+};
+
 function parseIsoDateOnly(raw: string): { y: number; m: number; d: number } {
   const s = String(raw ?? "").trim();
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
@@ -51,6 +93,151 @@ function utcEndOfDayInclusive(parts: { y: number; m: number; d: number }): Times
   return Timestamp.fromDate(
     new Date(Date.UTC(parts.y, parts.m - 1, parts.d, 23, 59, 59, 999)),
   );
+}
+
+function isoDateTodayUtc(now = new Date()): string {
+  return now.toISOString().slice(0, 10);
+}
+
+function normalizeCurrency(raw: unknown, fallback: string): string {
+  const picked = String(raw ?? "").trim().toUpperCase();
+  if (SUPPORTED_EXPENSE_CURRENCIES.has(picked)) {
+    return picked;
+  }
+  const safeFallback = String(fallback ?? "").trim().toUpperCase();
+  return SUPPORTED_EXPENSE_CURRENCIES.has(safeFallback) ? safeFallback : "ARS";
+}
+
+function parsePositiveAmount(raw: unknown): number | null {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) {
+    return null;
+  }
+  return n;
+}
+
+function normalizeIsoDateOrNull(raw: unknown): string | null {
+  const value = String(raw ?? "").trim();
+  if (!value) {
+    return null;
+  }
+  try {
+    parseIsoDateOnly(value);
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+async function loadCreateExpenseDefaults(
+  db: admin.firestore.Firestore,
+  familyId: string,
+): Promise<CreateExpenseDefaultsContext> {
+  const familyRef = db.collection("families").doc(familyId);
+  const paymentMethodsRef = familyRef.collection("paymentMethods");
+  const [familySnap, paymentMethodsSnap] = await Promise.all([
+    familyRef.get(),
+    paymentMethodsRef.orderBy("name").limit(30).get(),
+  ]);
+
+  const familyCurrency = familySnap.exists ? familySnap.get("baseCurrency") : null;
+  const currency = normalizeCurrency(familyCurrency, "ARS");
+
+  const methods = paymentMethodsSnap.docs.filter((doc) => doc.get("archived") !== true);
+  const cashMethod =
+    methods.find((doc) => String(doc.get("type") ?? "") === CASH_PAYMENT_METHOD_TYPE) ?? null;
+  const fallbackMethod = methods[0] ?? null;
+  const paymentMethodId = cashMethod?.id ?? fallbackMethod?.id ?? null;
+
+  return {
+    currency,
+    occurredAtIso: isoDateTodayUtc(),
+    paymentMethodId,
+  };
+}
+
+export function resolveCreateExpenseDraft(
+  raw: Record<string, unknown>,
+  defaults: CreateExpenseDefaultsContext,
+): CreateExpenseResolvedDraft {
+  const assumptions: CreateExpenseAssumption[] = [];
+  const missingCritical: Array<(typeof CREATE_EXPENSE_FIELDS_POLICY.critical)[number]> = [];
+
+  const amount = parsePositiveAmount(raw.amount);
+  if (amount == null) {
+    missingCritical.push("amount");
+  }
+
+  const currencyInput = String(raw.currency ?? "").trim();
+  const currency = normalizeCurrency(currencyInput, defaults.currency);
+  if (!currencyInput || !SUPPORTED_EXPENSE_CURRENCIES.has(currencyInput.toUpperCase())) {
+    assumptions.push({
+      field: "currency",
+      value: currency,
+      reason: "default_currency",
+    });
+  }
+
+  const categoryInput = String(raw.category_key ?? "").trim();
+  const categoryKey = categoryInput || DEFAULT_EXPENSE_CATEGORY_KEY;
+  if (!categoryInput) {
+    assumptions.push({
+      field: "category_key",
+      value: categoryKey,
+      reason: "default_category",
+    });
+  }
+
+  const occurredAtInput = normalizeIsoDateOrNull(raw.occurred_at);
+  const occurredAt = occurredAtInput ?? defaults.occurredAtIso;
+  if (!occurredAtInput) {
+    assumptions.push({
+      field: "occurred_at",
+      value: occurredAt,
+      reason: "default_today",
+    });
+  }
+
+  const paymentMethodInput = String(raw.payment_method_id ?? "").trim();
+  const paymentMethodId = paymentMethodInput || defaults.paymentMethodId;
+  if (!paymentMethodInput) {
+    assumptions.push({
+      field: "payment_method_id",
+      value: paymentMethodId,
+      reason: "default_payment_method",
+    });
+  }
+
+  const merchantInput = raw.merchant != null ? String(raw.merchant).trim() : "";
+  const noteInput = raw.note != null ? String(raw.note).trim() : "";
+  if (raw.merchant == null) {
+    assumptions.push({
+      field: "merchant",
+      value: "",
+      reason: "default_empty",
+    });
+  }
+  if (raw.note == null) {
+    assumptions.push({
+      field: "note",
+      value: "",
+      reason: "default_empty",
+    });
+  }
+
+  return {
+    draft: {
+      ...(amount != null ? { amount } : {}),
+      currency,
+      category_key: categoryKey,
+      occurred_at: occurredAt,
+      payment_method_id: paymentMethodId,
+      merchant: merchantInput,
+      note: noteInput,
+    },
+    assumptions,
+    missingCritical,
+  };
 }
 
 function asRecord(args: unknown): Record<string, unknown> {
@@ -436,6 +623,37 @@ async function handleCreateFamilyLink(
     .collection("family_links")
     .add(payload);
   return { response: { ok: true, link_id: ref.id }, auditResult: "ok" };
+}
+
+async function handleCreateExpense(
+  ctx: ToolRouterContext,
+  raw: Record<string, unknown>,
+): Promise<ToolExecutionResult> {
+  const defaults = await loadCreateExpenseDefaults(ctx.db, ctx.familyId);
+  const resolved = resolveCreateExpenseDraft(raw, defaults);
+  if (resolved.missingCritical.length > 0) {
+    return rejected("Falta un dato crítico para preparar el gasto", {
+      tool: "create_expense",
+      needs_user_input: true,
+      missing_critical_fields: resolved.missingCritical,
+      critical_fields: [...CREATE_EXPENSE_FIELDS_POLICY.critical],
+      inferable_fields: [...CREATE_EXPENSE_FIELDS_POLICY.inferable],
+      assumptions: resolved.assumptions,
+      draft: resolved.draft,
+    });
+  }
+
+  return rejected(
+    "Acción pendiente de confirmación en la app (v1 del asistente no aplica mutaciones de alto riesgo).",
+    {
+      pending_confirmation: true,
+      tool: "create_expense",
+      critical_fields: [...CREATE_EXPENSE_FIELDS_POLICY.critical],
+      inferable_fields: [...CREATE_EXPENSE_FIELDS_POLICY.inferable],
+      assumptions: resolved.assumptions,
+      draft: resolved.draft,
+    },
+  );
 }
 
 async function handleCreateRecipe(
