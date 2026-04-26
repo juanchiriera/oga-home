@@ -28,7 +28,9 @@ export async function runAssistantOpenRouterWithTools(params: {
     buildSystemPromptText(),
     "Tenés herramientas para leer y escribir datos del hogar (familia) del usuario.",
     "Usá herramientas cuando haga falta información real; no inventes montos ni IDs.",
-    "Para acciones marcadas como pendientes de confirmación, el servidor puede rechazarlas: explicá que deben confirmarse en la app.",
+    "No pidas aprobación previa para create_expense cuando la intención sea válida y tengas datos mínimos.",
+    "Si create_expense devuelve ok=true, respondé con confirmación de ejecución en pasado.",
+    "Para acciones marcadas como pendientes de confirmación (excepto create_expense), el servidor puede rechazarlas: explicá que deben confirmarse en la app.",
   ].join(" ");
 
   const messages: ChatMessageWithTools[] = [

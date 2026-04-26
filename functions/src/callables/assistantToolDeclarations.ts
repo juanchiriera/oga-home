@@ -49,7 +49,8 @@ export const assistantOpenAiTools: AssistantOpenAiTool[] = [
     type: "function",
     function: {
       name: "create_expense",
-      description: "Alta de gasto (requiere confirmación en UI; no se aplica en servidor v1).",
+      description:
+        "Alta de gasto con ejecución automática si hay datos mínimos válidos; si falta un dato crítico, pedir solo ese dato.",
       parameters: {
         type: "object",
         properties: {
