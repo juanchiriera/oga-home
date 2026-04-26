@@ -221,7 +221,7 @@ export const familyAssistantChatStream = onRequest(
       } else {
         await threadRef.update({
           updatedAt: now,
-          ...(shouldBackfillTitle ? { title } : {}),
+          ...(shouldBackfillTitle ? { title: formatConversationFallbackTitle(new Date()) } : {}),
         });
       }
     } catch (e) {

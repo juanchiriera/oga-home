@@ -154,7 +154,7 @@ export const familyAssistantChat = onCall(
     } else {
       batch.update(threadRef, {
         updatedAt: now,
-        ...(shouldBackfillTitle ? { title } : {}),
+        ...(shouldBackfillTitle ? { title: formatConversationFallbackTitle(new Date()) } : {}),
       });
     }
 
