@@ -5,6 +5,7 @@ import 'dart:io' show SocketException;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -75,20 +76,14 @@ class FamilyAssistantPage extends StatelessWidget {
             ),
           );
         }
-        return _FamilyAssistantBody(
-          familyId: familyId,
-          onClose: onClose,
-        );
+        return _FamilyAssistantBody(familyId: familyId, onClose: onClose);
       },
     );
   }
 }
 
 class _FamilyAssistantBody extends StatefulWidget {
-  const _FamilyAssistantBody({
-    required this.familyId,
-    this.onClose,
-  });
+  const _FamilyAssistantBody({required this.familyId, this.onClose});
 
   final String familyId;
   final VoidCallback? onClose;
@@ -100,26 +95,46 @@ class _FamilyAssistantBody extends StatefulWidget {
 class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _controller = TextEditingController();
+  final _activeConversationResolver = ActiveConversationResolver(
+    localStore: SecureLocalActiveConversationStore(),
+    remoteStore: FirestoreRemoteActiveConversationStore(),
+    threadsStore: FirestoreAssistantConversationThreadsStore(),
+  );
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _threadsSub;
   String? _activeThreadId;
+  String? _uid;
   bool _sending = false;
+  bool _bootstrappingConversation = true;
   bool? _online;
   String? _streamBuffer;
 
   @override
   void initState() {
     super.initState();
+    _uid = FirebaseAuth.instance.currentUser?.uid;
     _refreshConnectivity();
-    _connectivitySub =
-        Connectivity().onConnectivityChanged.listen((results) {
+    _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
       if (!mounted) return;
       setState(() => _online = _hasConnectivity(results));
     });
+    _subscribeToThreads();
+    _bootstrapActiveConversation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FamilyAssistantBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.familyId != widget.familyId) {
+      _subscribeToThreads();
+      _bootstrapActiveConversation();
+    }
   }
 
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _threadsSub?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -135,10 +150,109 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     return results.any((e) => e != ConnectivityResult.none);
   }
 
+  Future<void> _bootstrapActiveConversation() async {
+    final uid = _uid;
+    if (uid == null) {
+      if (mounted) {
+        setState(() => _bootstrappingConversation = false);
+      }
+      return;
+    }
+    setState(() => _bootstrappingConversation = true);
+    try {
+      final resolved = await _activeConversationResolver.bootstrap(
+        uid: uid,
+        familyId: widget.familyId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _activeThreadId = resolved;
+        _bootstrappingConversation = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _bootstrappingConversation = false);
+    }
+  }
+
+  void _subscribeToThreads() {
+    _threadsSub?.cancel();
+    _threadsSub = FirebaseFirestore.instance
+        .collection('families')
+        .doc(widget.familyId)
+        .collection('assistantThreads')
+        .orderBy('updatedAt', descending: true)
+        .snapshots(includeMetadataChanges: true)
+        .listen((snap) => _reconcileActiveThread(snap.docs));
+  }
+
+  Future<void> _reconcileActiveThread(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
+    final uid = _uid;
+    if (!mounted || uid == null) return;
+    if (docs.isEmpty) {
+      if (_activeThreadId != null) {
+        await _activeConversationResolver.setActiveConversation(
+          uid: uid,
+          familyId: widget.familyId,
+          conversationId: null,
+        );
+        if (mounted) {
+          setState(() => _activeThreadId = null);
+        }
+      }
+      return;
+    }
+
+    final current = _activeThreadId;
+    if (current != null && docs.any((d) => d.id == current)) {
+      return;
+    }
+
+    final fallback = await _activeConversationResolver.ensureStillValid(
+      uid: uid,
+      familyId: widget.familyId,
+      currentConversationId: current,
+    );
+    if (!mounted) return;
+    setState(() => _activeThreadId = fallback);
+  }
+
+  Future<void> _startNewConversation() async {
+    final uid = _uid;
+    if (uid == null || _sending) return;
+    try {
+      final newId = await _activeConversationResolver.startNewConversation(
+        uid: uid,
+        familyId: widget.familyId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _activeThreadId = newId;
+        _streamBuffer = null;
+      });
+      _scaffoldKey.currentState?.closeEndDrawer();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo iniciar chat: $e')));
+    }
+  }
+
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
     if (_online == false) return;
+    if (_activeThreadId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Tocá "Nuevo chat" para iniciar una conversación.'),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _sending = true;
@@ -150,9 +264,9 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     if (idToken == null) {
       if (mounted) {
         setState(() => _sending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sin sesión')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sin sesión')));
       }
       return;
     }
@@ -163,8 +277,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     request.headers['Content-Type'] = 'application/json; charset=utf-8';
     request.body = jsonEncode({
       'familyId': widget.familyId,
-      if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
-        'threadId': _activeThreadId!,
+      'threadId': _activeThreadId!,
       'message': text,
     });
 
@@ -179,9 +292,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         }
         throw Exception('HTTP ${response.statusCode}: ${buf.toString()}');
       }
-      await for (final line in response.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())) {
+      await for (final line
+          in response.stream
+              .transform(utf8.decoder)
+              .transform(const LineSplitter())) {
         if (line.isEmpty) {
           continue;
         }
@@ -220,16 +334,16 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     } on SocketException {
       if (mounted) {
         setState(() => _streamBuffer = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sin conexión')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Sin conexión')));
       }
     } catch (e) {
       if (mounted) {
         setState(() => _streamBuffer = null);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       client.close();
@@ -239,7 +353,15 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     }
   }
 
-  void _openThread(String? threadId) {
+  Future<void> _openThread(String threadId) async {
+    final uid = _uid;
+    if (uid == null) return;
+    await _activeConversationResolver.setActiveConversation(
+      uid: uid,
+      familyId: widget.familyId,
+      conversationId: threadId,
+    );
+    if (!mounted) return;
     setState(() {
       _activeThreadId = threadId;
       _streamBuffer = null;
@@ -284,15 +406,15 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Text(
                   'Historial',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
               ),
               ListTile(
                 leading: const Icon(Icons.add_comment_outlined),
-                title: const Text('Nueva conversación'),
-                onTap: () => _openThread(null),
+                title: const Text('Nuevo chat'),
+                onTap: _startNewConversation,
               ),
               const Divider(height: 1),
               Expanded(
@@ -373,9 +495,14 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                       'Preguntá por gastos, despensa, recetas o ideas para el hogar.',
                 ),
                 const SizedBox(height: 20),
-                if (threadId == null)
+                if (_bootstrappingConversation)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (threadId == null)
                   Text(
-                    'Escribí abajo para empezar una conversación nueva.',
+                    'Abrí "Historial" y tocá "Nuevo chat" para iniciar una conversación.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),
@@ -422,8 +549,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                   ),
                   const SizedBox(width: 8),
                   FilledButton(
-                    onPressed:
-                        offline || _sending ? null : _send,
+                    onPressed: offline || _sending ? null : _send,
                     style: FilledButton.styleFrom(
                       shape: const CircleBorder(),
                       padding: const EdgeInsets.all(14),
@@ -496,12 +622,15 @@ class _MessagesList extends StatelessWidget {
               final text = data['text'] as String? ?? '';
               final isUser = role == 'user';
               return Align(
-                alignment:
-                    isUser ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: isUser
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.sizeOf(context).width * 0.82,
                   ),
@@ -532,7 +661,10 @@ class _MessagesList extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 14,
+                  ),
                   child: const SizedBox(
                     width: 20,
                     height: 20,
@@ -545,8 +677,10 @@ class _MessagesList extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.sizeOf(context).width * 0.82,
                   ),
