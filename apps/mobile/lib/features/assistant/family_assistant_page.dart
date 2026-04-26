@@ -5,6 +5,7 @@ import 'dart:io' show SocketException;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -94,9 +95,17 @@ class _FamilyAssistantBody extends StatefulWidget {
 class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _controller = TextEditingController();
+  final _activeConversationResolver = ActiveConversationResolver(
+    localStore: SecureLocalActiveConversationStore(),
+    remoteStore: FirestoreRemoteActiveConversationStore(),
+    threadsStore: FirestoreAssistantConversationThreadsStore(),
+  );
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _threadsSub;
   String? _activeThreadId;
+  String? _uid;
   bool _sending = false;
+  bool _bootstrappingConversation = true;
   bool? _online;
   String? _streamBuffer;
   final List<_LocalUserMessage> _localMessages = <_LocalUserMessage>[];
@@ -104,16 +113,29 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   void initState() {
     super.initState();
+    _uid = FirebaseAuth.instance.currentUser?.uid;
     _refreshConnectivity();
     _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
       if (!mounted) return;
       setState(() => _online = _hasConnectivity(results));
     });
+    _subscribeToThreads();
+    _bootstrapActiveConversation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FamilyAssistantBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.familyId != widget.familyId) {
+      _subscribeToThreads();
+      _bootstrapActiveConversation();
+    }
   }
 
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _threadsSub?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -127,6 +149,97 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
 
   bool _hasConnectivity(List<ConnectivityResult> results) {
     return results.any((e) => e != ConnectivityResult.none);
+  }
+
+  Future<void> _bootstrapActiveConversation() async {
+    final uid = _uid;
+    if (uid == null) {
+      if (mounted) {
+        setState(() => _bootstrappingConversation = false);
+      }
+      return;
+    }
+    setState(() => _bootstrappingConversation = true);
+    try {
+      final resolved = await _activeConversationResolver.bootstrap(
+        uid: uid,
+        familyId: widget.familyId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _activeThreadId = resolved;
+        _bootstrappingConversation = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _bootstrappingConversation = false);
+    }
+  }
+
+  void _subscribeToThreads() {
+    _threadsSub?.cancel();
+    _threadsSub = FirebaseFirestore.instance
+        .collection('families')
+        .doc(widget.familyId)
+        .collection('assistantThreads')
+        .orderBy('updatedAt', descending: true)
+        .snapshots(includeMetadataChanges: true)
+        .listen((snap) => _reconcileActiveThread(snap.docs));
+  }
+
+  Future<void> _reconcileActiveThread(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) async {
+    final uid = _uid;
+    if (!mounted || uid == null) return;
+    if (docs.isEmpty) {
+      if (_activeThreadId != null) {
+        await _activeConversationResolver.setActiveConversation(
+          uid: uid,
+          familyId: widget.familyId,
+          conversationId: null,
+        );
+        if (mounted) {
+          setState(() => _activeThreadId = null);
+        }
+      }
+      return;
+    }
+
+    final current = _activeThreadId;
+    if (current != null && docs.any((d) => d.id == current)) {
+      return;
+    }
+
+    final fallback = await _activeConversationResolver.ensureStillValid(
+      uid: uid,
+      familyId: widget.familyId,
+      currentConversationId: current,
+    );
+    if (!mounted) return;
+    setState(() => _activeThreadId = fallback);
+  }
+
+  Future<void> _startNewConversation() async {
+    final uid = _uid;
+    if (uid == null || _sending) return;
+    try {
+      final newId = await _activeConversationResolver.startNewConversation(
+        uid: uid,
+        familyId: widget.familyId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _activeThreadId = newId;
+        _streamBuffer = null;
+      });
+      _scaffoldKey.currentState?.closeEndDrawer();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo iniciar chat: $e')));
+    }
   }
 
   Future<void> _send() async {
@@ -315,7 +428,15 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     });
   }
 
-  void _openThread(String? threadId) {
+  Future<void> _openThread(String threadId) async {
+    final uid = _uid;
+    if (uid == null) return;
+    await _activeConversationResolver.setActiveConversation(
+      uid: uid,
+      familyId: widget.familyId,
+      conversationId: threadId,
+    );
+    if (!mounted) return;
     setState(() {
       _activeThreadId = threadId;
       _streamBuffer = null;
@@ -368,8 +489,8 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
               ),
               ListTile(
                 leading: const Icon(Icons.add_comment_outlined),
-                title: const Text('Nueva conversación'),
-                onTap: () => _openThread(null),
+                title: const Text('Nuevo chat'),
+                onTap: _startNewConversation,
               ),
               const Divider(height: 1),
               Expanded(
@@ -450,9 +571,14 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                       'Preguntá por gastos, despensa, recetas o ideas para el hogar.',
                 ),
                 const SizedBox(height: 20),
-                if (threadId == null && !hasLocalMessages)
+                if (_bootstrappingConversation)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (threadId == null)
                   Text(
-                    'Escribí abajo para empezar una conversación nueva.',
+                    'Abrí "Historial" y tocá "Nuevo chat" para iniciar una conversación.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
                     ),

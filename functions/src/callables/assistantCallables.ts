@@ -40,6 +40,12 @@ export const familyAssistantChat = onCall(
       clientRequestIdRaw != null && String(clientRequestIdRaw).trim() !== ""
         ? String(clientRequestIdRaw).trim()
         : undefined;
+    const threadCreateCauseRaw = request.data?.threadCreateCause;
+    const threadCreateCause =
+      threadCreateCauseRaw != null &&
+      String(threadCreateCauseRaw).trim() !== ""
+        ? String(threadCreateCauseRaw).trim()
+        : "implicit_missing_thread_id";
 
     if (!familyId) {
       throw new HttpsError("invalid-argument", "familyId es obligatorio");
@@ -62,6 +68,7 @@ export const familyAssistantChat = onCall(
     let threadRef: admin.firestore.DocumentReference;
     let isNewThread = false;
     let threadId = threadIdIn;
+    let shouldBackfillTitle = false;
 
     if (!threadId) {
       threadRef = threadsCol.doc();
@@ -73,6 +80,9 @@ export const familyAssistantChat = onCall(
       if (!tSnap.exists) {
         throw new HttpsError("not-found", "Conversación no encontrada");
       }
+      const title = tSnap.data()?.title;
+      shouldBackfillTitle = typeof title !== "string" || title.trim() === "" ||
+        title.trim().toLowerCase() === "nueva conversación";
     }
 
     const messagesCol = threadRef.collection("messages");
@@ -125,10 +135,12 @@ export const familyAssistantChat = onCall(
         createdAt: now,
         updatedAt: now,
         createdBy: uid,
+        createdCause: threadCreateCause,
       });
     } else {
       batch.update(threadRef, {
         updatedAt: now,
+        ...(shouldBackfillTitle ? { title } : {}),
       });
     }
 
@@ -138,6 +150,7 @@ export const familyAssistantChat = onCall(
       familyId,
       threadId,
       isNewThread,
+      threadCreateCause: isNewThread ? threadCreateCause : "existing_thread",
       userChars: text.length,
       replyChars: reply.length,
     });

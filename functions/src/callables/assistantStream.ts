@@ -85,6 +85,7 @@ export const familyAssistantChatStream = onRequest(
       message?: string;
       text?: string;
       clientRequestId?: string;
+      threadCreateCause?: string;
     };
     try {
       if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
@@ -108,6 +109,11 @@ export const familyAssistantChatStream = onRequest(
     const bodyCri =
       body.clientRequestId != null ? String(body.clientRequestId).trim() : "";
     const clientRequestId = headerCri || bodyCri || undefined;
+    const threadCreateCause =
+      body.threadCreateCause != null &&
+      String(body.threadCreateCause).trim() !== ""
+        ? String(body.threadCreateCause).trim()
+        : "implicit_missing_thread_id";
 
     if (!familyId) {
       sendJsonError(res, 400, "familyId es obligatorio");
@@ -147,6 +153,7 @@ export const familyAssistantChatStream = onRequest(
     let threadRef: admin.firestore.DocumentReference;
     let isNewThread = false;
     let threadId = threadIdIn;
+    let shouldBackfillTitle = false;
 
     if (!threadId) {
       threadRef = threadsCol.doc();
@@ -159,6 +166,9 @@ export const familyAssistantChatStream = onRequest(
         sendJsonError(res, 404, "Conversación no encontrada");
         return;
       }
+      const title = tSnap.data()?.title;
+      shouldBackfillTitle = typeof title !== "string" || title.trim() === "" ||
+        title.trim().toLowerCase() === "nueva conversación";
     }
 
     const messagesCol = threadRef.collection("messages");
@@ -192,9 +202,13 @@ export const familyAssistantChatStream = onRequest(
           createdAt: now,
           updatedAt: now,
           createdBy: uid,
+          createdCause: threadCreateCause,
         });
       } else {
-        await threadRef.update({ updatedAt: now });
+        await threadRef.update({
+          updatedAt: now,
+          ...(shouldBackfillTitle ? { title } : {}),
+        });
       }
     } catch (e) {
       logger.error("familyAssistantChatStream:write_user", e);
@@ -258,6 +272,7 @@ export const familyAssistantChatStream = onRequest(
       familyId,
       threadId,
       isNewThread,
+      threadCreateCause: isNewThread ? threadCreateCause : "existing_thread",
       userChars: text.length,
       replyChars: reply.length,
       provider: "openrouter",
