@@ -5,16 +5,21 @@ import { defineString } from "firebase-functions/params";
 import { openRouterApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
+  formatConversationFallbackTitle,
   loadPriorMessages,
   maxMessageChars,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
 import { chunkTextForNdjson, runAssistantOpenRouterWithTools } from "./assistantOpenRouterTools.js";
+import { generateSemanticConversationTitle } from "./assistantTitleGenerator.js";
 import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
 
 const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
+  default: "openai/gpt-4o-mini",
+});
+const openRouterAssistantTitleModel = defineString("OPENROUTER_ASSISTANT_TITLE_MODEL", {
   default: "openai/gpt-4o-mini",
 });
 
@@ -182,13 +187,22 @@ export const familyAssistantChatStream = onRequest(
       createdAt: now,
       createdBy: uid,
     };
-    const title = text.length > 48 ? `${text.slice(0, 47)}…` : text;
+    let conversationTitle = "";
+    if (isNewThread) {
+      const semanticTitle = await generateSemanticConversationTitle({
+        apiKey: openRouterApiKey.value(),
+        model: openRouterAssistantTitleModel.value().trim(),
+        firstUserMessage: text,
+      });
+      conversationTitle = semanticTitle ?? formatConversationFallbackTitle(new Date());
+    }
 
     try {
       await userMsg.set(userWrite);
       if (isNewThread) {
         await threadRef.set({
-          title,
+          title: conversationTitle,
+          conversationTitle,
           createdAt: now,
           updatedAt: now,
           createdBy: uid,
