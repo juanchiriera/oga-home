@@ -108,6 +108,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   bool _bootstrappingConversation = true;
   bool? _online;
   String? _streamBuffer;
+  final List<_LocalUserMessage> _localMessages = <_LocalUserMessage>[];
 
   @override
   void initState() {
@@ -244,12 +245,45 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty || _sending) return;
-    if (_online == false) return;
-    if (_activeThreadId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Tocá "Nuevo chat" para iniciar una conversación.'),
-        ),
+    final clientMessageId = 'local-${DateTime.now().microsecondsSinceEpoch}';
+    final localMessage = _LocalUserMessage(
+      clientMessageId: clientMessageId,
+      text: text,
+      createdAt: DateTime.now(),
+      status: _LocalUserMessageStatus.pending,
+    );
+    setState(() {
+      _controller.clear();
+      _streamBuffer = null;
+      _localMessages.add(localMessage);
+    });
+    await _sendLocalMessage(localMessage);
+  }
+
+  Future<void> _retryMessage(String clientMessageId) async {
+    if (_sending) return;
+    final index = _localMessages.indexWhere(
+      (m) => m.clientMessageId == clientMessageId,
+    );
+    if (index < 0) return;
+    final current = _localMessages[index];
+    if (current.status != _LocalUserMessageStatus.failed) return;
+    final retryMessage = current.copyWith(
+      status: _LocalUserMessageStatus.pending,
+      createdAt: DateTime.now(),
+    );
+    setState(() {
+      _streamBuffer = null;
+      _localMessages[index] = retryMessage;
+    });
+    await _sendLocalMessage(retryMessage);
+  }
+
+  Future<void> _sendLocalMessage(_LocalUserMessage localMessage) async {
+    if (_online == false) {
+      _markLocalMessageStatus(
+        localMessage.clientMessageId,
+        _LocalUserMessageStatus.failed,
       );
       return;
     }
@@ -258,11 +292,14 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _sending = true;
       _streamBuffer = null;
     });
-    _controller.clear();
 
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null) {
       if (mounted) {
+        _markLocalMessageStatus(
+          localMessage.clientMessageId,
+          _LocalUserMessageStatus.failed,
+        );
         setState(() => _sending = false);
         ScaffoldMessenger.of(
           context,
@@ -277,8 +314,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     request.headers['Content-Type'] = 'application/json; charset=utf-8';
     request.body = jsonEncode({
       'familyId': widget.familyId,
-      'threadId': _activeThreadId!,
-      'message': text,
+      if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
+        'threadId': _activeThreadId!,
+      'message': localMessage.text,
+      'clientMessageId': localMessage.clientMessageId,
     });
 
     final client = http.Client();
@@ -306,16 +345,28 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
           if (threadId != null && threadId.isNotEmpty && mounted) {
             setState(() => _activeThreadId = threadId);
           }
+          _markLocalMessageStatus(
+            localMessage.clientMessageId,
+            _LocalUserMessageStatus.sent,
+          );
         } else if (t == 'delta') {
           final piece = map['text'] as String? ?? '';
           if (piece.isEmpty) {
             continue;
           }
+          _markLocalMessageStatus(
+            localMessage.clientMessageId,
+            _LocalUserMessageStatus.sent,
+          );
           streamAccum += piece;
           if (mounted) {
             setState(() => _streamBuffer = streamAccum);
           }
         } else if (t == 'error') {
+          _markLocalMessageStatus(
+            localMessage.clientMessageId,
+            _LocalUserMessageStatus.failed,
+          );
           final m = map['message'] as String? ?? 'Error del asistente';
           if (mounted) {
             setState(() => _streamBuffer = null);
@@ -333,6 +384,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       }
     } on SocketException {
       if (mounted) {
+        _markLocalMessageStatus(
+          localMessage.clientMessageId,
+          _LocalUserMessageStatus.failed,
+        );
         setState(() => _streamBuffer = null);
         ScaffoldMessenger.of(
           context,
@@ -340,6 +395,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       }
     } catch (e) {
       if (mounted) {
+        _markLocalMessageStatus(
+          localMessage.clientMessageId,
+          _LocalUserMessageStatus.failed,
+        );
         setState(() => _streamBuffer = null);
         ScaffoldMessenger.of(
           context,
@@ -351,6 +410,22 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         setState(() => _sending = false);
       }
     }
+  }
+
+  void _markLocalMessageStatus(
+    String clientMessageId,
+    _LocalUserMessageStatus status,
+  ) {
+    if (!mounted) return;
+    final index = _localMessages.indexWhere(
+      (m) => m.clientMessageId == clientMessageId,
+    );
+    if (index < 0) return;
+    final current = _localMessages[index];
+    if (current.status == status) return;
+    setState(() {
+      _localMessages[index] = current.copyWith(status: status);
+    });
   }
 
   Future<void> _openThread(String threadId) async {
@@ -513,6 +588,8 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                     threadId: threadId,
                     streamingReply: _streamBuffer,
                     sending: _sending,
+                    localMessages: _localMessages,
+                    onRetry: _retryMessage,
                   ),
               ],
             ),
@@ -578,40 +655,60 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
 class _MessagesList extends StatelessWidget {
   const _MessagesList({
     required this.familyId,
-    required this.threadId,
+    this.threadId,
     this.streamingReply,
     this.sending = false,
+    this.localMessages = const <_LocalUserMessage>[],
+    required this.onRetry,
   });
 
   final String familyId;
-  final String threadId;
+  final String? threadId;
   final String? streamingReply;
   final bool sending;
+  final List<_LocalUserMessage> localMessages;
+  final ValueChanged<String> onRetry;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final query = FirebaseFirestore.instance
-        .collection('families')
-        .doc(familyId)
-        .collection('assistantThreads')
-        .doc(threadId)
-        .collection('messages')
-        .orderBy('createdAt', descending: false);
+    final canLoadRemote = threadId != null && threadId!.isNotEmpty;
+    final query = canLoadRemote
+        ? FirebaseFirestore.instance
+              .collection('families')
+              .doc(familyId)
+              .collection('assistantThreads')
+              .doc(threadId!)
+              .collection('messages')
+              .orderBy('createdAt', descending: false)
+        : null;
 
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: query.snapshots(includeMetadataChanges: true),
+      stream: query?.snapshots(includeMetadataChanges: true),
       builder: (context, snap) {
-        if (!snap.hasData) {
+        if (canLoadRemote && !snap.hasData) {
           return const Padding(
             padding: EdgeInsets.all(24),
             child: Center(child: CircularProgressIndicator()),
           );
         }
-        final docs = snap.data!.docs;
+        final docs =
+            snap.data?.docs ??
+            const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+        final serverClientMessageIds = docs
+            .map((d) => d.data()['clientMessageId'] as String?)
+            .whereType<String>()
+            .toSet();
+        final visibleLocalMessages = localMessages.where((m) {
+          if (m.status == _LocalUserMessageStatus.failed) return true;
+          return !serverClientMessageIds.contains(m.clientMessageId);
+        }).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
         final hasStreamPreview =
             streamingReply != null && streamingReply!.isNotEmpty;
-        if (docs.isEmpty && !hasStreamPreview && !sending) {
+        if (docs.isEmpty &&
+            visibleLocalMessages.isEmpty &&
+            !hasStreamPreview &&
+            !sending) {
           return const SizedBox.shrink();
         }
         return Column(
@@ -656,19 +753,109 @@ class _MessagesList extends StatelessWidget {
                 ),
               );
             }),
+            ...visibleLocalMessages.map((m) {
+              return Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.82,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(18),
+                      bottomRight: Radius.circular(4),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        m.text,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (m.status == _LocalUserMessageStatus.failed)
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          children: [
+                            Text(
+                              'No enviado',
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: scheme.error,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                            TextButton(
+                              onPressed: () => onRetry(m.clientMessageId),
+                              child: const Text('Reintentar'),
+                            ),
+                          ],
+                        )
+                      else
+                        Text(
+                          m.status == _LocalUserMessageStatus.pending
+                              ? 'Enviando...'
+                              : 'Enviado',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: scheme.onPrimaryContainer.withValues(
+                                  alpha: 0.78,
+                                ),
+                              ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
             if (sending && !hasStreamPreview)
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 14,
+                    horizontal: 14,
+                    vertical: 10,
                   ),
-                  child: const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.82,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(18),
+                      topRight: Radius.circular(18),
+                      bottomLeft: Radius.circular(4),
+                      bottomRight: Radius.circular(18),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'IA escribiendo...',
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
                   ),
                 ),
               )
@@ -704,6 +891,34 @@ class _MessagesList extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+enum _LocalUserMessageStatus { pending, sent, failed }
+
+class _LocalUserMessage {
+  const _LocalUserMessage({
+    required this.clientMessageId,
+    required this.text,
+    required this.createdAt,
+    required this.status,
+  });
+
+  final String clientMessageId;
+  final String text;
+  final DateTime createdAt;
+  final _LocalUserMessageStatus status;
+
+  _LocalUserMessage copyWith({
+    DateTime? createdAt,
+    _LocalUserMessageStatus? status,
+  }) {
+    return _LocalUserMessage(
+      clientMessageId: clientMessageId,
+      text: text,
+      createdAt: createdAt ?? this.createdAt,
+      status: status ?? this.status,
     );
   }
 }
