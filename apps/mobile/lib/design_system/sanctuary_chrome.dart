@@ -214,58 +214,71 @@ class SanctuaryBottomNav extends StatelessWidget {
                   final d = destinations[i];
                   final selected = i == currentIndex;
                   return Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(999),
-                      onTap: () => onSelect(i),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 220),
-                            curve: Curves.easeOutCubic,
-                            width: selected ? 52 : 40,
-                            height: selected ? 52 : 40,
-                            decoration: BoxDecoration(
-                              color: selected
-                                  ? scheme.primary
-                                  : Colors.transparent,
-                              shape: BoxShape.circle,
-                              boxShadow: selected
-                                  ? [
-                                      BoxShadow(
-                                        color: scheme.primary.withValues(
-                                          alpha: 0.35,
-                                        ),
-                                        blurRadius: 18,
-                                        offset: const Offset(0, 6),
-                                      ),
-                                    ]
-                                  : null,
-                            ),
-                            child: Icon(
-                              selected ? d.selectedIcon : d.icon,
-                              size: selected ? 26 : 22,
-                              color: selected
-                                  ? scheme.onPrimary
-                                  : scheme.secondary.withValues(alpha: 0.55),
-                            ),
+                    child: Semantics(
+                      button: true,
+                      selected: selected,
+                      label: d.label,
+                      onTapHint: 'Abrir ${d.label}',
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minHeight: kMinInteractiveDimension,
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () => onSelect(i),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedContainer(
+                                duration: const Duration(milliseconds: 220),
+                                curve: Curves.easeOutCubic,
+                                width: selected ? 52 : 48,
+                                height: selected ? 52 : 48,
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? scheme.primary
+                                      : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                  boxShadow: selected
+                                      ? [
+                                          BoxShadow(
+                                            color: scheme.primary.withValues(
+                                              alpha: 0.35,
+                                            ),
+                                            blurRadius: 18,
+                                            offset: const Offset(0, 6),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Icon(
+                                  selected ? d.selectedIcon : d.icon,
+                                  size: selected ? 26 : 24,
+                                  color: selected
+                                      ? scheme.onPrimary
+                                      : scheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                d.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      fontWeight: selected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: selected
+                                          ? scheme.primary
+                                          : scheme.onSurfaceVariant,
+                                      fontSize: 10.5,
+                                      letterSpacing: 0.2,
+                                    ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            d.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              fontWeight:
-                                  selected ? FontWeight.w700 : FontWeight.w500,
-                              color: selected
-                                  ? scheme.primary
-                                  : scheme.secondary.withValues(alpha: 0.55),
-                              fontSize: 10.5,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   );
