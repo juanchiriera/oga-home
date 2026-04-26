@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
+import 'package:craftr_mobile/features/assistant/widgets/assistant_markdown_message.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -645,14 +646,16 @@ class _MessagesList extends StatelessWidget {
                       bottomRight: Radius.circular(isUser ? 4 : 18),
                     ),
                   ),
-                  child: Text(
-                    text,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isUser
-                          ? scheme.onPrimaryContainer
-                          : scheme.onSurfaceVariant,
-                    ),
-                  ),
+                  child: isUser
+                      ? Text(
+                          text,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: scheme.onPrimaryContainer),
+                        )
+                      : AssistantMarkdownMessage(
+                          text: text,
+                          textColor: scheme.onSurfaceVariant,
+                        ),
                 ),
               );
             }),
@@ -693,11 +696,9 @@ class _MessagesList extends StatelessWidget {
                       bottomRight: Radius.circular(18),
                     ),
                   ),
-                  child: Text(
-                    streamingReply!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                    ),
+                  child: AssistantMarkdownMessage(
+                    text: streamingReply!,
+                    textColor: scheme.onSurfaceVariant,
                   ),
                 ),
               ),
