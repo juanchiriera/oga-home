@@ -9,7 +9,11 @@ import {
   maxMessageChars,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
-import { chunkTextForNdjson, runAssistantOpenRouterWithTools } from "./assistantOpenRouterTools.js";
+import {
+  chunkTextForNdjson,
+  runAssistantOpenRouterWithTools,
+} from "./assistantOpenRouterTools.js";
+import { buildToolDiffLines } from "./assistantToolDiff.js";
 import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
@@ -22,7 +26,13 @@ type NdEvent =
   | { type: "meta"; threadId: string }
   | { type: "delta"; text: string }
   | { type: "done" }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | {
+      type: "tool_pending";
+      tool: string;
+      args: Record<string, unknown>;
+      diff: string[];
+    };
 
 function writeNd(res: { write: (s: string) => boolean }, ev: NdEvent) {
   res.write(`${JSON.stringify(ev)}\n`);
@@ -205,7 +215,7 @@ export const familyAssistantChatStream = onRequest(
 
     let reply: string;
     try {
-      reply = await runAssistantOpenRouterWithTools({
+      const outcome = await runAssistantOpenRouterWithTools({
         apiKey: openRouterApiKey.value(),
         model: openRouterAssistantModel.value().trim(),
         prior,
@@ -218,6 +228,48 @@ export const familyAssistantChatStream = onRequest(
           clientRequestId,
         },
       });
+      if (outcome.mode === "pending") {
+        writeNd(res, {
+          type: "tool_pending",
+          tool: outcome.tool,
+          args: outcome.args,
+          diff: buildToolDiffLines(outcome.tool, outcome.args),
+        });
+        const ack =
+          "Te propongo una acción que pide confirmación. Revisá el resumen en el panel y confirmá para aplicarla en tu hogar.";
+        for (const piece of chunkTextForNdjson(ack, 48)) {
+          writeNd(res, { type: "delta", text: piece });
+        }
+        const nowPend = admin.firestore.FieldValue.serverTimestamp();
+        const assistantMsgPend = messagesCol.doc();
+        try {
+          await assistantMsgPend.set({
+            role: "assistant",
+            text: ack,
+            createdAt: nowPend,
+            createdBy: "assistant",
+            toolPending: {
+              tool: outcome.tool,
+              args: outcome.args,
+            },
+          });
+          await threadRef.update({ updatedAt: nowPend });
+        } catch (e) {
+          logger.error("familyAssistantChatStream:write_assistant_pending", e);
+          writeNd(res, { type: "error", message: "No se pudo guardar el mensaje" });
+          res.end();
+          return;
+        }
+        logger.info("familyAssistantChatStream:tool_pending", {
+          familyId,
+          threadId,
+          tool: outcome.tool,
+        });
+        writeNd(res, { type: "done" });
+        res.end();
+        return;
+      }
+      reply = outcome.text;
     } catch (e) {
       logger.error("familyAssistantChatStream:openrouter_tools", e);
       writeNd(res, { type: "error", message: "No se pudo obtener respuesta del asistente" });

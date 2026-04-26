@@ -15,10 +15,14 @@ class MainShell extends StatefulWidget {
     super.key,
     this.initialTab = 0,
     this.openAssistantOnLaunch = false,
+    this.assistantSeedMessage,
   });
 
   final int initialTab;
   final bool openAssistantOnLaunch;
+
+  /// Texto inicial del compositor (p. ej. contexto E9-05 / §8.4).
+  final String? assistantSeedMessage;
 
   static int tabFromQuery(String? tab) {
     switch (tab?.toLowerCase()) {
@@ -44,10 +48,16 @@ class MainShell extends StatefulWidget {
     }
   }
 
-  /// `?tab=assistant` o `?tab=ia` abre el asistente en un panel (junto con [openAssistantOnLaunch]).
-  static bool shouldOpenAssistantFromQuery(String? tab) {
+  /// `?tab=assistant` / `?tab=ia` / `?ia_open=1` abren el asistente (E9-05).
+  static bool shouldOpenAssistantFromQuery(
+    String? tab, {
+    String? iaOpen,
+  }) {
     final t = tab?.toLowerCase();
-    return t == 'assistant' || t == 'ia';
+    if (t == 'assistant' || t == 'ia') {
+      return true;
+    }
+    return iaOpen == '1';
   }
 
   @override
@@ -68,7 +78,10 @@ class _MainShellState extends State<MainShell> {
         }
         final ent = MainShellEntitlementsScope.of(context);
         if (ent.allOn || ent.iaAssistantEnabled) {
-          _openAssistantPanel(context);
+          _openAssistantPanel(
+            context,
+            seed: widget.assistantSeedMessage,
+          );
         }
       });
     }
@@ -80,9 +93,26 @@ class _MainShellState extends State<MainShell> {
     if (oldWidget.initialTab != widget.initialTab) {
       _index = widget.initialTab;
     }
+    final wantOpen = widget.openAssistantOnLaunch;
+    if (wantOpen &&
+        (!oldWidget.openAssistantOnLaunch ||
+            oldWidget.assistantSeedMessage != widget.assistantSeedMessage)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) {
+          return;
+        }
+        final ent = MainShellEntitlementsScope.of(context);
+        if (ent.allOn || ent.iaAssistantEnabled) {
+          _openAssistantPanel(
+            context,
+            seed: widget.assistantSeedMessage,
+          );
+        }
+      });
+    }
   }
 
-  void _openAssistantPanel(BuildContext context) {
+  void _openAssistantPanel(BuildContext context, {String? seed}) {
     final h = MediaQuery.sizeOf(context).height;
     showModalBottomSheet<void>(
       context: context,
@@ -110,6 +140,7 @@ class _MainShellState extends State<MainShell> {
                   height: h * 0.9,
                   child: FamilyAssistantPage(
                     onClose: () => Navigator.of(sheetContext).pop(),
+                    initialComposerText: seed,
                   ),
                 ),
               ),
@@ -142,7 +173,7 @@ class _MainShellState extends State<MainShell> {
       ),
       floatingActionButton: iaEnabled
           ? FloatingActionButton(
-              onPressed: () => _openAssistantPanel(context),
+              onPressed: () => _openAssistantPanel(context, seed: null),
               tooltip: 'Asistente',
               child: const Icon(Icons.auto_awesome),
             )

@@ -1,10 +1,12 @@
-import 'dart:async';
+import 'dart:async' show StreamSubscription, unawaited;
 import 'dart:convert';
 import 'dart:io' show SocketException;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_tool_confirm_sheet.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -13,10 +15,17 @@ import 'package:http/http.dart' as http;
 /// Chat del asistente por familia: historial en Firestore, turnos vía
 /// [familyAssistantChatStream] (NDJSON, chunks de texto; requiere red).
 class FamilyAssistantPage extends StatelessWidget {
-  const FamilyAssistantPage({super.key, this.onClose});
+  const FamilyAssistantPage({
+    super.key,
+    this.onClose,
+    this.initialComposerText,
+  });
 
   /// Si se muestra en un panel modal, se usa un botón cerrar en el app bar.
   final VoidCallback? onClose;
+
+  /// Texto opcional en el campo al abrir (p. ej. contexto E9-05).
+  final String? initialComposerText;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +87,7 @@ class FamilyAssistantPage extends StatelessWidget {
         return _FamilyAssistantBody(
           familyId: familyId,
           onClose: onClose,
+          initialComposerText: initialComposerText,
         );
       },
     );
@@ -88,10 +98,12 @@ class _FamilyAssistantBody extends StatefulWidget {
   const _FamilyAssistantBody({
     required this.familyId,
     this.onClose,
+    this.initialComposerText,
   });
 
   final String familyId;
   final VoidCallback? onClose;
+  final String? initialComposerText;
 
   @override
   State<_FamilyAssistantBody> createState() => _FamilyAssistantBodyState();
@@ -105,10 +117,15 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   bool _sending = false;
   bool? _online;
   String? _streamBuffer;
+  Map<String, dynamic>? _pendingToolPacket;
 
   @override
   void initState() {
     super.initState();
+    final seed = widget.initialComposerText;
+    if (seed != null && seed.trim().isNotEmpty) {
+      _controller.text = seed;
+    }
     _refreshConnectivity();
     _connectivitySub =
         Connectivity().onConnectivityChanged.listen((results) {
@@ -143,6 +160,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     setState(() {
       _sending = true;
       _streamBuffer = null;
+      _pendingToolPacket = null;
     });
     _controller.clear();
 
@@ -192,6 +210,26 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
           if (threadId != null && threadId.isNotEmpty && mounted) {
             setState(() => _activeThreadId = threadId);
           }
+        } else if (t == 'tool_pending') {
+          final diffRaw = map['diff'];
+          final diffList = diffRaw is List
+              ? diffRaw.map((e) => e.toString()).toList()
+              : <String>[];
+          if (mounted) {
+            setState(() {
+              _pendingToolPacket = {
+                'tool': map['tool'] as String? ?? '',
+                'args': Map<String, dynamic>.from(
+                  map['args'] is Map
+                      ? (map['args']! as Map).map(
+                          (k, v) => MapEntry(k.toString(), v),
+                        )
+                      : <String, dynamic>{},
+                ),
+                'diff': diffList,
+              };
+            });
+          }
         } else if (t == 'delta') {
           final piece = map['text'] as String? ?? '';
           if (piece.isEmpty) {
@@ -204,29 +242,49 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         } else if (t == 'error') {
           final m = map['message'] as String? ?? 'Error del asistente';
           if (mounted) {
-            setState(() => _streamBuffer = null);
+            setState(() {
+              _streamBuffer = null;
+              _pendingToolPacket = null;
+            });
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(SnackBar(content: Text(m)));
           }
           return;
         } else if (t == 'done') {
+          final packet = _pendingToolPacket;
           if (mounted) {
-            setState(() => _streamBuffer = null);
+            setState(() {
+              _streamBuffer = null;
+              _pendingToolPacket = null;
+            });
+            if (packet != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  unawaited(_handleToolConfirmPacket(packet));
+                }
+              });
+            }
           }
           return;
         }
       }
     } on SocketException {
       if (mounted) {
-        setState(() => _streamBuffer = null);
+        setState(() {
+          _streamBuffer = null;
+          _pendingToolPacket = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sin conexión')),
         );
       }
     } catch (e) {
       if (mounted) {
-        setState(() => _streamBuffer = null);
+        setState(() {
+          _streamBuffer = null;
+          _pendingToolPacket = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e')),
         );
@@ -235,6 +293,54 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       client.close();
       if (mounted) {
         setState(() => _sending = false);
+      }
+    }
+  }
+
+  Future<void> _handleToolConfirmPacket(Map<String, dynamic> packet) async {
+    final tool = packet['tool'] as String? ?? '';
+    final args = Map<String, dynamic>.from(
+      packet['args'] as Map? ?? <String, dynamic>{},
+    );
+    final diff = (packet['diff'] as List?)?.map((e) => e.toString()).toList() ??
+        <String>[];
+    if (tool.isEmpty) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    final ok = await showAssistantToolConfirmSheet(
+      context: context,
+      tool: tool,
+      diffLines: diff,
+    );
+    if (!ok || !mounted) {
+      return;
+    }
+    try {
+      await applyAssistantPendingTool(
+        familyId: widget.familyId,
+        threadId: _activeThreadId,
+        tool: tool,
+        args: args,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Acción aplicada.')),
+        );
+      }
+    } on FirebaseFunctionsException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? 'No se pudo aplicar')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
   }

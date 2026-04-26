@@ -79,8 +79,9 @@ export const familyAssistantChat = onCall(
     const prior = await loadPriorMessages(messagesCol);
 
     let reply: string;
+    let toolPending: { tool: string; args: Record<string, unknown> } | undefined;
     try {
-      reply = await runAssistantOpenRouterWithTools({
+      const outcome = await runAssistantOpenRouterWithTools({
         apiKey: openRouterApiKey.value(),
         model: openRouterAssistantModel.value().trim(),
         prior,
@@ -93,6 +94,13 @@ export const familyAssistantChat = onCall(
           clientRequestId,
         },
       });
+      if (outcome.mode === "pending") {
+        toolPending = { tool: outcome.tool, args: outcome.args };
+        reply =
+          "Te propongo una acción que pide confirmación. Revisá el resumen en la app y confirmá para aplicarla en tu hogar.";
+      } else {
+        reply = outcome.text;
+      }
     } catch (e) {
       logger.error("familyAssistantChat:openrouter_tools", e);
       throw new HttpsError("internal", "No se pudo obtener respuesta del asistente");
@@ -110,12 +118,16 @@ export const familyAssistantChat = onCall(
     });
 
     const assistantMsg = messagesCol.doc();
-    batch.set(assistantMsg, {
+    const assistantPayload: Record<string, unknown> = {
       role: "assistant",
       text: reply,
       createdAt: now,
       createdBy: "assistant",
-    });
+    };
+    if (toolPending != null) {
+      assistantPayload.toolPending = toolPending;
+    }
+    batch.set(assistantMsg, assistantPayload);
 
     const title = text.length > 48 ? `${text.slice(0, 47)}…` : text;
 
@@ -146,6 +158,7 @@ export const familyAssistantChat = onCall(
       threadId,
       replyText: reply,
       toolsVersion: ASSISTANT_TOOLS_VERSION,
+      ...(toolPending != null ? { toolPending } : {}),
     };
   },
 );

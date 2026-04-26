@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_entry_points.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -390,11 +391,34 @@ class _StockListPageState extends State<StockListPage> {
                       const SizedBox(height: 16),
                       if (!hasItems)
                         CozyCard(
-                          child: Text(
-                            _query.isEmpty
-                                ? 'Nada pendiente para comprar.'
-                                : 'No hay coincidencias para “$_query”.',
-                            style: theme.textTheme.bodyMedium,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _query.isEmpty
+                                    ? 'Nada pendiente para comprar.'
+                                    : 'No hay coincidencias para “$_query”.',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                              if (_query.isEmpty) ...[
+                                const SizedBox(height: 14),
+                                FilledButton.tonalIcon(
+                                  onPressed: () {
+                                    navigateToAssistant(
+                                      context,
+                                      tab: 'despensa',
+                                      seedMessage:
+                                          'Mi despensa está vacía o al día: ¿qué conviene tener a mano y cómo lo registro acá?',
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.auto_awesome_outlined,
+                                    size: 20,
+                                  ),
+                                  label: const Text('Preguntar al asistente'),
+                                ),
+                              ],
+                            ],
                           ),
                         )
                       else
@@ -474,10 +498,21 @@ class _StockListPageState extends State<StockListPage> {
                                         );
                                       } else if (action == 'delete') {
                                         await base.doc(d.id).delete();
+                                      } else if (action == 'assistant') {
+                                        navigateToAssistant(
+                                          context,
+                                          tab: 'despensa',
+                                          seedMessage:
+                                              'Quiero hablar del ítem de despensa «$name», estado: ${level.label}.',
+                                        );
                                       }
                                     },
                                     itemBuilder: (context) => const [
                                       PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                      PopupMenuItem(
+                                        value: 'assistant',
+                                        child: Text('Preguntar al asistente'),
+                                      ),
                                       PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                                     ],
                                   ),
