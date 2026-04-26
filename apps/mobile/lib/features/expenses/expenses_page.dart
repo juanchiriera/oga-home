@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_entry_points.dart';
 import 'package:craftr_mobile/features/expenses/expense_import_flow.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
 import 'package:craftr_mobile/features/expenses/expense_money.dart';
@@ -1467,6 +1468,19 @@ class _ExpensesContent extends StatelessWidget {
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      FilledButton.tonalIcon(
+                        onPressed: () {
+                          navigateToAssistant(
+                            context,
+                            tab: 'gastos',
+                            seedMessage:
+                                'Todavía no registré gastos: ¿cómo empiezo a usar el módulo y qué me conviene anotar primero?',
+                          );
+                        },
+                        icon: const Icon(Icons.auto_awesome_outlined, size: 20),
+                        label: const Text('Preguntar al asistente'),
+                      ),
                     ] else
                       ...docs
                           .where(
@@ -1579,6 +1593,27 @@ class _ExpensesContent extends StatelessWidget {
                                                       pm,
                                                     );
                                               }
+                                            } else if (action == 'assistant') {
+                                              final merchantStr =
+                                                  (data['merchant'] as String? ??
+                                                          '')
+                                                      .trim();
+                                              final cat = category.label;
+                                              final amt = formatMoney(
+                                                amount,
+                                                currency,
+                                              );
+                                              final when = _formatDate(
+                                                occurredAt ?? DateTime.now(),
+                                              );
+                                              navigateToAssistant(
+                                                context,
+                                                tab: 'gastos',
+                                                seedMessage: merchantStr
+                                                        .isNotEmpty
+                                                    ? 'Quiero hablar de este gasto: $merchantStr, $cat, $amt, fecha $when.'
+                                                    : 'Quiero hablar de este gasto: $cat, $amt, fecha $when.',
+                                              );
                                             }
                                           },
                                           itemBuilder: (context) => [
@@ -1593,6 +1628,12 @@ class _ExpensesContent extends StatelessWidget {
                                                   'Efectivizar (fecha de pago)',
                                                 ),
                                               ),
+                                            const PopupMenuItem(
+                                              value: 'assistant',
+                                              child: Text(
+                                                'Preguntar al asistente',
+                                              ),
+                                            ),
                                             const PopupMenuItem(
                                               value: 'delete',
                                               child: Text('Eliminar'),

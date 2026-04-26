@@ -14,8 +14,17 @@ import { executeAssistantTool, type ToolRouterContext } from "./assistantToolRou
 
 const MAX_TOOL_ROUNDS = 6;
 
+export type AssistantOpenRouterResult =
+  | { mode: "text"; text: string }
+  | { mode: "pending"; tool: string; args: Record<string, unknown> };
+
+function isPendingConfirmation(response: Record<string, unknown>): boolean {
+  return response["pending_confirmation"] === true;
+}
+
 /**
- * Chat con OpenRouter (API OpenAI-compatible) + tool calls. Devuelve texto final del asistente.
+ * Chat con OpenRouter (API OpenAI-compatible) + tool calls.
+ * Si el modelo pide una herramienta de alto riesgo, devuelve `pending` (§8.1) sin seguir rondas.
  */
 export async function runAssistantOpenRouterWithTools(params: {
   apiKey: string;
@@ -23,7 +32,7 @@ export async function runAssistantOpenRouterWithTools(params: {
   prior: FireMessage[];
   userText: string;
   toolCtx: ToolRouterContext;
-}): Promise<string> {
+}): Promise<AssistantOpenRouterResult> {
   const systemContent = [
     buildSystemPromptText(),
     "Tenés herramientas para leer y escribir datos del hogar (familia) del usuario.",
@@ -47,7 +56,10 @@ export async function runAssistantOpenRouterWithTools(params: {
       logger.warn("assistantOpenRouterTools:max_tool_rounds", {
         familyId: params.toolCtx.familyId,
       });
-      return "No pude completar la acción: demasiadas llamadas a herramientas. Probá de nuevo más simple.";
+      return {
+        mode: "text",
+        text: "No pude completar la acción: demasiadas llamadas a herramientas. Probá de nuevo más simple.",
+      };
     }
 
     const response = await fetch(OPENROUTER_CHAT_COMPLETIONS_URL, {
@@ -89,21 +101,29 @@ export async function runAssistantOpenRouterWithTools(params: {
         } catch {
           logger.warn("assistantOpenRouterTools:bad_tool_args", { name, rawArgs: rawArgs.slice(0, 200) });
         }
-        const { response: toolResponse } = await executeAssistantTool(params.toolCtx, name, args);
+        const { response: toolResponse } = await executeAssistantTool(
+          params.toolCtx,
+          name,
+          args,
+        );
+        const tr = toolResponse as Record<string, unknown>;
         messages.push({
           role: "tool",
           tool_call_id: tc.id,
           content: JSON.stringify(toolResponse),
         });
+        if (isPendingConfirmation(tr)) {
+          return { mode: "pending", tool: name, args };
+        }
       }
       continue;
     }
 
     const text = (content ?? "").trim();
     if (!text) {
-      return "No obtuve una respuesta clara del asistente.";
+      return { mode: "text", text: "No obtuve una respuesta clara del asistente." };
     }
-    return text;
+    return { mode: "text", text };
   }
 }
 

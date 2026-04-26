@@ -57,7 +57,9 @@ GoRouter buildAppRouter() {
           initialTab: MainShell.tabFromQuery(state.uri.queryParameters['tab']),
           openAssistantOnLaunch: MainShell.shouldOpenAssistantFromQuery(
             state.uri.queryParameters['tab'],
+            iaOpen: state.uri.queryParameters['ia_open'],
           ),
+          assistantSeedMessage: state.uri.queryParameters['ia_context'],
         ),
       ),
       GoRoute(

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_entry_points.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -145,9 +146,30 @@ class RecipesPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       if (docs.isEmpty)
                         CozyCard(
-                          child: Text(
-                            'Todavía no hay recetas. Creá la primera.',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Todavía no hay recetas. Creá la primera o pedí ideas al asistente.',
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              const SizedBox(height: 14),
+                              FilledButton.tonalIcon(
+                                onPressed: () {
+                                  navigateToAssistant(
+                                    context,
+                                    tab: 'recetas',
+                                    seedMessage:
+                                        'No tengo recetas guardadas: ¿cómo empiezo y qué ideas sencillas me sugerís para el hogar?',
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.auto_awesome_outlined,
+                                  size: 20,
+                                ),
+                                label: const Text('Preguntar al asistente'),
+                              ),
+                            ],
                           ),
                         ),
                       ...docs.map((doc) {
@@ -167,6 +189,17 @@ class RecipesPage extends StatelessWidget {
                             ),
                             onDelete: () =>
                                 _deleteRecipe(context, familyId, doc.id, draft),
+                            onAskAssistant: () {
+                              final t = draft.titulo.trim().isEmpty
+                                  ? 'esta receta'
+                                  : '«${draft.titulo}»';
+                              navigateToAssistant(
+                                context,
+                                tab: 'recetas',
+                                seedMessage:
+                                    'Quiero hablar de la receta $t (${draft.tiempoMin} min, ${draft.porciones} porciones).',
+                              );
+                            },
                           ),
                         );
                       }),
@@ -805,12 +838,14 @@ class _RecipeCard extends StatelessWidget {
     required this.onToggleFavorite,
     required this.onEdit,
     required this.onDelete,
+    required this.onAskAssistant,
   });
 
   final RecipeDraft draft;
   final VoidCallback onToggleFavorite;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onAskAssistant;
 
   @override
   Widget build(BuildContext context) {
@@ -877,10 +912,16 @@ class _RecipeCard extends StatelessWidget {
                     onEdit();
                   } else if (value == 'delete') {
                     onDelete();
+                  } else if (value == 'assistant') {
+                    onAskAssistant();
                   }
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  PopupMenuItem(
+                    value: 'assistant',
+                    child: Text('Preguntar al asistente'),
+                  ),
                   PopupMenuItem(value: 'delete', child: Text('Eliminar')),
                 ],
               ),
