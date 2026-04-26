@@ -5,16 +5,21 @@ import { defineString } from "firebase-functions/params";
 import { openRouterApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
+  formatConversationFallbackTitle,
   loadPriorMessages,
   maxMessageChars,
 } from "./assistantCore.js";
 import type { FireMessage } from "./assistantCore.js";
 import { chunkTextForNdjson, runAssistantOpenRouterWithTools } from "./assistantOpenRouterTools.js";
+import { generateSemanticConversationTitle } from "./assistantTitleGenerator.js";
 import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
 
 const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
+  default: "openai/gpt-4o-mini",
+});
+const openRouterAssistantTitleModel = defineString("OPENROUTER_ASSISTANT_TITLE_MODEL", {
   default: "openai/gpt-4o-mini",
 });
 
@@ -90,6 +95,7 @@ export const familyAssistantChatStream = onRequest(
         delay_ms?: number | string;
         tokens_saved_estimados?: number | string;
       };
+      threadCreateCause?: string;
     };
     try {
       if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
@@ -120,6 +126,11 @@ export const familyAssistantChatStream = onRequest(
       0,
       Number(rawBatchMeta.tokens_saved_estimados ?? 0) || 0,
     );
+    const threadCreateCause =
+      body.threadCreateCause != null &&
+      String(body.threadCreateCause).trim() !== ""
+        ? String(body.threadCreateCause).trim()
+        : "implicit_missing_thread_id";
 
     if (!familyId) {
       sendJsonError(res, 400, "familyId es obligatorio");
@@ -159,6 +170,7 @@ export const familyAssistantChatStream = onRequest(
     let threadRef: admin.firestore.DocumentReference;
     let isNewThread = false;
     let threadId = threadIdIn;
+    let shouldBackfillTitle = false;
 
     if (!threadId) {
       threadRef = threadsCol.doc();
@@ -171,6 +183,9 @@ export const familyAssistantChatStream = onRequest(
         sendJsonError(res, 404, "Conversación no encontrada");
         return;
       }
+      const title = tSnap.data()?.title;
+      shouldBackfillTitle = typeof title !== "string" || title.trim() === "" ||
+        title.trim().toLowerCase() === "nueva conversación";
     }
 
     const messagesCol = threadRef.collection("messages");
@@ -194,19 +209,32 @@ export const familyAssistantChatStream = onRequest(
       createdAt: now,
       createdBy: uid,
     };
-    const title = text.length > 48 ? `${text.slice(0, 47)}…` : text;
+    let conversationTitle = "";
+    if (isNewThread) {
+      const semanticTitle = await generateSemanticConversationTitle({
+        apiKey: openRouterApiKey.value(),
+        model: openRouterAssistantTitleModel.value().trim(),
+        firstUserMessage: text,
+      });
+      conversationTitle = semanticTitle ?? formatConversationFallbackTitle(new Date());
+    }
 
     try {
       await userMsg.set(userWrite);
       if (isNewThread) {
         await threadRef.set({
-          title,
+          title: conversationTitle,
+          conversationTitle,
           createdAt: now,
           updatedAt: now,
           createdBy: uid,
+          createdCause: threadCreateCause,
         });
       } else {
-        await threadRef.update({ updatedAt: now });
+        await threadRef.update({
+          updatedAt: now,
+          ...(shouldBackfillTitle ? { title: formatConversationFallbackTitle(new Date()) } : {}),
+        });
       }
     } catch (e) {
       logger.error("familyAssistantChatStream:write_user", e);
@@ -270,6 +298,7 @@ export const familyAssistantChatStream = onRequest(
       familyId,
       threadId,
       isNewThread,
+      threadCreateCause: isNewThread ? threadCreateCause : "existing_thread",
       userChars: text.length,
       replyChars: reply.length,
       provider: "openrouter",

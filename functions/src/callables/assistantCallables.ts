@@ -6,16 +6,21 @@ import { defineString } from "firebase-functions/params";
 import { openRouterApiKey } from "./recipeCallables.js";
 import {
   assertFamilyMember,
+  formatConversationFallbackTitle,
   loadPriorMessages,
   maxMessageChars,
   requireCallAuth,
 } from "./assistantCore.js";
 import { runAssistantOpenRouterWithTools } from "./assistantOpenRouterTools.js";
+import { generateSemanticConversationTitle } from "./assistantTitleGenerator.js";
 import { ASSISTANT_TOOLS_VERSION } from "./assistantToolsVersion.js";
 
 const region = "southamerica-east1";
 
 const openRouterAssistantModel = defineString("OPENROUTER_ASSISTANT_MODEL", {
+  default: "openai/gpt-4o-mini",
+});
+const openRouterAssistantTitleModel = defineString("OPENROUTER_ASSISTANT_TITLE_MODEL", {
   default: "openai/gpt-4o-mini",
 });
 
@@ -40,6 +45,12 @@ export const familyAssistantChat = onCall(
       clientRequestIdRaw != null && String(clientRequestIdRaw).trim() !== ""
         ? String(clientRequestIdRaw).trim()
         : undefined;
+    const threadCreateCauseRaw = request.data?.threadCreateCause;
+    const threadCreateCause =
+      threadCreateCauseRaw != null &&
+      String(threadCreateCauseRaw).trim() !== ""
+        ? String(threadCreateCauseRaw).trim()
+        : "implicit_missing_thread_id";
 
     if (!familyId) {
       throw new HttpsError("invalid-argument", "familyId es obligatorio");
@@ -62,6 +73,7 @@ export const familyAssistantChat = onCall(
     let threadRef: admin.firestore.DocumentReference;
     let isNewThread = false;
     let threadId = threadIdIn;
+    let shouldBackfillTitle = false;
 
     if (!threadId) {
       threadRef = threadsCol.doc();
@@ -73,6 +85,9 @@ export const familyAssistantChat = onCall(
       if (!tSnap.exists) {
         throw new HttpsError("not-found", "Conversación no encontrada");
       }
+      const title = tSnap.data()?.title;
+      shouldBackfillTitle = typeof title !== "string" || title.trim() === "" ||
+        title.trim().toLowerCase() === "nueva conversación";
     }
 
     const messagesCol = threadRef.collection("messages");
@@ -117,18 +132,29 @@ export const familyAssistantChat = onCall(
       createdBy: "assistant",
     });
 
-    const title = text.length > 48 ? `${text.slice(0, 47)}…` : text;
+    let conversationTitle = "";
+    if (isNewThread) {
+      const semanticTitle = await generateSemanticConversationTitle({
+        apiKey: openRouterApiKey.value(),
+        model: openRouterAssistantTitleModel.value().trim(),
+        firstUserMessage: text,
+      });
+      conversationTitle = semanticTitle ?? formatConversationFallbackTitle(new Date());
+    }
 
     if (isNewThread) {
       batch.set(threadRef, {
-        title,
+        title: conversationTitle,
+        conversationTitle,
         createdAt: now,
         updatedAt: now,
         createdBy: uid,
+        createdCause: threadCreateCause,
       });
     } else {
       batch.update(threadRef, {
         updatedAt: now,
+        ...(shouldBackfillTitle ? { title: formatConversationFallbackTitle(new Date()) } : {}),
       });
     }
 
@@ -138,6 +164,7 @@ export const familyAssistantChat = onCall(
       familyId,
       threadId,
       isNewThread,
+      threadCreateCause: isNewThread ? threadCreateCause : "existing_thread",
       userChars: text.length,
       replyChars: reply.length,
     });
@@ -147,5 +174,51 @@ export const familyAssistantChat = onCall(
       replyText: reply,
       toolsVersion: ASSISTANT_TOOLS_VERSION,
     };
+  },
+);
+
+export const renameAssistantThreadTitle = onCall(
+  { region },
+  async (request) => {
+    const uid = requireCallAuth(request);
+    const familyId = String(request.data?.familyId ?? "").trim();
+    const threadId = String(request.data?.threadId ?? "").trim();
+    const conversationTitle = String(request.data?.conversationTitle ?? "")
+      .trim()
+      .replace(/\s+/g, " ");
+
+    if (!familyId) {
+      throw new HttpsError("invalid-argument", "familyId es obligatorio");
+    }
+    if (!threadId) {
+      throw new HttpsError("invalid-argument", "threadId es obligatorio");
+    }
+    if (conversationTitle.length < 3 || conversationTitle.length > 80) {
+      throw new HttpsError(
+        "invalid-argument",
+        "El título debe tener entre 3 y 80 caracteres",
+      );
+    }
+
+    const db = admin.firestore();
+    await assertFamilyMember(db, familyId, uid);
+
+    const threadRef = db
+      .collection("families")
+      .doc(familyId)
+      .collection("assistantThreads")
+      .doc(threadId);
+    const threadSnap = await threadRef.get();
+    if (!threadSnap.exists) {
+      throw new HttpsError("not-found", "Conversación no encontrada");
+    }
+
+    await threadRef.update({
+      title: conversationTitle,
+      conversationTitle,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { ok: true };
   },
 );
