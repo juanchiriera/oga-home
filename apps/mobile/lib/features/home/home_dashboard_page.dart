@@ -5,6 +5,7 @@ import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
 import 'package:craftr_mobile/features/expenses/expense_money.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
+import 'package:craftr_mobile/l10n/l10n.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
 import 'package:craftr_mobile/services/auth_service.dart';
@@ -59,23 +60,25 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     }
   }
 
-  String _greetingPrefix() {
+  String _greetingPrefix(BuildContext context) {
+    final l10n = context.l10n;
     final h = DateTime.now().hour;
-    if (h < 13) return 'Buenos días';
-    if (h < 20) return 'Buenas tardes';
-    return 'Buenas noches';
+    if (h < 13) return l10n.homeGreetingMorning;
+    if (h < 20) return l10n.homeGreetingAfternoon;
+    return l10n.homeGreetingEvening;
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return const Scaffold(body: Center(child: Text('Sin sesión')));
+      return Scaffold(body: Center(child: Text(l10n.homeNoSession)));
     }
     final user = FirebaseAuth.instance.currentUser!;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final firstName = _firstName(user);
+    final firstName = _firstName(user, l10n.homeFamilyFallbackName);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -84,7 +87,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
         leading: Padding(
           padding: const EdgeInsets.only(left: 4),
           child: IconButton(
-            tooltip: 'Perfil',
+            tooltip: l10n.homeProfileTooltip,
             onPressed: () => context.push('/profile'),
             icon: CircleAvatar(
               radius: 18,
@@ -114,7 +117,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
               }
             },
             child: Text(
-              'Salir',
+              l10n.homeSignOut,
               style: TextStyle(
                 color: scheme.secondary,
                 fontWeight: FontWeight.w600,
@@ -144,10 +147,13 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             ),
             children: [
               SanctuaryAssistantHero(
-                greetingLine: '${_greetingPrefix()}, $firstName',
+                greetingLine: l10n.homeGreetingLine(
+                  _greetingPrefix(context),
+                  firstName,
+                ),
                 subtitle: familyId != null && familyId.isNotEmpty
-                    ? 'Acá tenés un vistazo del hogar: despensa, gastos, notas y recetas en un solo lugar.'
-                    : 'Creá tu hogar para empezar a coordinar despensa, gastos y notas con quienes viven con vos.',
+                    ? l10n.homeHeroSubtitleWithFamily
+                    : l10n.homeHeroSubtitleWithoutFamily,
               ),
               const SizedBox(height: 12),
               Text(
@@ -167,15 +173,15 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         state == null) {
                       return CozyCard(
                         color: scheme.surfaceContainer,
-                        child: const Row(
+                        child: Row(
                           children: [
-                            SizedBox(
+                            const SizedBox(
                               width: 18,
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             ),
-                            SizedBox(width: 12),
-                            Expanded(child: Text('Cargando planes sandbox...')),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text(l10n.homeLoadingSandboxPlans)),
                           ],
                         ),
                       );
@@ -202,7 +208,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Text(
-                        'Tu espacio familiar',
+                        l10n.homeFamilySpaceTitle,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: scheme.primary,
@@ -210,7 +216,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Creá un hogar para compartir despensa, gastos y notas.',
+                        l10n.homeFamilySpaceDescription,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
                           height: 1.45,
@@ -219,12 +225,12 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       const SizedBox(height: 16),
                       FilledButton(
                         onPressed: () => context.push('/create-family'),
-                        child: const Text('Crear hogar'),
+                        child: Text(l10n.homeCreateFamily),
                       ),
                       const SizedBox(height: 10),
                       OutlinedButton(
                         onPressed: null,
-                        child: const Text('Invitaciones'),
+                        child: Text(l10n.homeInvitations),
                       ),
                     ],
                   ),
@@ -245,7 +251,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     );
   }
 
-  static String _firstName(User user) {
+  static String _firstName(User user, String fallbackName) {
     final raw = user.displayName?.trim();
     if (raw != null && raw.isNotEmpty) {
       return raw.split(RegExp(r'\s+')).first;
@@ -254,7 +260,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     if (email != null && email.contains('@')) {
       return email.split('@').first;
     }
-    return 'familia';
+    return fallbackName;
   }
 }
 
@@ -277,6 +283,7 @@ class _HomeFamilyOverview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final familyRef = FirebaseFirestore.instance
@@ -376,7 +383,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Text(
-                              'Hogar activo',
+                              l10n.homeActiveHousehold,
                               style: theme.textTheme.labelLarge?.copyWith(
                                 color: scheme.secondary,
                                 fontWeight: FontWeight.w600,
@@ -395,7 +402,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                 Expanded(
                                   child: FilledButton(
                                     onPressed: onInvites,
-                                    child: const Text('Invitaciones'),
+                                    child: Text(l10n.homeInvitations),
                                   ),
                                 ),
                               ],
@@ -420,7 +427,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Gasto reconocido del mes',
+                                                l10n.homeMonthlyRecognizedExpense,
                                                 style: theme
                                                     .textTheme
                                                     .labelLarge
@@ -434,7 +441,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                               if (monthlyTotalByCurrency
                                                   .isEmpty)
                                                 Text(
-                                                  'Sin movimientos del mes',
+                                                  l10n.homeNoMonthlyMovements,
                                                   style: theme
                                                       .textTheme
                                                       .titleMedium
@@ -469,14 +476,14 @@ class _HomeFamilyOverview extends StatelessWidget {
                                             Icons.receipt_long_rounded,
                                             size: 20,
                                           ),
-                                          label: const Text('Escanear'),
+                                          label: Text(l10n.homeScan),
                                         ),
                                       ],
                                     ),
                                     if (topChips.isNotEmpty) ...[
                                       const SizedBox(height: 18),
                                       Text(
-                                        'Categorías con movimiento',
+                                        l10n.homeCategoriesWithMovement,
                                         style: theme.textTheme.labelMedium
                                             ?.copyWith(
                                               color: scheme.onSurfaceVariant,
@@ -536,7 +543,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            'Alertas de despensa',
+                                            l10n.homeStockAlerts,
                                             style: theme.textTheme.titleMedium
                                                 ?.copyWith(
                                                   fontWeight: FontWeight.w800,
@@ -553,8 +560,11 @@ class _HomeFamilyOverview extends StatelessWidget {
                                     const SizedBox(height: 6),
                                     Text(
                                       alertCount == 0
-                                          ? 'No hay ítems marcados como “no hay” o “queda poco”.'
-                                          : '$alertCount ítem${alertCount == 1 ? '' : 's'} para revisar.',
+                                          ? l10n.homeNoStockAlerts
+                                          : l10n.homeStockAlertsToReview(
+                                              alertCount,
+                                              alertCount == 1 ? '' : 's',
+                                            ),
                                       style: theme.textTheme.bodySmall
                                           ?.copyWith(
                                             color: scheme.onSurfaceVariant,
@@ -567,7 +577,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                       )
                                     else if (stockDocs.isEmpty)
                                       Text(
-                                        'Todo en orden por ahora.',
+                                        l10n.homeAllGoodForNow,
                                         style: theme.textTheme.bodyMedium,
                                       )
                                     else
@@ -575,7 +585,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                         final s = d.data();
                                         final name =
                                             s['name'] as String? ??
-                                            '(sin nombre)';
+                                            l10n.homeUnnamedItem;
                                         final level = StockLevel.parse(
                                           s['state'] as String?,
                                         );
@@ -658,9 +668,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                       alignment: Alignment.centerLeft,
                                       child: TextButton(
                                         onPressed: onOpenStock,
-                                        child: const Text(
-                                          'Ver despensa completa',
-                                        ),
+                                        child: Text(l10n.homeViewFullPantry),
                                       ),
                                     ),
                                   ],
@@ -685,7 +693,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 10),
                                         Text(
-                                          'Nota reciente',
+                                          l10n.homeRecentNote,
                                           style: theme.textTheme.titleMedium
                                               ?.copyWith(
                                                 fontWeight: FontWeight.w800,
@@ -697,7 +705,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                     const SizedBox(height: 12),
                                     if (noteDoc == null)
                                       Text(
-                                        'Todavía no hay notas compartidas.',
+                                        l10n.homeNoSharedNotesYet,
                                         style: theme.textTheme.bodyMedium
                                             ?.copyWith(
                                               color: scheme.onSurfaceVariant,
@@ -714,7 +722,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                             Text(
                                               noteDoc.data()['title']
                                                       as String? ??
-                                                  '(sin título)',
+                                                  l10n.homeUntitledNote,
                                               style: theme.textTheme.titleSmall
                                                   ?.copyWith(
                                                     fontWeight: FontWeight.w800,
@@ -784,7 +792,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                     BorderRadius.circular(999),
                                               ),
                                               child: Text(
-                                                'Receta destacada',
+                                                l10n.homeFeaturedRecipe,
                                                 style: theme
                                                     .textTheme
                                                     .labelSmall
@@ -818,7 +826,9 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                 ),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  '${featured.tiempoMin} min',
+                                                  l10n.homeMinutes(
+                                                    featured.tiempoMin,
+                                                  ),
                                                   style: theme
                                                       .textTheme
                                                       .labelMedium
@@ -834,7 +844,9 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                 ),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  '${featured.porciones} porciones',
+                                                  l10n.homeServings(
+                                                    featured.porciones,
+                                                  ),
                                                   style: theme
                                                       .textTheme
                                                       .labelMedium
@@ -871,6 +883,7 @@ class _HomeFamilyOverview extends StatelessWidget {
 class _RevenueCatUiActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     return CozyCard(
       color: scheme.surfaceContainerLow,
@@ -878,7 +891,7 @@ class _RevenueCatUiActions extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'RevenueCat UI',
+            l10n.revenueCatTitle,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: scheme.primary,
@@ -886,7 +899,7 @@ class _RevenueCatUiActions extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Paywall y centro de cliente configurados en RevenueCat.',
+            l10n.revenueCatDescription,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
               height: 1.4,
@@ -899,11 +912,11 @@ class _RevenueCatUiActions extends StatelessWidget {
             children: [
               FilledButton.tonal(
                 onPressed: () => _presentPaywall(context),
-                child: const Text('Paywall'),
+                child: Text(l10n.revenueCatPaywall),
               ),
               OutlinedButton(
                 onPressed: () => _presentCustomerCenter(context),
-                child: const Text('Centro de cliente'),
+                child: Text(l10n.revenueCatCustomerCenter),
               ),
             ],
           ),
@@ -919,9 +932,9 @@ class _RevenueCatUiActions extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Paywall: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.revenueCatPaywallError('$e'))),
+      );
     }
   }
 
@@ -932,9 +945,11 @@ class _RevenueCatUiActions extends StatelessWidget {
       if (!context.mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Centro de cliente: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.l10n.revenueCatCustomerCenterError('$e')),
+        ),
+      );
     }
   }
 }
@@ -947,8 +962,29 @@ class _BillingStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final title = switch (state.type) {
+      _BillingUiStateType.available => l10n.billingAvailableTitle,
+      _BillingUiStateType.notConfigured => l10n.billingNotConfiguredTitle,
+      _BillingUiStateType.empty => l10n.billingEmptyTitle,
+      _BillingUiStateType.error => l10n.billingErrorTitle,
+    };
+    final message = switch (state.type) {
+      _BillingUiStateType.available => l10n.billingAvailableMessage(
+        state.packageCount ?? 0,
+      ),
+      _BillingUiStateType.notConfigured => l10n.billingNotConfiguredMessage,
+      _BillingUiStateType.empty => l10n.billingEmptyMessage,
+      _BillingUiStateType.error => l10n.billingErrorMessage,
+    };
+    final ctaLabel = switch (state.type) {
+      _BillingUiStateType.available => l10n.billingRefreshPlans,
+      _BillingUiStateType.notConfigured ||
+      _BillingUiStateType.error => l10n.billingRetry,
+      _BillingUiStateType.empty => l10n.billingRefreshPlans,
+    };
     return CozyCard(
       color: switch (state.type) {
         _BillingUiStateType.available => scheme.primaryContainer,
@@ -960,14 +996,14 @@ class _BillingStateCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            state.title,
+            title,
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            state.message,
+            message,
             style: theme.textTheme.bodyMedium?.copyWith(height: 1.45),
           ),
           const SizedBox(height: 12),
@@ -975,7 +1011,7 @@ class _BillingStateCard extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: FilledButton.tonal(
               onPressed: onRetry,
-              child: Text(state.ctaLabel),
+              child: Text(ctaLabel),
             ),
           ),
         ],
@@ -987,51 +1023,18 @@ class _BillingStateCard extends StatelessWidget {
 enum _BillingUiStateType { available, notConfigured, empty, error }
 
 class _BillingUiState {
-  const _BillingUiState._({
-    required this.type,
-    required this.title,
-    required this.message,
-    required this.ctaLabel,
-  });
+  const _BillingUiState._({required this.type, this.packageCount});
 
   const _BillingUiState.available({required int packageCount})
-    : this._(
-        type: _BillingUiStateType.available,
-        title: 'Planes premium disponibles',
-        message:
-            'Encontramos $packageCount paquete(s) en sandbox. Ya podés validar compras en entorno de pruebas.',
-        ctaLabel: 'Actualizar planes',
-      );
+    : this._(type: _BillingUiStateType.available, packageCount: packageCount);
 
   const _BillingUiState.notConfigured()
-    : this._(
-        type: _BillingUiStateType.notConfigured,
-        title: 'Beneficios premium no disponibles en este entorno',
-        message:
-            'Estamos terminando la configuración de suscripciones. Podés seguir usando todas las funciones base del hogar.',
-        ctaLabel: 'Reintentar',
-      );
+    : this._(type: _BillingUiStateType.notConfigured);
 
-  const _BillingUiState.empty()
-    : this._(
-        type: _BillingUiStateType.empty,
-        title: 'No encontramos planes disponibles por ahora',
-        message:
-            'No hay ofertas activas en este momento. Tu experiencia actual no cambia y podés intentar nuevamente en unos minutos.',
-        ctaLabel: 'Actualizar planes',
-      );
+  const _BillingUiState.empty() : this._(type: _BillingUiStateType.empty);
 
-  const _BillingUiState.error()
-    : this._(
-        type: _BillingUiStateType.error,
-        title: 'No pudimos cargar los planes',
-        message:
-            'Revisá tu conexión e intentá de nuevo. Mientras tanto, podés seguir gestionando tu hogar con normalidad.',
-        ctaLabel: 'Reintentar',
-      );
+  const _BillingUiState.error() : this._(type: _BillingUiStateType.error);
 
   final _BillingUiStateType type;
-  final String title;
-  final String message;
-  final String ctaLabel;
+  final int? packageCount;
 }

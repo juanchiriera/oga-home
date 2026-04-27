@@ -1,8 +1,10 @@
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/core/entitlements_remote_config.dart';
 import 'package:craftr_mobile/core/entitlements_scope.dart';
+import 'package:craftr_mobile/l10n/app_localizations.dart';
 import 'package:craftr_mobile/router/app_router.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 class CraftrApp extends StatelessWidget {
   const CraftrApp({required this.entitlementsRemoteConfig, super.key});
@@ -16,10 +18,18 @@ class CraftrApp extends StatelessWidget {
       valueListenable: entitlementsRemoteConfig.state,
       builder: (context, entitlements, child) {
         return MaterialApp.router(
-          title: 'CraftR',
+          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
           theme: craftrLightTheme(),
           darkTheme: craftrDarkTheme(),
           themeMode: ThemeMode.system,
+          locale: const Locale('es', 'AR'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           routerConfig: router,
           builder: (context, child) {
             return MainShellEntitlementsScope(

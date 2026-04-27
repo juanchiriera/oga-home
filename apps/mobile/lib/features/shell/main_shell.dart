@@ -6,6 +6,7 @@ import 'package:craftr_mobile/features/home/home_dashboard_page.dart';
 import 'package:craftr_mobile/features/notes/shared_notes_page.dart';
 import 'package:craftr_mobile/features/recipes/recipes_page.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
+import 'package:craftr_mobile/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 /// Navegación principal tipo “cozy” M3: barra inferior + asistente vía FAB
@@ -122,9 +123,9 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final entitlements = MainShellEntitlementsScope.of(context);
-    final iaEnabled =
-        entitlements.allOn || entitlements.iaAssistantEnabled;
+    final iaEnabled = entitlements.allOn || entitlements.iaAssistantEnabled;
     final flavor = AppFlavor.fromEnvironment();
     final pages = <Widget>[
       HomeDashboardPage(flavor: flavor),
@@ -136,45 +137,42 @@ class _MainShellState extends State<MainShell> {
     final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
     return Scaffold(
-      body: IndexedStack(
-        index: selectedIndex,
-        children: pages,
-      ),
+      body: IndexedStack(index: selectedIndex, children: pages),
       floatingActionButton: iaEnabled
           ? FloatingActionButton(
               onPressed: () => _openAssistantPanel(context),
-              tooltip: 'Asistente',
+              tooltip: l10n.assistantTooltip,
               child: const Icon(Icons.auto_awesome),
             )
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Inicio',
+            label: l10n.navHome,
           ),
           NavigationDestination(
             icon: Icon(Icons.inventory_2_outlined),
             selectedIcon: Icon(Icons.inventory_2),
-            label: 'Stock',
+            label: l10n.navStock,
           ),
           NavigationDestination(
             icon: Icon(Icons.payments_outlined),
             selectedIcon: Icon(Icons.payments),
-            label: 'Gastos',
+            label: l10n.navExpenses,
           ),
           NavigationDestination(
             icon: Icon(Icons.restaurant_menu_outlined),
             selectedIcon: Icon(Icons.restaurant_menu),
-            label: 'Recetas',
+            label: l10n.navRecipes,
           ),
           NavigationDestination(
             icon: Icon(Icons.note_alt_outlined),
             selectedIcon: Icon(Icons.note_alt),
-            label: 'Notas',
+            label: l10n.navNotes,
           ),
         ],
       ),
