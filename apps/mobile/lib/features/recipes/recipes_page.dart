@@ -100,46 +100,14 @@ class _RecipesPageState extends State<RecipesPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  CozyCard(
-                    color: scheme.surfaceContainerLow,
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Importar desde la web',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: scheme.primary,
-                              ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Pegá un enlace y extraemos ingredientes y pasos con IA para revisar antes de guardar.',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: scheme.onSurfaceVariant,
-                                height: 1.45,
-                              ),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () =>
-                              _importRecipeFromUrlFlow(context, familyId),
-                          icon: const Icon(Icons.link_rounded),
-                          label: const Text('Importar URL'),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Aviso legal (§7.5): respetá copyright y términos del sitio fuente.',
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(color: scheme.onSurfaceVariant),
-                        ),
-                      ],
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ImportRecipeFromUrlButton(
+                      onPressed: () =>
+                          _importRecipeFromUrlFlow(context, familyId),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _RecipesStatusBanner(snapshot: snap.data!),
                   const SizedBox(height: 12),
                   CozyCard(
@@ -1053,6 +1021,31 @@ class _MetaChip extends StatelessWidget {
         label,
         style: theme.textTheme.labelSmall?.copyWith(
           color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+class ImportRecipeFromUrlButton extends StatelessWidget {
+  const ImportRecipeFromUrlButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  static const String accessibilityLabel = 'Importar receta desde URL';
+  static const String buttonText = 'Importar URL';
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: accessibilityLabel,
+      child: Semantics(
+        button: true,
+        label: accessibilityLabel,
+        child: FilledButton.icon(
+          onPressed: onPressed,
+          icon: const Icon(Icons.link_rounded),
+          label: const Text(buttonText),
         ),
       ),
     );
