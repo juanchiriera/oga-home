@@ -314,6 +314,21 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     },
                   ),
                   const SizedBox(height: 12),
+                  TextField(
+                    controller: merchantController,
+                    decoration: const InputDecoration(
+                      labelText: 'Comercio (opcional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Nota (opcional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     key: ValueKey<String>('expense-cat-$selectedCategory'),
                     initialValue: selectedCategory,
@@ -531,20 +546,6 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         setLocal(() => selectedDate = picked);
                       }
                     },
-                  ),
-                  TextField(
-                    controller: merchantController,
-                    decoration: const InputDecoration(
-                      labelText: 'Comercio (opcional)',
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: noteController,
-                    maxLines: 2,
-                    decoration: const InputDecoration(
-                      labelText: 'Nota (opcional)',
-                    ),
                   ),
                 ],
               ),
