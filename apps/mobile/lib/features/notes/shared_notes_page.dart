@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/notes/family_links_page.dart';
+import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -121,7 +122,10 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
                   const SizedBox(height: 20),
                   CozyCard(
                     color: scheme.surfaceContainerHighest,
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
                     child: TextField(
                       controller: _searchController,
                       onChanged: (value) {
@@ -129,7 +133,10 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
                       },
                       decoration: InputDecoration(
                         hintText: 'Buscar en tus notas…',
-                        prefixIcon: Icon(Icons.search_rounded, color: scheme.outline),
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: scheme.outline,
+                        ),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -256,10 +263,10 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
       );
 
       final title = titleController.text.trim();
-      final content = contentController.text.trim();
+      final content = contentController.text;
       if (shouldSave != true ||
           title.isEmpty ||
-          content.isEmpty ||
+          content.trim().isEmpty ||
           !context.mounted) {
         return;
       }
@@ -337,51 +344,51 @@ class _NoteCard extends StatelessWidget {
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       padding: const EdgeInsets.all(18),
       child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      onEdit();
-                    } else if (value == 'delete') {
-                      onDelete();
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Eliminar')),
-                  ],
-                ),
-              ],
-            ),
-            Text(
-              content,
-              maxLines: 5,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              updatedText,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.secondary,
+              PopupMenuButton<String>(
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    onEdit();
+                  } else if (value == 'delete') {
+                    onDelete();
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                ],
               ),
+            ],
+          ),
+          NoteMarkdownContent(
+            text: content,
+            textStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
             ),
-          ],
-        ),
+            linkColor: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            updatedText,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
