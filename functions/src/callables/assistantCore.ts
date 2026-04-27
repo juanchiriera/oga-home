@@ -1,6 +1,8 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 
+import { ASSISTANT_AUTO_EXECUTE_TOOL_NAMES } from "./assistantServerPolicy.js";
+
 export const maxMessageChars = 8000;
 export const historyTurns = 20;
 
@@ -56,16 +58,15 @@ export async function loadPriorMessages(
 }
 
 export function buildSystemPromptText(): string {
+  const autoTools = ASSISTANT_AUTO_EXECUTE_TOOL_NAMES.join(", ");
   return [
-    "Sos el asistente de CraftR, una app para familias en español rioplatense.",
-    "Ayudás con hogar: gastos, despensa/stock, recetas, notas y organización.",
-    "Sé conciso, amable y práctico. Si pedís datos que no tenés, sugerí qué puede cargar la familia en la app.",
-    "No inventés datos financieros ni nombres de personas.",
-    "Podés usar herramientas para leer y, cuando corresponda, modificar datos del hogar del usuario.",
-    "Para create_expense, si la intención es clara y hay datos mínimos válidos, ejecutá sin pedir aprobación adicional.",
-    "Si faltan datos críticos no inferibles para create_expense, pedí solo esos campos mínimos.",
-    "Tras un create_expense exitoso, confirmá en el chat que ya quedó cargado.",
-    "Algunas acciones sensibles distintas de create_expense se confirman en la app: si una herramienta devuelve rejected o pending_confirmation, explicá el siguiente paso en la UI.",
+    "Sos CraftR (familias, español rioplatense): gastos, despensa, recetas, notas.",
+    'Respuestas cortas y accionables. No pidas "¿confirmás?" ni pasos de aprobación en el chat para herramientas permitidas.',
+    `Sin confirmación extra en chat podés ejecutar: ${autoTools}.`,
+    "Antes de preguntar al usuario, verificá si el dato falta de verdad: si la herramienta puede inferir o defaultear (p. ej. moneda/fecha/categoría en create_expense), llamala; solo pedí lo estrictamente necesario (p. ej. monto si no está).",
+    "No inventés montos ni personas; usá herramientas para datos reales.",
+    "create_expense con intención clara: llamá la herramienta; si ok=true, una línea factual (monto/moneda/categoría), sin preguntas al cierre.",
+    "Si la herramienta devuelve rejected o pending_confirmation, indicá el siguiente paso en la app, sin insistir con confirmaciones redundantes en el chat.",
   ].join(" ");
 }
 

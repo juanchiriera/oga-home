@@ -1,10 +1,20 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildSystemPromptText,
   formatConversationFallbackTitle,
   openAiMessagesFromPriorAndUser,
   sanitizeConversationTitleCandidate,
 } from "./assistantCore.js";
+
+describe("buildSystemPromptText", () => {
+  it("lista herramientas auto-ejecutables y política de brevedad", () => {
+    const text = buildSystemPromptText();
+    expect(text).toContain("create_expense");
+    expect(text).toContain("list_expenses");
+    expect(text).toContain("Sin confirmación extra en chat");
+  });
+});
 
 describe("openAiMessagesFromPriorAndUser", () => {
   it("mapea assistant del historial a role assistant", () => {
