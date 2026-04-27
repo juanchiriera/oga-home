@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/assistant/assistant_chat_local_visibility.dart';
 import 'package:craftr_mobile/features/assistant/assistant_message_buffer.dart';
 import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
 import 'package:craftr_mobile/features/assistant/widgets/assistant_markdown_message.dart';
@@ -346,6 +347,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
         'threadId': _activeThreadId!,
       'message': batch.message,
+      'clientMessageIds': batch.clientMessageIds,
       'batchMeta': {
         'buffer_size': batch.bufferSize,
         'delay_ms': batch.delayMs,
@@ -848,13 +850,16 @@ class _MessagesList extends StatelessWidget {
         final docs =
             snap.data?.docs ??
             const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
-        final serverClientMessageIds = docs
-            .map((d) => d.data()['clientMessageId'] as String?)
-            .whereType<String>()
-            .toSet();
+        final serverClientMessageIds = serverStoredClientMessageIds(
+          docs.map((d) => d.data()),
+        );
         final visibleLocalMessages = localMessages.where((m) {
-          if (m.status == _LocalUserMessageStatus.failed) return true;
-          return !serverClientMessageIds.contains(m.clientMessageId);
+          return shouldShowLocalUserBubble(
+            isFailed: m.status == _LocalUserMessageStatus.failed,
+            isSent: m.status == _LocalUserMessageStatus.sent,
+            clientMessageId: m.clientMessageId,
+            serverClientIds: serverClientMessageIds,
+          );
         }).toList()..sort((a, b) => a.createdAt.compareTo(b.createdAt));
         final hasStreamPreview =
             streamingReply != null && streamingReply!.isNotEmpty;
