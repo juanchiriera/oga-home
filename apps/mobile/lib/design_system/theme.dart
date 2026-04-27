@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 ThemeData craftrLightTheme() {
-  final textTheme = GoogleFonts.plusJakartaSansTextTheme();
   const scheme = ColorScheme(
     brightness: Brightness.light,
     primary: Color(0xFF0F4746),
@@ -39,16 +38,79 @@ ThemeData craftrLightTheme() {
     surfaceContainerHigh: Color(0xFFEAEAD1),
     surfaceContainerHighest: Color(0xFFE4E4CC),
   );
+  return _buildTheme(scheme);
+}
+
+ThemeData craftrDarkTheme() {
+  const scheme = ColorScheme(
+    brightness: Brightness.dark,
+    primary: Color(0xFF9CD0CD),
+    onPrimary: Color(0xFF003736),
+    primaryContainer: Color(0xFF194E4D),
+    onPrimaryContainer: Color(0xFFB8ECE9),
+    secondary: Color(0xFFA1D2AA),
+    onSecondary: Color(0xFF06391C),
+    secondaryContainer: Color(0xFF225031),
+    onSecondaryContainer: Color(0xFFBCEFC5),
+    tertiary: Color(0xFFE8C08C),
+    onTertiary: Color(0xFF442B00),
+    tertiaryContainer: Color(0xFF5D4219),
+    onTertiaryContainer: Color(0xFFFFDDB3),
+    error: Color(0xFFFFB4AB),
+    onError: Color(0xFF690005),
+    errorContainer: Color(0xFF93000A),
+    onErrorContainer: Color(0xFFFFDAD6),
+    surface: Color(0xFF13140A),
+    onSurface: Color(0xFFE4E4CC),
+    onSurfaceVariant: Color(0xFFBFC8C7),
+    outline: Color(0xFF899392),
+    outlineVariant: Color(0xFF404848),
+    shadow: Color(0xFF000000),
+    scrim: Color(0xFF000000),
+    inverseSurface: Color(0xFFE4E4CC),
+    onInverseSurface: Color(0xFF1B1D0E),
+    inversePrimary: Color(0xFF0F4746),
+    surfaceDim: Color(0xFF13140A),
+    surfaceBright: Color(0xFF393A28),
+    surfaceContainerLowest: Color(0xFF0E1006),
+    surfaceContainerLow: Color(0xFF1B1D0E),
+    surfaceContainer: Color(0xFF1F2112),
+    surfaceContainerHigh: Color(0xFF292B1C),
+    surfaceContainerHighest: Color(0xFF353626),
+  );
+  return _buildTheme(scheme);
+}
+
+ThemeData _buildTheme(ColorScheme scheme) {
+  final textTheme = GoogleFonts.plusJakartaSansTextTheme().apply(
+    bodyColor: scheme.onSurface,
+    displayColor: scheme.onSurface,
+  );
+  final scaffoldSurface = scheme.brightness == Brightness.dark
+      ? scheme.surfaceDim
+      : scheme.surface;
+
   return ThemeData(
     useMaterial3: true,
+    brightness: scheme.brightness,
     colorScheme: scheme,
-    scaffoldBackgroundColor: scheme.surface,
-    textTheme: textTheme.apply(
-      bodyColor: scheme.onSurface,
-      displayColor: scheme.onSurface,
+    scaffoldBackgroundColor: scaffoldSurface,
+    canvasColor: scaffoldSurface,
+    dialogTheme: DialogThemeData(
+      backgroundColor: scheme.surfaceContainer,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
     ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: scheme.surfaceContainer,
+      modalBackgroundColor: scheme.surfaceContainer,
+      dragHandleColor: scheme.outline.withValues(alpha: 0.45),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+    ),
+    textTheme: textTheme,
     appBarTheme: AppBarTheme(
-      backgroundColor: scheme.surface.withValues(alpha: 0.9),
+      backgroundColor: scaffoldSurface.withValues(alpha: 0.9),
       foregroundColor: scheme.primary,
       elevation: 0,
       scrolledUnderElevation: 0,
@@ -71,7 +133,7 @@ ThemeData craftrLightTheme() {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(999),
-        borderSide: BorderSide(color: scheme.primaryContainer, width: 1.2),
+        borderSide: BorderSide(color: scheme.primary, width: 1.2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
     ),
@@ -94,11 +156,23 @@ ThemeData craftrLightTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       indicatorColor: scheme.primary,
-      backgroundColor: scheme.surface.withValues(alpha: 0.85),
+      backgroundColor: scaffoldSurface.withValues(alpha: 0.82),
+      shadowColor: scheme.shadow.withValues(alpha: 0.22),
+      surfaceTintColor: Colors.transparent,
       height: 84,
-      labelTextStyle: WidgetStatePropertyAll(
-        textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600),
-      ),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return textTheme.labelSmall?.copyWith(
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+        );
+      }),
+      iconTheme: WidgetStateProperty.resolveWith((states) {
+        final selected = states.contains(WidgetState.selected);
+        return IconThemeData(
+          color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+        );
+      }),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: scheme.primary,
@@ -106,22 +180,4 @@ ThemeData craftrLightTheme() {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
     ),
   );
-}
-
-ThemeData craftrDarkTheme() {
-  final base = craftrLightTheme();
-  final scheme = base.colorScheme.copyWith(
-    brightness: Brightness.dark,
-    surface: const Color(0xFF1B1D0E),
-    onSurface: const Color(0xFFF2F2D9),
-    surfaceContainerLowest: const Color(0xFF101109),
-    surfaceContainerLow: const Color(0xFF202218),
-    surfaceContainer: const Color(0xFF292B20),
-    surfaceContainerHigh: const Color(0xFF323429),
-    surfaceContainerHighest: const Color(0xFF3A3D31),
-    onSurfaceVariant: const Color(0xFFD0D4C4),
-    outline: const Color(0xFF96A09D),
-    outlineVariant: const Color(0xFF5D6665),
-  );
-  return base.copyWith(colorScheme: scheme, brightness: Brightness.dark);
 }
