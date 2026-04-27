@@ -298,7 +298,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _streamBuffer = null;
     });
     _controller.clear();
-    _messageBuffer.queue(text);
+    _messageBuffer.queue(
+      localMessage.text,
+      clientMessageId: localMessage.clientMessageId,
+    );
   }
 
   Future<void> _sendBufferedBatch(BufferedAssistantBatch batch) async {
@@ -310,10 +313,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null) {
       if (mounted) {
-        _markLocalMessageStatus(
-          localMessage.clientMessageId,
-          _LocalUserMessageStatus.failed,
-        );
+        _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
         setState(() => _sending = false);
         ScaffoldMessenger.of(
           context,
@@ -363,28 +363,19 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
           if (threadId != null && threadId.isNotEmpty && mounted) {
             setState(() => _activeThreadId = threadId);
           }
-          _markLocalMessageStatus(
-            localMessage.clientMessageId,
-            _LocalUserMessageStatus.sent,
-          );
+          _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.sent);
         } else if (t == 'delta') {
           final piece = map['text'] as String? ?? '';
           if (piece.isEmpty) {
             continue;
           }
-          _markLocalMessageStatus(
-            localMessage.clientMessageId,
-            _LocalUserMessageStatus.sent,
-          );
+          _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.sent);
           streamAccum += piece;
           if (mounted) {
             setState(() => _streamBuffer = streamAccum);
           }
         } else if (t == 'error') {
-          _markLocalMessageStatus(
-            localMessage.clientMessageId,
-            _LocalUserMessageStatus.failed,
-          );
+          _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
           final m = map['message'] as String? ?? 'Error del asistente';
           if (mounted) {
             setState(() => _streamBuffer = null);
@@ -402,10 +393,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       }
     } on SocketException {
       if (mounted) {
-        _markLocalMessageStatus(
-          localMessage.clientMessageId,
-          _LocalUserMessageStatus.failed,
-        );
+        _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
         setState(() => _streamBuffer = null);
         ScaffoldMessenger.of(
           context,
@@ -413,10 +401,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       }
     } catch (e) {
       if (mounted) {
-        _markLocalMessageStatus(
-          localMessage.clientMessageId,
-          _LocalUserMessageStatus.failed,
-        );
+        _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
         setState(() => _streamBuffer = null);
         ScaffoldMessenger.of(
           context,
@@ -444,6 +429,15 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     setState(() {
       _localMessages[index] = current.copyWith(status: status);
     });
+  }
+
+  void _markBatchLocalMessageStatus(
+    BufferedAssistantBatch batch,
+    _LocalUserMessageStatus status,
+  ) {
+    for (final clientMessageId in batch.clientMessageIds) {
+      _markLocalMessageStatus(clientMessageId, status);
+    }
   }
 
   Future<void> _openThread(String threadId) async {

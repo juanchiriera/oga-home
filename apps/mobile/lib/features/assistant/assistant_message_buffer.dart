@@ -5,12 +5,14 @@ typedef DateTimeNow = DateTime Function();
 class BufferedAssistantBatch {
   const BufferedAssistantBatch({
     required this.message,
+    required this.clientMessageIds,
     required this.bufferSize,
     required this.delayMs,
     required this.tokensSavedEstimated,
   });
 
   final String message;
+  final List<String> clientMessageIds;
   final int bufferSize;
   final int delayMs;
   final int tokensSavedEstimated;
@@ -38,14 +40,20 @@ class AssistantMessageBuffer {
 
   bool get hasPending => _pending.isNotEmpty;
 
-  void queue(String rawText) {
+  void queue(String rawText, {required String clientMessageId}) {
     final text = rawText.trim();
     if (text.isEmpty) return;
 
     final now = _now();
     final startsNewWindow = _pending.isEmpty;
     _windowStartedAt ??= now;
-    _pending.add(_PendingMessage(text: text, queuedAt: now));
+    _pending.add(
+      _PendingMessage(
+        text: text,
+        clientMessageId: clientMessageId,
+        queuedAt: now,
+      ),
+    );
 
     if (startsNewWindow) {
       _flushTimer?.cancel();
@@ -67,12 +75,14 @@ class AssistantMessageBuffer {
     final startedAt = _windowStartedAt ?? _pending.first.queuedAt;
     final batchSize = _pending.length;
     final mergedMessage = _pending.map((m) => m.text).join(separator);
+    final clientMessageIds = _pending.map((m) => m.clientMessageId).toList();
     _pending.clear();
     _windowStartedAt = null;
     try {
       await onFlush(
         BufferedAssistantBatch(
           message: mergedMessage,
+          clientMessageIds: clientMessageIds,
           bufferSize: batchSize,
           delayMs: flushedAt.difference(startedAt).inMilliseconds,
           tokensSavedEstimated: batchSize <= 1
@@ -98,8 +108,13 @@ class AssistantMessageBuffer {
 }
 
 class _PendingMessage {
-  const _PendingMessage({required this.text, required this.queuedAt});
+  const _PendingMessage({
+    required this.text,
+    required this.clientMessageId,
+    required this.queuedAt,
+  });
 
   final String text;
+  final String clientMessageId;
   final DateTime queuedAt;
 }
