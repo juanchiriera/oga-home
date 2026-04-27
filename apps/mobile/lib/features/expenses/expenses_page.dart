@@ -284,33 +284,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: amountController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'Monto *'),
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    key: ValueKey<String>('expense-currency-$selectedCurrency'),
-                    initialValue: selectedCurrency,
-                    decoration: InputDecoration(
-                      labelText: 'Moneda *',
-                      helperText: 'Moneda base familiar: $baseCurrency',
-                    ),
-                    items: kSupportedCurrencies
-                        .map(
-                          (currency) => DropdownMenuItem<String>(
-                            value: currency,
-                            child: Text(currency),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        setLocal(() => selectedCurrency = value);
-                      }
+                  ExpenseAmountCurrencyRow(
+                    amountController: amountController,
+                    selectedCurrency: selectedCurrency,
+                    baseCurrency: baseCurrency,
+                    onCurrencyChanged: (value) {
+                      setLocal(() => selectedCurrency = value);
                     },
                   ),
                   const SizedBox(height: 12),
@@ -1702,4 +1681,72 @@ String _formatDate(DateTime value) {
   final mm = value.month.toString().padLeft(2, '0');
   final yyyy = value.year.toString();
   return '$dd/$mm/$yyyy';
+}
+
+class ExpenseAmountCurrencyRow extends StatelessWidget {
+  const ExpenseAmountCurrencyRow({
+    super.key,
+    required this.amountController,
+    required this.selectedCurrency,
+    required this.baseCurrency,
+    required this.onCurrencyChanged,
+  });
+
+  final TextEditingController amountController;
+  final String selectedCurrency;
+  final String baseCurrency;
+  final ValueChanged<String> onCurrencyChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 360;
+        final amountFlex = isCompact ? 3 : 5;
+        final currencyFlex = isCompact ? 2 : 3;
+        return Row(
+          key: const Key('expense-amount-currency-row'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: amountFlex,
+              child: TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'Monto *'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: currencyFlex,
+              child: DropdownButtonFormField<String>(
+                key: ValueKey<String>('expense-currency-$selectedCurrency'),
+                initialValue: selectedCurrency,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  labelText: 'Moneda *',
+                  helperText: 'Base: $baseCurrency',
+                ),
+                items: kSupportedCurrencies
+                    .map(
+                      (currency) => DropdownMenuItem<String>(
+                        value: currency,
+                        child: Text(currency, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    onCurrencyChanged(value);
+                  }
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
