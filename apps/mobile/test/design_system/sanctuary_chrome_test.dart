@@ -89,4 +89,50 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets('fab inset uses safe area when keyboard is closed', (
+    tester,
+  ) async {
+    late double inset;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            padding: EdgeInsets.only(bottom: 12),
+            viewInsets: EdgeInsets.zero,
+          ),
+          child: Builder(
+            builder: (context) {
+              inset = sanctuaryFabBottomInset(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(inset, 84);
+  });
+
+  testWidgets('fab inset rises above keyboard when it is open', (tester) async {
+    late double inset;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            padding: EdgeInsets.only(bottom: 12),
+            viewInsets: EdgeInsets.only(bottom: 240),
+          ),
+          child: Builder(
+            builder: (context) {
+              inset = sanctuaryFabBottomInset(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(inset, 312);
+  });
 }

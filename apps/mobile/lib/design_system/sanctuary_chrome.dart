@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -8,6 +9,16 @@ const EdgeInsets kSanctuaryScreenPadding = EdgeInsets.symmetric(horizontal: 24);
 /// Extra scroll padding so content clears [SanctuaryBottomNav] + safe area.
 double sanctuaryScrollBottomPadding(BuildContext context) =>
     108 + MediaQuery.paddingOf(context).bottom;
+
+/// Shared FAB spacing token to keep distance from [SanctuaryBottomNav].
+const double kSanctuaryFabBottomOffset = 72;
+
+/// Bottom inset for FABs that keeps them above nav/safe area and keyboard.
+double sanctuaryFabBottomInset(BuildContext context) {
+  final mediaQuery = MediaQuery.of(context);
+  return kSanctuaryFabBottomOffset +
+      math.max(mediaQuery.padding.bottom, mediaQuery.viewInsets.bottom);
+}
 
 /// Frosted app bar matching dashboard / despensa / notas references.
 PreferredSizeWidget sanctuaryAppBar(

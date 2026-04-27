@@ -67,126 +67,122 @@ class RecipesPage extends StatelessWidget {
             return Scaffold(
               extendBodyBehindAppBar: true,
               appBar: sanctuaryAppBar(context),
-              body: Stack(
+              body: ListView(
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                  24,
+                  sanctuaryScrollBottomPadding(context),
+                ),
                 children: [
-                  ListView(
-                    padding: EdgeInsets.fromLTRB(
-                      24,
-                      MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
-                      24,
-                      sanctuaryScrollBottomPadding(context),
-                    ),
-                    children: [
-                      Text(
-                        'Recetario',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.4,
-                            ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Tu colección de inspiraciones culinarias y tradiciones familiares.',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      CozyCard(
-                        color: scheme.surfaceContainerLow,
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Importar desde la web',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: scheme.primary,
-                                  ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Pegá un enlace y extraemos ingredientes y pasos con IA para revisar antes de guardar.',
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                    height: 1.45,
-                                  ),
-                            ),
-                            const SizedBox(height: 12),
-                            FilledButton.icon(
-                              onPressed: () =>
-                                  _importRecipeFromUrlFlow(context, familyId),
-                              icon: const Icon(Icons.link_rounded),
-                              label: const Text('Importar URL'),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Aviso legal (§7.5): respetá copyright y términos del sitio fuente.',
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(color: scheme.onSurfaceVariant),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      _RecipesStatusBanner(snapshot: snap.data!),
-                      const SizedBox(height: 12),
-                      CozyCard(
-                        child: Text(
-                          'Guardá recetas con ingredientes, pasos y porciones.',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (docs.isEmpty)
-                        CozyCard(
-                          child: Text(
-                            'Todavía no hay recetas. Creá la primera.',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ),
-                      ...docs.map((doc) {
-                        final data = doc.data();
-                        final draft = RecipeDraft.fromFirestore(data);
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _RecipeCard(
-                            draft: draft,
-                            onToggleFavorite: () =>
-                                _toggleFavorite(familyId, doc.id, data),
-                            onEdit: () => _openEditor(
-                              context,
-                              familyId: familyId,
-                              recipeId: doc.id,
-                              initial: draft,
-                            ),
-                            onDelete: () =>
-                                _deleteRecipe(context, familyId, doc.id, draft),
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                  Positioned(
-                    right: 20,
-                    bottom: 72 + MediaQuery.paddingOf(context).bottom,
-                    child: FloatingActionButton.extended(
-                      onPressed: () => _openEditor(
-                        context,
-                        familyId: familyId,
-                        recipeId: null,
-                        initial: RecipeDraft.empty(),
-                      ),
-                      icon: const Icon(Icons.add_rounded),
-                      label: const Text('Nueva receta'),
+                  Text(
+                    'Recetario',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
                     ),
                   ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Tu colección de inspiraciones culinarias y tradiciones familiares.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  CozyCard(
+                    color: scheme.surfaceContainerLow,
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Importar desde la web',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: scheme.primary,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Pegá un enlace y extraemos ingredientes y pasos con IA para revisar antes de guardar.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                height: 1.45,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        FilledButton.icon(
+                          onPressed: () =>
+                              _importRecipeFromUrlFlow(context, familyId),
+                          icon: const Icon(Icons.link_rounded),
+                          label: const Text('Importar URL'),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Aviso legal (§7.5): respetá copyright y términos del sitio fuente.',
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: scheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _RecipesStatusBanner(snapshot: snap.data!),
+                  const SizedBox(height: 12),
+                  CozyCard(
+                    child: Text(
+                      'Guardá recetas con ingredientes, pasos y porciones.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (docs.isEmpty)
+                    CozyCard(
+                      child: Text(
+                        'Todavía no hay recetas. Creá la primera.',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                  ...docs.map((doc) {
+                    final data = doc.data();
+                    final draft = RecipeDraft.fromFirestore(data);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _RecipeCard(
+                        draft: draft,
+                        onToggleFavorite: () =>
+                            _toggleFavorite(familyId, doc.id, data),
+                        onEdit: () => _openEditor(
+                          context,
+                          familyId: familyId,
+                          recipeId: doc.id,
+                          initial: draft,
+                        ),
+                        onDelete: () =>
+                            _deleteRecipe(context, familyId, doc.id, draft),
+                      ),
+                    );
+                  }),
                 ],
+              ),
+              floatingActionButton: Padding(
+                padding: EdgeInsets.only(
+                  bottom: sanctuaryFabBottomInset(context),
+                ),
+                child: FloatingActionButton.extended(
+                  onPressed: () => _openEditor(
+                    context,
+                    familyId: familyId,
+                    recipeId: null,
+                    initial: RecipeDraft.empty(),
+                  ),
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Nueva receta'),
+                ),
               ),
             );
           },
