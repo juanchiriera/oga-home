@@ -1142,8 +1142,6 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                     fallback: baseCurrency,
                   );
                   final categoryKey = data['categoryKey'] as String? ?? 'other';
-                  final occurredAt = (data['occurredAt'] as Timestamp?)
-                      ?.toDate();
                   final categoryTotals = byCategoryCurrency.putIfAbsent(
                     categoryKey,
                     () => <String, double>{},
