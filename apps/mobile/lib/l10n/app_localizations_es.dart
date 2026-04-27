@@ -125,6 +125,64 @@ class AppLocalizationsEs extends AppLocalizations {
   String get homeInvitations => 'Invitaciones';
 
   @override
+  String get homeGenerateInvite => 'Generar invitación';
+
+  @override
+  String get inviteCreatedSheetTitle => 'Invitación lista';
+
+  @override
+  String get inviteCreatedSheetSubtitle =>
+      'Compartí este enlace con quien querés sumar al hogar. También podés copiarlo o usar el menú de compartir del sistema.';
+
+  @override
+  String inviteCreatedExpires(String date) {
+    return 'Vence el $date';
+  }
+
+  @override
+  String get inviteLinkCopy => 'Copiar enlace';
+
+  @override
+  String get inviteLinkShare => 'Compartir';
+
+  @override
+  String get inviteCopiedToClipboard => 'Enlace copiado';
+
+  @override
+  String get inviteCreateErrorPermissionDenied =>
+      'No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.';
+
+  @override
+  String inviteCreateErrorGeneric(String message) {
+    return 'No se pudo crear la invitación: $message';
+  }
+
+  @override
+  String get invitesListTitle => 'Invitaciones';
+
+  @override
+  String get invitesEmptyTitle => 'No hay invitaciones pendientes';
+
+  @override
+  String get invitesEmptyDescription =>
+      'Generá un enlace para invitar a alguien a unirse a este hogar.';
+
+  @override
+  String get invitesPendingIntro =>
+      'Invitaciones pendientes para sumar miembros al hogar.';
+
+  @override
+  String invitesExpiresLabel(String date) {
+    return 'Vence: $date';
+  }
+
+  @override
+  String get invitesNoSession => 'Sin sesión';
+
+  @override
+  String get invitesNeedFamily => 'Primero creá o unite a un hogar.';
+
+  @override
   String get homeActiveHousehold => 'Hogar activo';
 
   @override
@@ -361,6 +419,64 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get homeInvitations => 'Invitaciones';
+
+  @override
+  String get homeGenerateInvite => 'Generar invitación';
+
+  @override
+  String get inviteCreatedSheetTitle => 'Invitación lista';
+
+  @override
+  String get inviteCreatedSheetSubtitle =>
+      'Compartí este enlace con quien querés sumar al hogar. También podés copiarlo o usar el menú de compartir del sistema.';
+
+  @override
+  String inviteCreatedExpires(String date) {
+    return 'Vence el $date';
+  }
+
+  @override
+  String get inviteLinkCopy => 'Copiar enlace';
+
+  @override
+  String get inviteLinkShare => 'Compartir';
+
+  @override
+  String get inviteCopiedToClipboard => 'Enlace copiado';
+
+  @override
+  String get inviteCreateErrorPermissionDenied =>
+      'No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.';
+
+  @override
+  String inviteCreateErrorGeneric(String message) {
+    return 'No se pudo crear la invitación: $message';
+  }
+
+  @override
+  String get invitesListTitle => 'Invitaciones';
+
+  @override
+  String get invitesEmptyTitle => 'No hay invitaciones pendientes';
+
+  @override
+  String get invitesEmptyDescription =>
+      'Generá un enlace para invitar a alguien a unirse a este hogar.';
+
+  @override
+  String get invitesPendingIntro =>
+      'Invitaciones pendientes para sumar miembros al hogar.';
+
+  @override
+  String invitesExpiresLabel(String date) {
+    return 'Vence: $date';
+  }
+
+  @override
+  String get invitesNoSession => 'Sin sesión';
+
+  @override
+  String get invitesNeedFamily => 'Primero creá o unite a un hogar.';
 
   @override
   String get homeActiveHousehold => 'Hogar activo';

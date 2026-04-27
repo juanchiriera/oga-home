@@ -46,6 +46,43 @@
   "homeFamilySpaceDescription": "Creá un hogar para compartir despensa, gastos y notas.",
   "homeCreateFamily": "Crear hogar",
   "homeInvitations": "Invitaciones",
+  "homeGenerateInvite": "Generar invitación",
+  "inviteCreatedSheetTitle": "Invitación lista",
+  "inviteCreatedSheetSubtitle": "Compartí este enlace con quien querés sumar al hogar. También podés copiarlo o usar el menú de compartir del sistema.",
+  "inviteCreatedExpires": "Vence el {date}",
+  "@inviteCreatedExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteLinkCopy": "Copiar enlace",
+  "inviteLinkShare": "Compartir",
+  "inviteCopiedToClipboard": "Enlace copiado",
+  "inviteCreateErrorPermissionDenied": "No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.",
+  "inviteCreateErrorGeneric": "No se pudo crear la invitación: {message}",
+  "@inviteCreateErrorGeneric": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "invitesListTitle": "Invitaciones",
+  "invitesEmptyTitle": "No hay invitaciones pendientes",
+  "invitesEmptyDescription": "Generá un enlace para invitar a alguien a unirse a este hogar.",
+  "invitesPendingIntro": "Invitaciones pendientes para sumar miembros al hogar.",
+  "invitesExpiresLabel": "Vence: {date}",
+  "@invitesExpiresLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invitesNoSession": "Sin sesión",
+  "invitesNeedFamily": "Primero creá o unite a un hogar.",
   "homeActiveHousehold": "Hogar activo",
   "homeMonthlyRecognizedExpense": "Gasto reconocido del mes",
   "homeNoMonthlyMovements": "Sin movimientos del mes",
