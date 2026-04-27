@@ -107,9 +107,7 @@ class _RecipesPageState extends State<RecipesPage> {
                           _importRecipeFromUrlFlow(context, familyId),
                     ),
                   ),
-                  const SizedBox(height: 12),
                   _RecipesStatusBanner(snapshot: snap.data!),
-                  const SizedBox(height: 12),
                   CozyCard(
                     child: Text(
                       'Guardá recetas con ingredientes, pasos y porciones.',
@@ -1060,41 +1058,52 @@ class _RecipesStatusBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = _RecipesSyncStatus.fromSnapshot(snapshot);
+    if (status == _RecipesSyncStatus.synced) {
+      return const SizedBox.shrink();
+    }
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tone = status.tone(scheme);
-    return CozyCard(
-      color: scheme.surfaceContainer,
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  status.label,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: tone,
-                    fontWeight: FontWeight.w700,
-                  ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 12),
+        CozyCard(
+          color: scheme.surfaceContainer,
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      status.label,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: tone,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      status.message,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  status.message,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+      ],
     );
   }
 }
@@ -1117,13 +1126,13 @@ enum _RecipesSyncStatus {
   }
 
   String get label => switch (this) {
-    _RecipesSyncStatus.synced => 'Sincronizado',
+    _RecipesSyncStatus.synced => '',
     _RecipesSyncStatus.pendingUpload => 'Pendiente de sincronizar',
     _RecipesSyncStatus.showingCachedData => 'Mostrando datos offline',
   };
 
   String get message => switch (this) {
-    _RecipesSyncStatus.synced => 'Tus recetas están guardadas en la nube.',
+    _RecipesSyncStatus.synced => '',
     _RecipesSyncStatus.pendingUpload =>
       'Hay cambios locales que se enviarán al reconectar.',
     _RecipesSyncStatus.showingCachedData =>

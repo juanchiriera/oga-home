@@ -11,6 +11,14 @@ import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+/// Lets the current frame finish layout and semantics after a route or sheet
+/// closes, before Firestore streams rebuild large scrollables. Avoids rare
+/// `!semantics.parentDataDirty` crashes when a dialog returns and listeners
+/// update the tree in the same frame (e.g. gasto puntual → Guardar).
+Future<void> _deferUntilAfterRouteTransitionFrames() async {
+  await WidgetsBinding.instance.endOfFrame;
+}
+
 class ExpenseCategory {
   const ExpenseCategory({
     required this.key,
@@ -195,8 +203,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
       return;
     }
     if (choice == 'installment') {
+      await _deferUntilAfterRouteTransitionFrames();
+      if (!context.mounted) {
+        return;
+      }
       await _createInstallmentPlan(context: context);
     } else if (choice == 'single') {
+      await _deferUntilAfterRouteTransitionFrames();
+      if (!context.mounted) {
+        return;
+      }
       await _upsertExpense(context: context);
     }
   }
@@ -482,6 +498,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
     );
 
     if (ok != true || !context.mounted) {
+      return;
+    }
+    await _deferUntilAfterRouteTransitionFrames();
+    if (!context.mounted) {
       return;
     }
 
@@ -941,6 +961,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
     if (ok != true || !context.mounted) {
       return;
     }
+    await _deferUntilAfterRouteTransitionFrames();
+    if (!context.mounted) {
+      return;
+    }
 
     final amount = double.tryParse(amountController.text.replaceAll(',', '.'));
     if (amount == null || amount <= 0) {
@@ -1129,6 +1153,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
     );
 
     if (ok != true || !context.mounted) {
+      return;
+    }
+    await _deferUntilAfterRouteTransitionFrames();
+    if (!context.mounted) {
       return;
     }
 

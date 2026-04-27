@@ -1,7 +1,19 @@
+import 'dart:async';
+
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+/// Whether [value] is a valid HTTPS URL with authority (family links policy).
+bool isFamilyLinksHttpsUrl(String value, {Uri? uri}) {
+  final parsed = uri ?? Uri.tryParse(value);
+  return parsed != null &&
+      parsed.scheme.toLowerCase() == 'https' &&
+      parsed.hasAuthority &&
+      parsed.host.isNotEmpty;
+}
 
 /// CRUD de enlaces utiles de la familia activa.
 class FamilyLinksPage extends StatelessWidget {
@@ -156,33 +168,43 @@ class FamilyLinksPage extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title.isEmpty ? _displayHost(url) : title,
-                                    style: theme.textTheme.titleSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    url,
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: scheme.primary,
-                                    ),
-                                  ),
-                                  if (note.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () => unawaited(
+                                  _tryOpenFamilyLink(context, url),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      note,
-                                      style: theme.textTheme.bodyMedium
+                                      title.isEmpty
+                                          ? _displayHost(url)
+                                          : title,
+                                      style: theme.textTheme.titleSmall
                                           ?.copyWith(
-                                            color: scheme.onSurfaceVariant,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                     ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      url,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: scheme.primary,
+                                          ),
+                                    ),
+                                    if (note.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        note,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
                             ),
                             PopupMenuButton<String>(
@@ -291,7 +313,7 @@ class FamilyLinksPage extends StatelessWidget {
                     return 'Ingresa una URL';
                   }
                   final uri = Uri.tryParse(value);
-                  if (!_isHttpsUrl(value, uri: uri)) {
+                  if (!isFamilyLinksHttpsUrl(value, uri: uri)) {
                     return 'La URL debe ser HTTPS valida';
                   }
                   return null;
@@ -335,7 +357,7 @@ class FamilyLinksPage extends StatelessWidget {
     final trimmedUrl = urlController.text.trim();
     final trimmedTitle = titleController.text.trim();
     final trimmedNote = noteController.text.trim();
-    if (!_isHttpsUrl(trimmedUrl)) {
+    if (!isFamilyLinksHttpsUrl(trimmedUrl)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Usa un enlace seguro que empiece con https://'),
@@ -374,11 +396,29 @@ class FamilyLinksPage extends StatelessWidget {
     noteController.dispose();
   }
 
-  static bool _isHttpsUrl(String value, {Uri? uri}) {
-    final parsed = uri ?? Uri.tryParse(value);
-    return parsed != null &&
-        parsed.scheme.toLowerCase() == 'https' &&
-        parsed.hasAuthority;
+  static Future<void> _tryOpenFamilyLink(
+    BuildContext context,
+    String url,
+  ) async {
+    final trimmed = url.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (!isFamilyLinksHttpsUrl(trimmed, uri: uri)) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Usa un enlace seguro que empiece con https://'),
+        ),
+      );
+      return;
+    }
+    final launched = await launchUrl(
+      uri!,
+      mode: LaunchMode.externalApplication,
+    );
+    if (launched || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No se pudo abrir el enlace.')),
+    );
   }
 
   static String _displayHost(String url) {
