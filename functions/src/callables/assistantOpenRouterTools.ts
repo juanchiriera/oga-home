@@ -9,24 +9,12 @@ import {
 import { openRouterRequestHeaders } from "./recipeCallables.js";
 import type { FireMessage } from "./assistantCore.js";
 import { buildSystemPromptText, openAiMessagesFromPriorAndUser } from "./assistantCore.js";
+import { ASSISTANT_AUTO_EXECUTE_TOOL_NAMES } from "./assistantServerPolicy.js";
 import { assistantOpenAiTools } from "./assistantToolDeclarations.js";
 import { executeAssistantTool, type ToolRouterContext } from "./assistantToolRouter.js";
 
 const MAX_TOOL_ROUNDS = 6;
-const SAFE_SILENT_AUTO_TOOLS = new Set<string>([
-  "list_expenses",
-  "list_categories",
-  "list_stock_items",
-  "list_recipes",
-  "get_recipe",
-  "list_notes",
-  "create_stock_item",
-  "update_stock_status",
-  "create_note",
-  "create_family_link",
-  "create_recipe",
-  "import_recipe_from_url",
-]);
+const SAFE_SILENT_AUTO_TOOLS = new Set<string>([...ASSISTANT_AUTO_EXECUTE_TOOL_NAMES]);
 
 type PlannerNodeType = "goal" | "substep" | "tool";
 type PlannerNodeStatus = "planned" | "done" | "blocked";
@@ -150,26 +138,23 @@ export function registerPlannerToolExecution(
 export function buildPlannerTraceabilitySummary(planner: AssistantTaskPlanner): string {
   const toolNodes = planner.nodes.filter((node) => node.type === "tool");
   if (toolNodes.length === 0) {
-    return "Trazabilidad breve:\n- Objetivo: sin cambios de datos; solo respuesta directa.\n- Resultado: completado sin herramientas.";
+    return "Trazabilidad: sin herramientas | ok";
   }
 
   const blocked = toolNodes.filter((node) => node.status === "blocked");
-  const lines = toolNodes.map((node, index) => {
-    const mode = node.silent_auto_step ? "silent_auto_step" : "user_intervention";
-    const outcome = node.result ?? node.status;
-    return `- Paso ${index + 1}: ${node.label} (${mode}) -> ${outcome}`;
-  });
+  const chain = toolNodes
+    .map((node) => {
+      const mode = node.silent_auto_step ? "auto" : "manual";
+      const outcome = node.result ?? node.status;
+      return `${node.label}(${mode}:${outcome})`;
+    })
+    .join(" → ");
 
   const finalResult = blocked.length > 0
-    ? `bloqueado (${blocked.length} paso(s) requieren intervención del usuario)`
-    : "completado automáticamente";
+    ? `bloqueado:${blocked.length}`
+    : "ok";
 
-  return [
-    "Trazabilidad breve:",
-    `- Objetivo: ${planner.goal}`,
-    ...lines,
-    `- Resultado: ${finalResult}.`,
-  ].join("\n");
+  return `Trazabilidad: ${chain} | ${finalResult}`;
 }
 
 /**
@@ -184,14 +169,9 @@ export async function runAssistantOpenRouterWithTools(params: {
 }): Promise<string> {
   const systemContent = [
     buildSystemPromptText(),
-    "Tenés herramientas para leer y escribir datos del hogar (familia) del usuario.",
-    "Usá herramientas cuando haga falta información real; no inventes montos ni IDs.",
-    "No pidas aprobación previa para create_expense cuando la intención sea válida y tengas datos mínimos.",
-    "Si create_expense devuelve ok=true, respondé con confirmación de ejecución en pasado.",
-    "Para acciones marcadas como pendientes de confirmación (excepto create_expense), el servidor puede rechazarlas: explicá que deben confirmarse en la app.",
-    "Si la solicitud requiere flujo compuesto, ejecutá automáticamente pasos intermedios seguros sin pedir confirmación.",
-    "Pedí intervención del usuario solo cuando haya bloqueo real: permisos, conflicto o datos críticos faltantes.",
-    "Al finalizar, devolvé respuesta con trazabilidad breve de acciones y resultado.",
+    "Usá herramientas para datos reales; no inventes montos ni IDs.",
+    "Flujos compuestos: encadená herramientas auto-ejecutables sin preguntar entre paso y paso.",
+    "Tu texto final va solo al usuario (útil y breve); no repitas bloque de trazabilidad porque el sistema agrega un resumen al pie.",
   ].join(" ");
 
   const messages: ChatMessageWithTools[] = [

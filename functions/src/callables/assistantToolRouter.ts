@@ -477,9 +477,10 @@ async function handleCreateStockItem(
   const col = ctx.db.collection("families").doc(ctx.familyId).collection("stockItems");
   const dup = await col.where("name", "==", name).limit(1).get();
   if (!dup.empty) {
-    return rejected("Ya existe un ítem con ese nombre; confirmá en la app si querés crear otro.", {
-      existing_item_id: dup.docs[0].id,
-    });
+    return rejected(
+      "Ya existe un ítem con ese nombre; usá update_stock_status para cambiar el estado o elegí otro nombre.",
+      { existing_item_id: dup.docs[0].id },
+    );
   }
   const now = FieldValue.serverTimestamp();
   const ref = await col.add({
@@ -709,6 +710,7 @@ async function handleCreateRecipe(
   return { response: { ok: true, recipe_id: ref.id }, auditResult: "ok" };
 }
 
+/** Mantener alineado con ASSISTANT_AUTO_EXECUTE_TOOL_NAMES en assistantServerPolicy.ts */
 async function dispatchTool(
   ctx: ToolRouterContext,
   toolName: string,

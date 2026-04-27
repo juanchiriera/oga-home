@@ -56,13 +56,18 @@ describe("assistant tools helpers", () => {
     expect(out.result).toContain("blocked:");
   });
 
+  it("trazabilidad compacta sin herramientas", () => {
+    const planner = createAssistantTaskPlanner("Hola");
+    expect(buildPlannerTraceabilitySummary(planner)).toBe("Trazabilidad: sin herramientas | ok");
+  });
+
   it("planner marca silent_auto_step para herramientas seguras", () => {
     const planner = createAssistantTaskPlanner("Actualizar stock y responder");
     registerPlannerToolExecution(planner, "list_stock_items", { ok: true, items: [] });
     registerPlannerToolExecution(planner, "update_stock_status", { ok: true, item_id: "x" });
     const summary = buildPlannerTraceabilitySummary(planner);
-    expect(summary).toContain("silent_auto_step");
-    expect(summary).toContain("Resultado: completado automáticamente.");
+    expect(summary).toContain("(auto:");
+    expect(summary).toMatch(/\|\s*ok$/);
   });
 
   it("planner reporta resultado bloqueado cuando hay error", () => {
@@ -74,7 +79,7 @@ describe("assistant tools helpers", () => {
       reason: "requiere confirmación",
     });
     const summary = buildPlannerTraceabilitySummary(planner);
-    expect(summary).toContain("user_intervention");
-    expect(summary).toContain("Resultado: bloqueado");
+    expect(summary).toContain("(manual:");
+    expect(summary).toContain("bloqueado:1");
   });
 });
