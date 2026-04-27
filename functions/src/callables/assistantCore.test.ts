@@ -13,6 +13,8 @@ describe("buildSystemPromptText", () => {
     expect(text).toContain("create_expense");
     expect(text).toContain("list_expenses");
     expect(text).toContain("Sin confirmación extra en chat");
+    expect(text).toContain("Máximo 2 oraciones");
+    expect(text).toContain("no enumerés herramientas");
   });
 });
 
