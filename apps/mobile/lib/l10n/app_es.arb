@@ -1,0 +1,127 @@
+{
+  "@@locale": "es",
+  "appTitle": "CraftR",
+  "assistantTooltip": "Asistente",
+  "navHome": "Inicio",
+  "navStock": "Stock",
+  "navExpenses": "Gastos",
+  "navRecipes": "Recetas",
+  "navNotes": "Notas",
+  "commonCancel": "Cancelar",
+  "commonContinue": "Continuar",
+  "signInBrand": "Hearth & Habitat",
+  "signInWelcomeTitle": "Bienvenido a casa",
+  "signInWelcomeSubtitle": "Ingresá con tu cuenta para coordinar tu hogar.",
+  "signInAccessCardTitle": "Acceso al hogar",
+  "signInAccessCardDescription": "Sincronizá despensa, gastos y notas con quienes comparten el hogar.",
+  "signInContinueWithGoogle": "Continuar con Google",
+  "signInJoinExistingHomeTitle": "Unite a un hogar existente",
+  "signInJoinExistingHomeDescription": "¿Tenés un código de invitación? Canjealo acá.",
+  "signInRedeemCode": "Canjear código",
+  "signInFooterTagline": "Vida sostenible · Diseño consciente",
+  "inviteDialogTitle": "Código de invitación",
+  "inviteDialogHint": "Pegá el código o enlace",
+  "homeNoSession": "Sin sesión",
+  "homeProfileTooltip": "Perfil",
+  "homeSignOut": "Salir",
+  "homeGreetingMorning": "Buenos días",
+  "homeGreetingAfternoon": "Buenas tardes",
+  "homeGreetingEvening": "Buenas noches",
+  "homeGreetingLine": "{greeting}, {firstName}",
+  "@homeGreetingLine": {
+    "placeholders": {
+      "greeting": {
+        "type": "String"
+      },
+      "firstName": {
+        "type": "String"
+      }
+    }
+  },
+  "homeHeroSubtitleWithFamily": "Acá tenés un vistazo del hogar: despensa, gastos, notas y recetas en un solo lugar.",
+  "homeHeroSubtitleWithoutFamily": "Creá tu hogar para empezar a coordinar despensa, gastos y notas con quienes viven con vos.",
+  "homeFamilyFallbackName": "familia",
+  "homeLoadingSandboxPlans": "Cargando planes sandbox...",
+  "homeFamilySpaceTitle": "Tu espacio familiar",
+  "homeFamilySpaceDescription": "Creá un hogar para compartir despensa, gastos y notas.",
+  "homeCreateFamily": "Crear hogar",
+  "homeInvitations": "Invitaciones",
+  "homeActiveHousehold": "Hogar activo",
+  "homeMonthlyRecognizedExpense": "Gasto reconocido del mes",
+  "homeNoMonthlyMovements": "Sin movimientos del mes",
+  "homeScan": "Escanear",
+  "homeCategoriesWithMovement": "Categorías con movimiento",
+  "homeStockAlerts": "Alertas de despensa",
+  "homeNoStockAlerts": "No hay ítems marcados como \"no hay\" o \"queda poco\".",
+  "homeStockAlertsToReview": "{count} ítem{suffix} para revisar.",
+  "@homeStockAlertsToReview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "suffix": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAllGoodForNow": "Todo en orden por ahora.",
+  "homeUnnamedItem": "(sin nombre)",
+  "homeViewFullPantry": "Ver despensa completa",
+  "homeRecentNote": "Nota reciente",
+  "homeNoSharedNotesYet": "Todavía no hay notas compartidas.",
+  "homeUntitledNote": "(sin título)",
+  "homeFeaturedRecipe": "Receta destacada",
+  "homeMinutes": "{minutes} min",
+  "@homeMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "homeServings": "{servings} porciones",
+  "@homeServings": {
+    "placeholders": {
+      "servings": {
+        "type": "int"
+      }
+    }
+  },
+  "revenueCatTitle": "RevenueCat UI",
+  "revenueCatDescription": "Paywall y centro de cliente configurados en RevenueCat.",
+  "revenueCatPaywall": "Paywall",
+  "revenueCatCustomerCenter": "Centro de cliente",
+  "revenueCatPaywallError": "Paywall: {error}",
+  "@revenueCatPaywallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "revenueCatCustomerCenterError": "Centro de cliente: {error}",
+  "@revenueCatCustomerCenterError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "billingAvailableTitle": "Planes premium disponibles",
+  "billingAvailableMessage": "Encontramos {packageCount} paquete(s) en sandbox. Ya podés validar compras en entorno de pruebas.",
+  "@billingAvailableMessage": {
+    "placeholders": {
+      "packageCount": {
+        "type": "int"
+      }
+    }
+  },
+  "billingNotConfiguredTitle": "Beneficios premium no disponibles en este entorno",
+  "billingNotConfiguredMessage": "Estamos terminando la configuración de suscripciones. Podés seguir usando todas las funciones base del hogar.",
+  "billingEmptyTitle": "No encontramos planes disponibles por ahora",
+  "billingEmptyMessage": "No hay ofertas activas en este momento. Tu experiencia actual no cambia y podés intentar nuevamente en unos minutos.",
+  "billingErrorTitle": "No pudimos cargar los planes",
+  "billingErrorMessage": "Revisá tu conexión e intentá de nuevo. Mientras tanto, podés seguir gestionando tu hogar con normalidad.",
+  "billingRetry": "Reintentar",
+  "billingRefreshPlans": "Actualizar planes"
+}

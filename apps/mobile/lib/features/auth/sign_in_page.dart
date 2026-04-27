@@ -1,4 +1,5 @@
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/l10n/l10n.dart';
 import 'package:craftr_mobile/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -53,6 +54,7 @@ class _SignInPageState extends State<SignInPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
 
@@ -101,7 +103,9 @@ class _SignInPageState extends State<SignInPage> {
               DecoratedBox(
                 decoration: BoxDecoration(
                   color: scheme.surface,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(48)),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(48),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: scheme.shadow.withValues(alpha: 0.05),
@@ -116,10 +120,14 @@ class _SignInPageState extends State<SignInPage> {
                     padding: const EdgeInsets.fromLTRB(32, 14, 32, 22),
                     child: Row(
                       children: [
-                        Icon(Icons.home_rounded, color: scheme.primary, size: 32),
+                        Icon(
+                          Icons.home_rounded,
+                          color: scheme.primary,
+                          size: 32,
+                        ),
                         const SizedBox(width: 12),
                         Text(
-                          'Hearth & Habitat',
+                          l10n.signInBrand,
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: scheme.primary,
@@ -141,7 +149,7 @@ class _SignInPageState extends State<SignInPage> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Bienvenido a casa',
+                            l10n.signInWelcomeTitle,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.headlineLarge?.copyWith(
                               fontWeight: FontWeight.w800,
@@ -152,7 +160,7 @@ class _SignInPageState extends State<SignInPage> {
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Ingresá con tu cuenta para coordinar tu hogar.',
+                            l10n.signInWelcomeSubtitle,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.bodyLarge?.copyWith(
                               color: scheme.secondary,
@@ -173,7 +181,8 @@ class _SignInPageState extends State<SignInPage> {
                                     height: 160,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: scheme.secondaryContainer.withValues(alpha: 0.2),
+                                      color: scheme.secondaryContainer
+                                          .withValues(alpha: 0.2),
                                     ),
                                   ),
                                 ),
@@ -182,31 +191,38 @@ class _SignInPageState extends State<SignInPage> {
                                 color: scheme.surfaceContainerLow,
                                 padding: const EdgeInsets.all(32),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Text(
-                                      'Acceso al hogar',
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                        color: scheme.primary,
-                                      ),
+                                      l10n.signInAccessCardTitle,
+                                      style: theme.textTheme.titleMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w700,
+                                            color: scheme.primary,
+                                          ),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Sincronizá despensa, gastos y notas con quienes comparten el hogar.',
-                                      style: theme.textTheme.bodySmall?.copyWith(
-                                        color: scheme.onSurfaceVariant,
-                                        height: 1.5,
-                                      ),
+                                      l10n.signInAccessCardDescription,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: scheme.onSurfaceVariant,
+                                            height: 1.5,
+                                          ),
                                     ),
                                     const SizedBox(height: 28),
                                     FilledButton(
                                       onPressed: _busy ? null : _onGoogle,
                                       style: FilledButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 18),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 18,
+                                        ),
                                         shape: const StadiumBorder(),
                                         elevation: 4,
-                                        shadowColor: scheme.primary.withValues(alpha: 0.25),
+                                        shadowColor: scheme.primary.withValues(
+                                          alpha: 0.25,
+                                        ),
                                       ),
                                       child: _busy
                                           ? SizedBox(
@@ -218,20 +234,20 @@ class _SignInPageState extends State<SignInPage> {
                                               ),
                                             )
                                           : Text(
-                                              'Continuar con Google',
-                                              style: theme.textTheme.titleSmall?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                                color: scheme.onPrimary,
-                                              ),
+                                              l10n.signInContinueWithGoogle,
+                                              style: theme.textTheme.titleSmall
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w700,
+                                                    color: scheme.onPrimary,
+                                                  ),
                                             ),
                                     ),
                                     if (_error != null) ...[
                                       const SizedBox(height: 16),
                                       Text(
                                         _error!,
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: scheme.error,
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(color: scheme.error),
                                       ),
                                     ],
                                   ],
@@ -242,10 +258,14 @@ class _SignInPageState extends State<SignInPage> {
                           const SizedBox(height: 28),
                           DecoratedBox(
                             decoration: BoxDecoration(
-                              color: scheme.tertiaryContainer.withValues(alpha: 0.1),
+                              color: scheme.tertiaryContainer.withValues(
+                                alpha: 0.1,
+                              ),
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
-                                color: scheme.tertiaryContainer.withValues(alpha: 0.28),
+                                color: scheme.tertiaryContainer.withValues(
+                                  alpha: 0.28,
+                                ),
                                 width: 2,
                                 strokeAlign: BorderSide.strokeAlignInside,
                               ),
@@ -260,7 +280,9 @@ class _SignInPageState extends State<SignInPage> {
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: scheme.shadow.withValues(alpha: 0.12),
+                                          color: scheme.shadow.withValues(
+                                            alpha: 0.12,
+                                          ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
                                         ),
@@ -277,16 +299,17 @@ class _SignInPageState extends State<SignInPage> {
                                   ),
                                   const SizedBox(height: 14),
                                   Text(
-                                    'Unite a un hogar existente',
+                                    l10n.signInJoinExistingHomeTitle,
                                     textAlign: TextAlign.center,
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: scheme.tertiary,
-                                    ),
+                                    style: theme.textTheme.titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: scheme.tertiary,
+                                        ),
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    '¿Tenés un código de invitación? Canjealo acá.',
+                                    l10n.signInJoinExistingHomeDescription,
                                     textAlign: TextAlign.center,
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: scheme.onSurfaceVariant,
@@ -305,7 +328,7 @@ class _SignInPageState extends State<SignInPage> {
                                       ),
                                       shape: const StadiumBorder(),
                                     ),
-                                    child: const Text('Canjear código'),
+                                    child: Text(l10n.signInRedeemCode),
                                   ),
                                 ],
                               ),
@@ -315,7 +338,10 @@ class _SignInPageState extends State<SignInPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _FooterGlyph(icon: Icons.spa_rounded, scheme: scheme),
+                              _FooterGlyph(
+                                icon: Icons.spa_rounded,
+                                scheme: scheme,
+                              ),
                               const SizedBox(width: 16),
                               _FooterGlyph(
                                 icon: Icons.energy_savings_leaf_rounded,
@@ -330,7 +356,7 @@ class _SignInPageState extends State<SignInPage> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'Vida sostenible · Diseño consciente',
+                            l10n.signInFooterTagline,
                             textAlign: TextAlign.center,
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: scheme.outline,
@@ -390,26 +416,25 @@ class _InviteTokenDialogState extends State<_InviteTokenDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return AlertDialog(
-      title: const Text('Código de invitación'),
+      title: Text(l10n.inviteDialogTitle),
       content: TextField(
         controller: _controller,
         autofocus: true,
-        decoration: const InputDecoration(
-          hintText: 'Pegá el código o enlace',
-        ),
+        decoration: InputDecoration(hintText: l10n.inviteDialogHint),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+          child: Text(l10n.commonCancel),
         ),
         FilledButton(
           onPressed: () {
             final t = _controller.text.trim();
             Navigator.pop(context, t.isEmpty ? null : t);
           },
-          child: const Text('Continuar'),
+          child: Text(l10n.commonContinue),
         ),
       ],
     );
