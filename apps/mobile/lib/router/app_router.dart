@@ -3,6 +3,7 @@ import 'package:craftr_mobile/features/family/create_family_page.dart';
 import 'package:craftr_mobile/features/invite/invite_accept_page.dart';
 import 'package:craftr_mobile/features/invite/invites_list_page.dart';
 import 'package:craftr_mobile/features/profile/profile_page.dart';
+import 'package:craftr_mobile/features/recipes/recipes_page.dart';
 import 'package:craftr_mobile/features/shell/main_shell.dart';
 import 'package:craftr_mobile/router/deep_link_contract.dart';
 import 'package:craftr_mobile/router/go_router_refresh.dart';
@@ -59,6 +60,15 @@ GoRouter buildAppRouter() {
             state.uri.queryParameters['tab'],
           ),
         ),
+        routes: [
+          GoRoute(
+            path: 'recipes/:recipeId',
+            builder: (context, state) => RecipePreviewPage(
+              recipeId: state.pathParameters['recipeId'] ?? '',
+              familyId: state.uri.queryParameters['familyId'],
+            ),
+          ),
+        ],
       ),
       GoRoute(
         path: '/create-family',
