@@ -158,9 +158,403 @@ class _ExpensesPageState extends State<ExpensesPage> {
           bottom: 72 + MediaQuery.paddingOf(context).bottom,
         ),
         child: FloatingActionButton.extended(
-          onPressed: () => _upsertExpense(context: context),
+          onPressed: () => _pickExpenseCreationFlow(context),
           icon: const Icon(Icons.add_rounded),
           label: const Text('Agregar gasto'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickExpenseCreationFlow(BuildContext context) async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: const Text('Gasto puntual'),
+              onTap: () => Navigator.pop(ctx, 'single'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.calendar_view_month_outlined),
+              title: const Text('Plan en cuotas'),
+              subtitle: const Text(
+                'Se genera un gasto por mes hasta completar las cuotas',
+              ),
+              onTap: () => Navigator.pop(ctx, 'installment'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!context.mounted) {
+      return;
+    }
+    if (choice == 'installment') {
+      await _createInstallmentPlan(context: context);
+    } else if (choice == 'single') {
+      await _upsertExpense(context: context);
+    }
+  }
+
+  Future<void> _createInstallmentPlan({required BuildContext context}) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+
+    var familyId = '';
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    familyId = userDoc.data()?['activeFamilyId'] as String? ?? '';
+    if (familyId.isEmpty || !context.mounted) {
+      return;
+    }
+
+    final pmCol = FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('paymentMethods');
+    final familyDoc = await FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .get();
+    final baseCurrency = normalizeCurrency(
+      familyDoc.data()?['baseCurrency'] as String?,
+      fallback: 'ARS',
+    );
+    var methodsSnap = await pmCol.orderBy('name').get();
+    while (methodsSnap.docs.isEmpty) {
+      if (!context.mounted) {
+        return;
+      }
+      final add = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Métodos de pago'),
+          content: const Text(
+            'Para un plan en cuotas necesitás al menos un método de pago.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Agregar método'),
+            ),
+          ],
+        ),
+      );
+      if (add != true) {
+        return;
+      }
+      if (!context.mounted) {
+        return;
+      }
+      await _upsertPaymentMethod(
+        context: context,
+        familyId: familyId,
+        methodId: null,
+      );
+      if (!context.mounted) {
+        return;
+      }
+      methodsSnap = await pmCol.orderBy('name').get();
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+
+    final installmentsController = TextEditingController(text: '12');
+    final amountController = TextEditingController();
+    final merchantController = TextEditingController();
+    final noteController = TextEditingController();
+    var useTotalAmount = false;
+    var selectedCategory = kExpenseCategories.first.key;
+    var generationDay = 'month_start';
+    var firstMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    final pmIds = methodsSnap.docs.map((d) => d.id).toSet();
+    var selectedPaymentMethodId = _defaultPaymentMethodId(methodsSnap.docs)!;
+
+    double round2(double x) => (x * 100).round() / 100;
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          return AlertDialog(
+            title: const Text('Plan en cuotas'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'El sistema cargará un gasto por mes en la fecha de cargo '
+                    '(inicio o fin de mes). Los totales del mes usan esa fecha.',
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: installmentsController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      signed: false,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Cantidad de cuotas *',
+                      hintText: 'Ej. 12',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<bool>(
+                    segments: const [
+                      ButtonSegment(
+                        value: false,
+                        label: Text('Monto por cuota'),
+                      ),
+                      ButtonSegment(value: true, label: Text('Monto total')),
+                    ],
+                    selected: {useTotalAmount},
+                    onSelectionChanged: (Set<bool> s) {
+                      if (s.isEmpty) {
+                        return;
+                      }
+                      setLocal(() => useTotalAmount = s.first);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: useTotalAmount
+                          ? 'Monto total *'
+                          : 'Monto por cuota *',
+                      helperText: 'Moneda del hogar: $baseCurrency',
+                    ),
+                  ),
+                  if (useTotalAmount)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'El monto por cuota se reparte en partes iguales '
+                        'redondeando a 2 decimales; puede haber diferencia de '
+                        'centavos con el total.',
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: merchantController,
+                    decoration: const InputDecoration(
+                      labelText: 'Comercio (opcional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 2,
+                    decoration: const InputDecoration(
+                      labelText: 'Nota (opcional)',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('inst-cat-$selectedCategory'),
+                    initialValue: selectedCategory,
+                    decoration: const InputDecoration(labelText: 'Categoría *'),
+                    items: kExpenseCategories
+                        .map(
+                          (c) => DropdownMenuItem<String>(
+                            value: c.key,
+                            child: Text(c.label),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) {
+                      if (v != null) {
+                        setLocal(() => selectedCategory = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('inst-pm-$selectedPaymentMethodId'),
+                    initialValue: selectedPaymentMethodId,
+                    decoration: const InputDecoration(
+                      labelText: 'Método de pago *',
+                    ),
+                    items: methodsSnap.docs.map((d) {
+                      final m = d.data();
+                      final t =
+                          m['type'] as String? ?? PaymentMethodTypes.other;
+                      final n = m['name'] as String? ?? '—';
+                      return DropdownMenuItem<String>(
+                        value: d.id,
+                        child: Text('$n · ${PaymentMethodTypes.label(t)}'),
+                      );
+                    }).toList(),
+                    onChanged: (v) {
+                      if (v != null && pmIds.contains(v)) {
+                        setLocal(() => selectedPaymentMethodId = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('inst-gen-$generationDay'),
+                    initialValue: generationDay,
+                    decoration: const InputDecoration(
+                      labelText: 'Día de cargo cada mes *',
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'month_start',
+                        child: Text('Primer día hábil del mes (día 1)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'month_end',
+                        child: Text('Último día del mes'),
+                      ),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) {
+                        setLocal(() => generationDay = v);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Primer mes con cuota *'),
+                    subtitle: Text(_formatDate(firstMonth)),
+                    trailing: const Icon(Icons.calendar_today_outlined),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: firstMonth,
+                        firstDate: DateTime(DateTime.now().year, DateTime.now().month, 1),
+                        lastDate: DateTime(2100),
+                        helpText: 'Mes del primer cargo programado',
+                      );
+                      if (picked != null) {
+                        setLocal(
+                          () => firstMonth = DateTime(
+                            picked.year,
+                            picked.month,
+                            1,
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Crear plan'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (ok != true || !context.mounted) {
+      return;
+    }
+
+    final nRaw = int.tryParse(installmentsController.text.trim());
+    if (nRaw == null || nRaw < 2 || nRaw > 240) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Indicá entre 2 y 240 cuotas.'),
+        ),
+      );
+      return;
+    }
+    final n = nRaw;
+
+    final rawAmount = double.tryParse(
+      amountController.text.replaceAll(',', '.'),
+    );
+    if (rawAmount == null || rawAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ingresá un monto válido mayor a 0.')),
+      );
+      return;
+    }
+
+    final perCuota = useTotalAmount ? round2(rawAmount / n) : round2(rawAmount);
+    if (perCuota <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El monto por cuota no es válido.')),
+      );
+      return;
+    }
+
+    final startPeriodKey =
+        '${firstMonth.year.toString().padLeft(4, '0')}-'
+        '${firstMonth.month.toString().padLeft(2, '0')}';
+
+    final now = FieldValue.serverTimestamp();
+    final payload = <String, dynamic>{
+      'active': true,
+      'amount': perCuota,
+      'categoryKey': selectedCategory,
+      'type': 'installment',
+      'generationDay': generationDay,
+      'totalInstallments': n,
+      'currentInstallment': 1,
+      'startPeriodKey': startPeriodKey,
+      'createdAt': now,
+      'updatedAt': now,
+      'createdBy': uid,
+      'paymentMethodId': selectedPaymentMethodId,
+    };
+    final mer = merchantController.text.trim();
+    if (mer.isNotEmpty) {
+      payload['merchant'] = mer;
+    }
+    final nt = noteController.text.trim();
+    if (nt.isNotEmpty) {
+      payload['note'] = nt;
+    }
+
+    await FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('recurringTemplates')
+        .add(payload);
+
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Plan creado. Los gastos se generan automáticamente en cada mes.',
         ),
       ),
     );
@@ -1458,6 +1852,171 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: familyRef
+                          .collection('recurringTemplates')
+                          .where('type', isEqualTo: 'installment')
+                          .limit(24)
+                          .snapshots(),
+                      builder: (context, tplSnap) {
+                        if (tplSnap.hasError) {
+                          return const SizedBox.shrink();
+                        }
+                        final tplDocs = tplSnap.data?.docs ?? [];
+                        if (tplDocs.isEmpty) {
+                          return const SizedBox.shrink();
+                        }
+                        final uid = FirebaseAuth.instance.currentUser?.uid;
+                        return CozyCard(
+                          color: scheme.surfaceContainer,
+                          padding: const EdgeInsets.all(22),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Planes en cuotas',
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w800,
+                                      color: scheme.primary,
+                                    ),
+                              ),
+                              const SizedBox(height: 10),
+                              ...tplDocs.map((doc) {
+                                final t = doc.data();
+                                final active = t['active'] as bool? ?? false;
+                                final amount =
+                                    (t['amount'] as num?)?.toDouble() ?? 0;
+                                final total = t['totalInstallments'] as int?;
+                                final cur = t['currentInstallment'] as int?;
+                                final gen =
+                                    t['generationDay'] as String? ?? '';
+                                final merchant = t['merchant'] as String?;
+                                final note = t['note'] as String?;
+                                final createdBy =
+                                    t['createdBy'] as String? ?? '';
+                                final title = (merchant != null &&
+                                        merchant.trim().isNotEmpty)
+                                    ? merchant.trim()
+                                    : (note != null && note.trim().isNotEmpty
+                                          ? note.trim()
+                                          : 'Plan en cuotas');
+                                final cargo = gen == 'month_end'
+                                    ? 'Fin de mes'
+                                    : 'Día 1';
+                                final progress = (total != null && cur != null)
+                                    ? 'Cuota $cur de $total'
+                                    : '';
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: Material(
+                                    color: scheme.surfaceContainerHigh,
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: ListTile(
+                                      title: Text(
+                                        title,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      subtitle: Text(
+                                        [
+                                          if (progress.isNotEmpty) progress,
+                                          '${formatMoney(amount, baseCurrency)} · $cargo',
+                                          if (!active) 'Inactivo',
+                                        ].join('\n'),
+                                      ),
+                                      trailing: active &&
+                                              uid != null &&
+                                              uid == createdBy
+                                          ? TextButton(
+                                              onPressed: () async {
+                                                final go =
+                                                    await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (ctx) =>
+                                                      AlertDialog(
+                                                    title: const Text(
+                                                      'Cancelar plan',
+                                                    ),
+                                                    content: const Text(
+                                                      'No se borran los gastos ya generados; '
+                                                      'solo se detienen las cuotas futuras.',
+                                                    ),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                          ctx,
+                                                          false,
+                                                        ),
+                                                        child: const Text(
+                                                          'Volver',
+                                                        ),
+                                                      ),
+                                                      FilledButton(
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                          ctx,
+                                                          true,
+                                                        ),
+                                                        child: const Text(
+                                                          'Detener plan',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                                if (go != true ||
+                                                    !context.mounted) {
+                                                  return;
+                                                }
+                                                try {
+                                                  await doc.reference.update({
+                                                    'active': false,
+                                                    'updatedAt':
+                                                        FieldValue
+                                                            .serverTimestamp(),
+                                                  });
+                                                  if (!context.mounted) {
+                                                    return;
+                                                  }
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Plan detenido.',
+                                                      ),
+                                                    ),
+                                                  );
+                                                } catch (_) {
+                                                  if (!context.mounted) {
+                                                    return;
+                                                  }
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'No se pudo actualizar '
+                                                        '(¿fuiste quien creó el plan?).',
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              },
+                                              child: const Text('Detener'),
+                                            )
+                                          : null,
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 20),
                     Text(
                       'Movimientos recientes',
@@ -1535,7 +2094,13 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                               ..write(
                                 '${category.label} • ${_formatDate(occurredAt ?? DateTime.now())}',
                               )
-                              ..write(' • ${formatMoney(amount, currency)}')
+                              ..write(' • ${formatMoney(amount, currency)}');
+                            final iIdx = data['installmentIndex'] as int?;
+                            final iTot = data['installmentTotal'] as int?;
+                            if (iIdx != null && iTot != null) {
+                              sub.write(' · Cuota $iIdx/$iTot');
+                            }
+                            sub
                               ..write(pending ? ' • Pendiente tarjeta' : '')
                               ..write(pmLine);
                             if (note != null && note.trim().isNotEmpty) {

@@ -214,12 +214,19 @@ service cloud.firestore {
             || request.resource.data.paymentMethodId is string)
           && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
           && (!('note' in request.resource.data) || request.resource.data.note is string)
-          && (!('totalInstallments' in request.resource.data)
-            || (request.resource.data.totalInstallments is int
-              && request.resource.data.totalInstallments >= 1))
-          && (!('currentInstallment' in request.resource.data)
-            || (request.resource.data.currentInstallment is int
-              && request.resource.data.currentInstallment >= 1))
+          && (request.resource.data.type != 'installment'
+            || (request.resource.data.keys().hasAll(['totalInstallments', 'currentInstallment'])
+              && request.resource.data.totalInstallments is int
+              && request.resource.data.totalInstallments >= 1
+              && request.resource.data.currentInstallment is int
+              && request.resource.data.currentInstallment == 1))
+          && (request.resource.data.type == 'installment'
+            || !('totalInstallments' in request.resource.data))
+          && (request.resource.data.type == 'installment'
+            || !('currentInstallment' in request.resource.data))
+          && (!('startPeriodKey' in request.resource.data)
+            || (request.resource.data.startPeriodKey is string
+              && request.resource.data.startPeriodKey.matches('^\\d{4}-\\d{2}$')))
           && (!('lastGeneratedPeriod' in request.resource.data)
             || request.resource.data.lastGeneratedPeriod is string);
         allow update: if isFamilyMember(familyId)
@@ -236,12 +243,21 @@ service cloud.firestore {
             || request.resource.data.paymentMethodId is string)
           && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
           && (!('note' in request.resource.data) || request.resource.data.note is string)
-          && (!('totalInstallments' in request.resource.data)
-            || (request.resource.data.totalInstallments is int
-              && request.resource.data.totalInstallments >= 1))
-          && (!('currentInstallment' in request.resource.data)
-            || (request.resource.data.currentInstallment is int
-              && request.resource.data.currentInstallment >= 1))
+          && (request.resource.data.type != 'installment'
+            || (request.resource.data.keys().hasAll(['totalInstallments', 'currentInstallment'])
+              && request.resource.data.totalInstallments is int
+              && request.resource.data.totalInstallments >= 1
+              && request.resource.data.currentInstallment is int
+              && request.resource.data.currentInstallment >= 1
+              && request.resource.data.currentInstallment
+                <= request.resource.data.totalInstallments))
+          && (request.resource.data.type == 'installment'
+            || !('totalInstallments' in request.resource.data))
+          && (request.resource.data.type == 'installment'
+            || !('currentInstallment' in request.resource.data))
+          && (!('startPeriodKey' in request.resource.data)
+            || (request.resource.data.startPeriodKey is string
+              && request.resource.data.startPeriodKey.matches('^\\d{4}-\\d{2}$')))
           && (!('lastGeneratedPeriod' in request.resource.data)
             || request.resource.data.lastGeneratedPeriod is string);
         allow delete: if isFamilyMember(familyId);
