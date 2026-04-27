@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expense_import_flow.dart';
 import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
+import 'package:craftr_mobile/features/expenses/expense_month_window.dart';
 import 'package:craftr_mobile/features/expenses/expense_money.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -343,25 +346,27 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                   amountController.text.replaceAll(',', '.'),
                                 );
                                 final callable = craftrFunctions()
-                                    .httpsCallable('suggestManualExpenseCategory');
-                                final res =
-                                    await callable.call<Map<String, dynamic>>(
-                                  <String, dynamic>{
-                                    'familyId': familyId,
-                                    'merchant': merchantController.text.trim(),
-                                    'note': noteController.text.trim(),
-                                    if (amount != null && amount > 0)
-                                      'amount': amount,
-                                  },
-                                );
+                                    .httpsCallable(
+                                      'suggestManualExpenseCategory',
+                                    );
+                                final res = await callable
+                                    .call<Map<String, dynamic>>(
+                                      <String, dynamic>{
+                                        'familyId': familyId,
+                                        'merchant': merchantController.text
+                                            .trim(),
+                                        'note': noteController.text.trim(),
+                                        if (amount != null && amount > 0)
+                                          'amount': amount,
+                                      },
+                                    );
                                 final data = res.data;
                                 if (!context.mounted) {
                                   return;
                                 }
                                 final ck = data['categoryKey'] as String?;
                                 final suggestedName =
-                                    data['suggestedNewCategoryName']
-                                        as String?;
+                                    data['suggestedNewCategoryName'] as String?;
                                 if (ck != null && ck.isNotEmpty) {
                                   setLocal(() => selectedCategory = ck);
                                   String? label;
@@ -400,12 +405,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                         TextButton(
                                           onPressed: () =>
                                               Navigator.pop(dCtx, false),
-                                          child: const Text('Elegir en listado'),
+                                          child: const Text(
+                                            'Elegir en listado',
+                                          ),
                                         ),
                                         FilledButton(
                                           onPressed: () =>
                                               Navigator.pop(dCtx, true),
-                                          child: const Text('Usar Otros + nota'),
+                                          child: const Text(
+                                            'Usar Otros + nota',
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -417,8 +426,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                                     setLocal(() {
                                       selectedCategory = 'other';
                                       final n = noteController.text.trim();
-                                      final add =
-                                          'Sugerido: $suggestedName';
+                                      final add = 'Sugerido: $suggestedName';
                                       noteController.text = n.isEmpty
                                           ? add
                                           : '$n — $add';
@@ -465,9 +473,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.auto_awesome_outlined, size: 18),
                       label: Text(
@@ -1024,19 +1030,54 @@ class _ExpensesPageState extends State<ExpensesPage> {
   }
 }
 
-class _ExpensesContent extends StatelessWidget {
+class _ExpensesContent extends StatefulWidget {
   const _ExpensesContent({required this.familyId});
 
   final String familyId;
 
   @override
+  State<_ExpensesContent> createState() => _ExpensesContentState();
+}
+
+class _ExpensesContentState extends State<_ExpensesContent> {
+  late DateTime _now;
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    // Keep the month window in sync when month/timezone changes.
+    _ticker = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _now = DateTime.now();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final familyId = widget.familyId;
+    final monthWindow = expenseMonthWindowForLocal(_now);
+    final monthStartTs = Timestamp.fromDate(monthWindow.startInclusive);
+    final monthEndTs = Timestamp.fromDate(monthWindow.endExclusive);
     final familyRef = FirebaseFirestore.instance
         .collection('families')
         .doc(familyId);
     final pmQuery = familyRef.collection('paymentMethods').orderBy('name');
     final expensesQuery = familyRef
         .collection('expenses')
+        .where('occurredAt', isGreaterThanOrEqualTo: monthStartTs)
+        .where('occurredAt', isLessThan: monthEndTs)
         .orderBy('occurredAt', descending: true);
 
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -1080,16 +1121,16 @@ class _ExpensesContent extends StatelessWidget {
                 }
 
                 final docs = snap.data?.docs ?? [];
+                final monthlyDocs = docs.where((doc) {
+                  final occurredAt = (doc.data()['occurredAt'] as Timestamp?)
+                      ?.toDate();
+                  return monthWindow.contains(occurredAt);
+                }).toList();
 
-                final monthStart = DateTime(
-                  DateTime.now().year,
-                  DateTime.now().month,
-                  1,
-                );
                 final monthlyEffectiveByCurrency = <String, double>{};
                 final monthlyPendingByCurrency = <String, double>{};
                 final byCategoryCurrency = <String, Map<String, double>>{};
-                for (final doc in docs) {
+                for (final doc in monthlyDocs) {
                   final data = doc.data();
                   if ((data['status'] as String?) ==
                       ExpenseLifecycle.cancelled) {
@@ -1109,15 +1150,13 @@ class _ExpensesContent extends StatelessWidget {
                   );
                   categoryTotals[currency] =
                       (categoryTotals[currency] ?? 0) + amount;
-                  if (occurredAt != null && !occurredAt.isBefore(monthStart)) {
-                    if (ExpenseLifecycle.countsTowardEffectiveMonthly(data)) {
-                      monthlyEffectiveByCurrency[currency] =
-                          (monthlyEffectiveByCurrency[currency] ?? 0) + amount;
-                    } else if ((data['status'] as String?) ==
-                        ExpenseLifecycle.pendingCardCycle) {
-                      monthlyPendingByCurrency[currency] =
-                          (monthlyPendingByCurrency[currency] ?? 0) + amount;
-                    }
+                  if (ExpenseLifecycle.countsTowardEffectiveMonthly(data)) {
+                    monthlyEffectiveByCurrency[currency] =
+                        (monthlyEffectiveByCurrency[currency] ?? 0) + amount;
+                  } else if ((data['status'] as String?) ==
+                      ExpenseLifecycle.pendingCardCycle) {
+                    monthlyPendingByCurrency[currency] =
+                        (monthlyPendingByCurrency[currency] ?? 0) + amount;
                   }
                 }
 
@@ -1449,7 +1488,7 @@ class _ExpensesContent extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    if (docs.isEmpty) ...[
+                    if (monthlyDocs.isEmpty) ...[
                       Icon(
                         Icons.payments_outlined,
                         size: 40,
@@ -1457,18 +1496,18 @@ class _ExpensesContent extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Aún no hay movimientos',
+                        'Aún no hay gastos este mes',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Usá «Agregar gasto» para registrar el primero.',
+                        'Usá «Agregar gasto» para registrar el primero del mes.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
                       ),
                     ] else
-                      ...docs
+                      ...monthlyDocs
                           .where(
                             (d) =>
                                 (d.data()['status'] as String?) !=
