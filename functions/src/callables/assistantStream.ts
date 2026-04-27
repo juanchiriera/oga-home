@@ -90,6 +90,8 @@ export const familyAssistantChatStream = onRequest(
       message?: string;
       text?: string;
       clientRequestId?: string;
+      /** IDs del cliente (optimistic UI) para deduplicar contra Firestore */
+      clientMessageIds?: unknown;
       batchMeta?: {
         buffer_size?: number | string;
         delay_ms?: number | string;
@@ -131,6 +133,12 @@ export const familyAssistantChatStream = onRequest(
       String(body.threadCreateCause).trim() !== ""
         ? String(body.threadCreateCause).trim()
         : "implicit_missing_thread_id";
+
+    const clientMessageIds = Array.isArray(body.clientMessageIds)
+      ? body.clientMessageIds
+          .map((x) => String(x ?? "").trim())
+          .filter((s) => s.length > 0)
+      : [];
 
     if (!familyId) {
       sendJsonError(res, 400, "familyId es obligatorio");
@@ -203,12 +211,17 @@ export const familyAssistantChatStream = onRequest(
 
     const now = admin.firestore.FieldValue.serverTimestamp();
     const userMsg = messagesCol.doc();
-    const userWrite = {
+    const userWrite: Record<string, unknown> = {
       role: "user" as const,
       text,
       createdAt: now,
       createdBy: uid,
     };
+    if (clientMessageIds.length === 1) {
+      userWrite.clientMessageId = clientMessageIds[0];
+    } else if (clientMessageIds.length > 1) {
+      userWrite.clientMessageIds = clientMessageIds;
+    }
     let conversationTitle = "";
     if (isNewThread) {
       const semanticTitle = await generateSemanticConversationTitle({
