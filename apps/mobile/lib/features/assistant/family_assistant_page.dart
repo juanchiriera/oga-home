@@ -306,7 +306,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _streamBuffer = null;
     });
     _controller.clear();
-    _messageBuffer.queue(localMessage.text);
+    _messageBuffer.queue(
+      localMessage.text,
+      clientMessageId: localMessage.clientMessageId,
+    );
   }
 
   Future<void> _sendBufferedBatch(BufferedAssistantBatch batch) async {
