@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/notes/family_links_page.dart';
+import 'package:craftr_mobile/features/notes/shared_note_editor_page.dart';
 import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
 import 'package:craftr_mobile/features/notes/widgets/shared_note_preview_sheet.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -217,89 +218,19 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
 
     final currentTitle = noteDoc?.data()['title'] as String? ?? '';
     final currentContent = noteDoc?.data()['content'] as String? ?? '';
-    final titleController = TextEditingController(text: currentTitle);
-    final contentController = TextEditingController(text: currentContent);
-    try {
-      final shouldSave = await showModalBottomSheet<bool>(
-        context: context,
-        isScrollControlled: true,
-        builder: (ctx) {
-          final inset = MediaQuery.of(ctx).viewInsets.bottom;
-          return Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + inset),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  noteDoc == null ? 'Nueva nota' : 'Editar nota',
-                  style: Theme.of(ctx).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: titleController,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Título'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: contentController,
-                  minLines: 5,
-                  maxLines: 8,
-                  decoration: const InputDecoration(
-                    labelText: 'Contenido',
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Cancelar'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton.icon(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      icon: const Icon(Icons.save_outlined),
-                      label: const Text('Guardar'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          );
-        },
-      );
-
-      final title = titleController.text.trim();
-      final content = contentController.text;
-      if (shouldSave != true ||
-          title.isEmpty ||
-          content.trim().isEmpty ||
-          !context.mounted) {
-        return;
-      }
-
-      final payload = {
-        'title': title,
-        'content': content,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-      if (noteDoc == null) {
-        await FirebaseFirestore.instance
-            .collection('families')
-            .doc(familyId)
-            .collection('sharedNotes')
-            .add({...payload, 'createdAt': FieldValue.serverTimestamp()});
-      } else {
-        await noteDoc.reference.update(payload);
-      }
-    } finally {
-      titleController.dispose();
-      contentController.dispose();
+    if (!context.mounted) {
+      return;
     }
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (ctx) => SharedNoteEditorPage(
+          familyId: familyId,
+          noteRef: noteDoc?.reference,
+          initialTitle: currentTitle,
+          initialContent: currentContent,
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteNote(
