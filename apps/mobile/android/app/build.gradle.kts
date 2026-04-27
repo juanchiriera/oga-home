@@ -36,17 +36,17 @@ android {
             dimension = "environment"
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
-            resValue("string", "app_name", "CraftR dev")
+            resValue("string", "app_name", "Oga, the housekeeper (dev)")
         }
         create("stg") {
             dimension = "environment"
             applicationIdSuffix = ".stg"
             versionNameSuffix = "-stg"
-            resValue("string", "app_name", "CraftR stg")
+            resValue("string", "app_name", "Oga, the housekeeper (stg)")
         }
         create("prod") {
             dimension = "environment"
-            resValue("string", "app_name", "CraftR")
+            resValue("string", "app_name", "Oga, the housekeeper")
         }
     }
 

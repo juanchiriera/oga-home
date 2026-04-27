@@ -1,4 +1,4 @@
-# famil-ia / CraftR
+# famil-ia / Oga - housekeeper
 
 Monorepo: **Firebase** (`functions/`, reglas) + **Flutter** (`apps/mobile`).
 

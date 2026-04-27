@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sanctuary - Home</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400..800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                "colors": {
+                    "primary": "#9cd0cd",
+                    "on-primary": "#003736",
+                    "primary-container": "#0f4746",
+                    "on-primary-container": "#b8ece9",
+                    "secondary": "#a1d2aa",
+                    "on-secondary": "#05391c",
+                    "secondary-container": "#225031",
+                    "on-secondary-container": "#bcefc5",
+                    "tertiary": "#e8c08c",
+                    "on-tertiary": "#442b00",
+                    "tertiary-container": "#5d4219",
+                    "on-tertiary-container": "#ffddb3",
+                    "error": "#ffb4ab",
+                    "on-error": "#690005",
+                    "error-container": "#93000a",
+                    "on-error-container": "#ffdad6",
+                    "background": "#1b1d0e",
+                    "on-background": "#e4e4cc",
+                    "surface": "#12140a",
+                    "on-surface": "#e4e4cc",
+                    "surface-variant": "#404848",
+                    "on-surface-variant": "#bfc8c7",
+                    "outline": "#899292",
+                    "inverse-on-surface": "#1b1d0e",
+                    "inverse-surface": "#e4e4cc",
+                    "inverse-primary": "#0f4746",
+                    "surface-container-lowest": "#0d0f05",
+                    "surface-container-low": "#1b1d0e",
+                    "surface-container": "#1f2112",
+                    "surface-container-high": "#292b1c",
+                    "surface-container-highest": "#343626"
+                },
+                "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                },
+                "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                }
+              },
+            },
+          }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen relative overflow-x-hidden">
+<!-- TopAppBar -->
+<nav class="fixed top-0 w-full z-50 flex items-center justify-between px-6 py-4 bg-background/80 backdrop-blur-xl border-b border-surface-variant/30">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-high flex-shrink-0 shadow-inner">
+<img alt="User profile photo" class="w-full h-full object-cover grayscale-[20%] contrast-[110%]" data-alt="Close up portrait of a young professional woman with soft natural lighting and a warm smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDjNgD_RsF5j_V-VY4eoPihjJuUtNhHy3al1xpB6VcZh2ob7hXSizGDy3piZD7zhWIyA8byIL2CYWoEfwcWUrnwKERxbaxEToaX-UD7nO3b0yF9hSWHSB-YQ5osxoHbdS1wV88rEvO6FF-XpIpPJXGUyweF5jueFkiSvJheuwgzN4PIsx4brK-DsPoOndXFcMtlGPJ-6uTnSUoIP5He0uYO6h5WekNSp3-Gr_t9EFWIgqCq5lSccEof4-x8ji2Ka9-fID_5DoyT5rA"/>
+</div>
+<h1 class="font-['Plus_Jakarta_Sans'] text-2xl font-bold italic tracking-tight text-primary">Sanctuary</h1>
+<button class="text-on-surface-variant hover:bg-surface-container transition-colors tap-highlight-transparent active:scale-95 transition-transform p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</nav>
+<!-- Main Content Canvas -->
+<main class="pt-28 pb-36 px-6 max-w-2xl mx-auto">
+<!-- The Protagonist (AI Assistant Chat Bubble) -->
+<section class="mb-12 relative">
+<div class="absolute -inset-4 bg-tertiary-container/20 blur-3xl rounded-full z-0 pointer-events-none"></div>
+<div class="relative z-10 bg-tertiary-container rounded-[2.5rem] rounded-tl-xl p-6 shadow-2xl shadow-black/40 border border-white/5 max-w-[90%] float-left">
+<div class="flex items-center gap-3 mb-3">
+<div class="w-8 h-8 rounded-full bg-tertiary/20 flex items-center justify-center backdrop-blur-sm">
+<span class="material-symbols-outlined text-tertiary text-lg" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<span class="font-label text-sm text-tertiary font-bold tracking-wide">Assistant</span>
+</div>
+<p class="font-body text-on-tertiary-container text-[1.1rem] leading-relaxed">
+                    Welcome home! How can I help you manage the house today?
+                </p>
+</div>
+<div class="clear-both"></div>
+</section>
+<!-- Quick Actions (Bento Grid) -->
+<section class="mb-12">
+<h2 class="font-headline text-lg font-semibold text-primary mb-5 px-2">Quick Actions</h2>
+<div class="grid grid-cols-2 gap-4">
+<!-- Action 1 -->
+<button class="flex flex-col items-start p-5 bg-surface-container-high rounded-lg hover:bg-surface-container-highest transition-colors active:scale-[0.98] shadow-md border border-white/5 group">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">receipt_long</span>
+</div>
+<span class="font-label text-sm font-semibold text-on-surface">Add expense</span>
+</button>
+<!-- Action 2 -->
+<button class="flex flex-col items-start p-5 bg-surface-container-high rounded-lg hover:bg-surface-container-highest transition-colors active:scale-[0.98] shadow-md border border-white/5 group">
+<div class="w-12 h-12 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">kitchen</span>
+</div>
+<span class="font-label text-sm font-semibold text-on-surface">Check pantry</span>
+</button>
+<!-- Action 3 (Spans full width for emphasis) -->
+<button class="col-span-2 flex items-center justify-between p-6 bg-primary-container text-on-primary-container rounded-lg hover:brightness-110 transition-all active:scale-[0.99] shadow-lg shadow-black/20 group overflow-hidden relative border border-white/5">
+<div class="absolute right-0 top-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+<div class="flex items-center gap-4 relative z-10">
+<div class="w-14 h-14 rounded-full bg-on-primary-container/10 flex items-center justify-center backdrop-blur-md">
+<span class="material-symbols-outlined text-on-primary-container" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<div class="flex flex-col items-start">
+<span class="font-label text-base font-bold text-on-primary-container mb-0.5">New recipe</span>
+<span class="font-body text-xs text-on-primary-container/70">Discover culinary inspiration</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-primary-container/70 group-hover:translate-x-1 transition-transform relative z-10">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- PRO Features Highlight -->
+<section class="relative overflow-hidden rounded-xl shadow-2xl shadow-black/40 active:scale-[0.99] transition-transform cursor-pointer border border-white/5">
+<div class="absolute inset-0 bg-gradient-to-br from-surface-container-high to-surface-container-lowest z-0"></div>
+<!-- Organic decorative shape -->
+<div class="absolute -right-12 -top-12 w-48 h-48 bg-primary/10 blur-3xl rounded-full z-0 pointer-events-none"></div>
+<div class="relative z-10 p-7 flex flex-col items-start">
+<div class="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-tertiary text-on-tertiary text-[10px] font-bold uppercase tracking-widest mb-5 shadow-lg">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+                    PRO
+                </div>
+<h3 class="font-headline text-2xl text-on-surface mb-2 font-medium tracking-tight">Elevate Your Home</h3>
+<p class="font-body text-sm text-on-surface-variant mb-6 max-w-[85%] leading-relaxed">
+                    Unlock advanced meal planning, automated budget tracking, and custom routines to craft your perfect sanctuary.
+                </p>
+<div class="mt-auto inline-flex items-center justify-center px-6 py-3 bg-primary text-on-primary rounded-full font-label text-sm font-bold shadow-lg hover:brightness-110 transition-all">
+                    Explore Features
+                </div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] rounded-[3rem] z-50 bg-surface-container/90 backdrop-blur-2xl shadow-[0_25px_60px_rgba(0,0,0,0.8)] border border-white/5 flex justify-around items-center px-4 py-3">
+<!-- Assistant (Active) -->
+<button class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full w-14 h-14 shadow-lg shadow-primary/20 active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent relative">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[10px] font-medium absolute -bottom-4 text-primary opacity-0 pointer-events-none">Assistant</span>
+</button>
+<!-- Notes (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-white/5 rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">edit_note</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Notes</span>
+</button>
+<!-- Wallet (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-white/5 rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Wallet</span>
+</button>
+<!-- Pantry (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-white/5 rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">shelves</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Pantry</span>
+</button>
+<!-- Kitchen (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-white/5 rounded-full active:scale-90 transition-all duration-300 ease-out tap-highlight-transparent w-16 h-14">
+<span class="material-symbols-outlined">restaurant_menu</span>
+<span class="font-['Plus_Jakarta_Sans'] text-[11px] font-medium mt-0.5">Kitchen</span>
+</button>
+</nav>
+</body></html>

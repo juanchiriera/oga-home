@@ -1,10 +1,10 @@
-# craftr_mobile
+# Oga - housekeeper
 
 Google Sign-In requiere `google-services.json` (Android) y configuración iOS; además definí `FIREBASE_*` vía `--dart-define` o reemplazá `lib/core/firebase_options.dart` con la salida de `flutterfire configure`.
 
 ## RevenueCat (entorno dev)
 
-1. En [RevenueCat](https://app.revenuecat.com/) → **Project settings → API keys**, copiá las claves públicas de **Google Play** y **App Store** del proyecto que usás para dev.
+1. En [RevenueCat](https://app.revenuecat.com/) → **Project settings → API keys**, copiá las claves públicas de **Google Play** y **App Store** del proyecto que usás para dev (o una sola clave `test_...` de Test Store para sandbox rápido).
 2. `cp config/dev/revenuecat.keys.sh.example config/dev/revenuecat.keys.sh` y pegá las claves (el archivo `revenuecat.keys.sh` no se versiona).
 3. Desde `apps/mobile`: `./scripts/run_dev.sh` (flavor `dev`, `BILLING_LIVE=true`, y `--dart-define` de RevenueCat si exportaste las claves).
 
@@ -19,6 +19,11 @@ En el dashboard de RevenueCat (o con la API si tenés automatización):
 3. **Entitlement**: creá uno (por ejemplo `premium`) y **asociá el producto** al entitlement.
 4. **Offering**: creá un offering (por ejemplo `default`), marcá **Current**, y un **package** (`$rc_monthly`, etc.) que apunte al producto.
 5. **Paywalls** (RevenueCat → *Paywalls*): creá un paywall y vinculalo al offering / packages para que `purchases_ui_flutter` pueda mostrarlo con **Pagar suscripción (sandbox)** en Inicio.
+
+Referencias que ya dejamos listas por MCP en este proyecto:
+
+- Offering actual: `default` (current).
+- Entitlement para uso futuro de feature flags: `premium` (adjunto a `monthly` y `yearly`).
 
 En dispositivo/emulador: cuenta de prueba de Google Play o **Sandbox** de Apple; las compras no cobran real.
 

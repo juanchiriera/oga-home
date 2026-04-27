@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Shared Notes - Sanctuary</title>
+<!-- Google Fonts: Plus Jakarta Sans & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration (Nocturnal Sanctuary Design System) -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#9cd0cd",
+                        "on-primary": "#003736",
+                        "primary-container": "#1d4e4c",
+                        "on-primary-container": "#b8ece9",
+                        "secondary": "#a1d2aa",
+                        "on-secondary": "#09391d",
+                        "secondary-container": "#225031",
+                        "on-secondary-container": "#bcefc5",
+                        "tertiary": "#e8c08c",
+                        "on-tertiary": "#442b04",
+                        "tertiary-container": "#5d4219",
+                        "on-tertiary-container": "#ffddb3",
+                        "error": "#ffb4ab",
+                        "on-error": "#690005",
+                        "error-container": "#93000a",
+                        "on-error-container": "#ffdad6",
+                        "background": "#1b1d0e",
+                        "on-background": "#e4e4cc",
+                        "surface": "#1b1d0e",
+                        "on-surface": "#e4e4cc",
+                        "surface-variant": "#404848",
+                        "on-surface-variant": "#bfc8c7",
+                        "outline": "#899392",
+                        "outline-variant": "#404848",
+                        "inverse-surface": "#e4e4cc",
+                        "inverse-on-surface": "#303221",
+                        "inverse-primary": "#0f4746",
+                        "surface-dim": "#13140a",
+                        "surface-bright": "#393a28",
+                        "surface-container-lowest": "#0e0f06",
+                        "surface-container-low": "#1b1d0e",
+                        "surface-container": "#1f2112",
+                        "surface-container-high": "#2a2b1c",
+                        "surface-container-highest": "#353626"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Plus Jakarta Sans", "sans-serif"],
+                        "label": ["Plus Jakarta Sans", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
+</head>
+<body class="bg-background text-on-background font-body antialiased min-h-screen relative selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl border-b border-outline-variant/30 flex items-center justify-between px-6 py-4 transition-all">
+<button class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden tap-highlight-transparent active:scale-95 transition-transform flex-shrink-0 border border-outline-variant/50">
+<img alt="User profile photo" class="w-full h-full object-cover" data-alt="Close up portrait of a young woman with a soft smile in warm natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCni5QBq8bn6auPAXhqu_qZ_4rvhsZc-2g0krK0MWeTd03EROqMMfhNlrChbFPcVkhE-PEhqyVoho_7c4lCYFs-Zz8DZEfjZQqaSbX49zHPiLC66CAruh-G3MzMr4s7CrCRPYcLC5EeTRR8-T_HnJokTupQCnEb3zyhfHIxfCZ5MkSIB7_QnPWgY1dRAQ_J1PRGmZ27who-q5Sbn55OIQQVj7TxJBqgJeOfmiT9ZrzJTAyd8icbYGocnOGbgJrv_2tfyBv1rstYIl4"/>
+</button>
+<h1 class="font-headline text-lg font-bold tracking-tight text-primary italic">Sanctuary</h1>
+<button class="w-10 h-10 flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors rounded-full tap-highlight-transparent active:scale-95 flex-shrink-0">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</header>
+<!-- Main Content Area -->
+<main class="pt-28 pb-40 px-6 max-w-5xl mx-auto space-y-10">
+<!-- Header & Search Section -->
+<section class="space-y-6">
+<h2 class="text-3xl md:text-4xl font-headline text-on-surface tracking-tight font-semibold">Shared Notes</h2>
+<!-- Soft Search Bar -->
+<div class="relative group max-w-2xl">
+<span class="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary/70">search</span>
+<input class="w-full bg-surface-container-highest text-on-surface rounded-full py-4 pl-14 pr-6 border border-outline-variant/20 focus:border-primary/30 focus:ring-0 shadow-sm transition-all font-body placeholder:text-on-surface-variant/50 focus:bg-surface-container-low" placeholder="Search your sanctuary..." type="text"/>
+</div>
+</section>
+<!-- Notes Grid (Asymmetric Bento Layout) -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-[minmax(180px,auto)]">
+<!-- Large Priority Note Card -->
+<article class="md:col-span-8 bg-surface-container-low rounded-lg p-7 border border-outline-variant/10 hover:border-primary/20 hover:bg-surface-container transition-all cursor-pointer group flex flex-col relative overflow-hidden h-full">
+<!-- Ambient Glow -->
+<div class="absolute -top-10 -right-10 w-40 h-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-500"></div>
+<header class="flex justify-between items-start mb-5 relative z-10">
+<h3 class="font-headline text-xl text-primary font-semibold tracking-tight">Grocery List - Sunday</h3>
+<span class="text-xs font-label text-secondary px-3 py-1 bg-secondary-container rounded-full">Active</span>
+</header>
+<div class="space-y-4 text-on-surface-variant text-base leading-relaxed relative z-10 font-body flex-grow">
+<!-- Markdown style checklist preview -->
+<div class="flex items-start gap-3 group/item">
+<span class="material-symbols-outlined text-primary text-xl mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="line-through opacity-40">Organic Oat Milk (2 cartons)</span>
+</div>
+<div class="flex items-start gap-3 group/item">
+<span class="material-symbols-outlined text-outline group-hover/item:text-primary transition-colors text-xl mt-0.5">radio_button_unchecked</span>
+<span class="text-on-surface">Sourdough bread from local bakery</span>
+</div>
+<div class="flex items-start gap-3 group/item">
+<span class="material-symbols-outlined text-outline group-hover/item:text-primary transition-colors text-xl mt-0.5">radio_button_unchecked</span>
+<span class="text-on-surface">Avocados (firm but yielding)</span>
+</div>
+<div class="flex items-start gap-3 group/item">
+<span class="material-symbols-outlined text-outline group-hover/item:text-primary transition-colors text-xl mt-0.5">radio_button_unchecked</span>
+<span class="text-on-surface">Fresh basil &amp; heirloom tomatoes</span>
+</div>
+</div>
+</article>
+<!-- Medium Text Note -->
+<article class="md:col-span-4 bg-surface-container rounded-lg p-7 border border-outline-variant/10 hover:bg-surface-container-high hover:border-primary/10 transition-all cursor-pointer group flex flex-col h-full">
+<header class="flex justify-between items-start mb-4">
+<h3 class="font-headline text-lg text-primary font-medium tracking-tight">Home Reno Ideas</h3>
+<span class="text-xs font-label text-on-surface-variant/60">2d ago</span>
+</header>
+<div class="text-on-surface-variant text-sm leading-relaxed line-clamp-6 font-body">
+<strong class="text-secondary font-semibold">Kitchen:</strong> Consider sage green cabinets with unlacquered brass hardware. Need to measure the island for new pendant lighting clearance.<br/><br/>
+<strong class="text-secondary font-semibold">Living Room:</strong> Look into limewash paint for the accent wall to add texture. Tonal layering is key.
+                </div>
+</article>
+<!-- Small List Note -->
+<article class="md:col-span-4 bg-surface-container-low rounded-lg p-6 border border-outline-variant/10 hover:bg-surface-container hover:border-primary/10 transition-all cursor-pointer group flex flex-col h-full">
+<header class="flex justify-between items-start mb-4">
+<h3 class="font-headline text-lg text-primary font-medium tracking-tight">Books to Read</h3>
+<span class="text-xs font-label text-on-surface-variant/60">1w ago</span>
+</header>
+<ul class="text-on-surface-variant text-sm leading-relaxed space-y-2 list-none font-body">
+<li class="flex items-start gap-2">
+<span class="text-primary/50 text-xs mt-1">•</span>
+                        The Architecture of Happiness
+                    </li>
+<li class="flex items-start gap-2">
+<span class="text-primary/50 text-xs mt-1">•</span>
+                        Braiding Sweetgrass
+                    </li>
+<li class="flex items-start gap-2">
+<span class="text-primary/50 text-xs mt-1">•</span>
+                        Dune (re-read before movie)
+                    </li>
+</ul>
+</article>
+<!-- Small Text Note -->
+<article class="md:col-span-4 bg-surface-container rounded-lg p-6 border border-outline-variant/10 hover:bg-surface-container-high hover:border-primary/10 transition-all cursor-pointer group flex flex-col h-full">
+<header class="flex justify-between items-start mb-3">
+<h3 class="font-headline text-lg text-primary font-medium tracking-tight">Wi-Fi Details</h3>
+</header>
+<div class="mt-auto space-y-3">
+<div class="bg-surface-container-highest/50 p-3 rounded-xl flex items-center justify-between group-hover:bg-surface-container-low transition-colors">
+<span class="text-sm font-label text-on-surface-variant">Network</span>
+<span class="text-sm font-medium text-secondary">Sanctuary_5G</span>
+</div>
+<div class="bg-surface-container-highest/50 p-3 rounded-xl flex items-center justify-between group-hover:bg-surface-container-low transition-colors">
+<span class="text-sm font-label text-on-surface-variant">Password</span>
+<span class="text-sm font-medium text-secondary tracking-widest">••••••••</span>
+</div>
+</div>
+</article>
+<!-- Draft/Empty State hint -->
+<article class="md:col-span-4 border border-outline-variant/30 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-container-low/50 hover:border-outline transition-colors h-full min-h-[180px]">
+<span class="material-symbols-outlined text-outline/50 text-3xl mb-2">post_add</span>
+<p class="font-headline text-sm text-outline font-medium">Quick capture...</p>
+</article>
+</section>
+</main>
+<!-- Floating Action Button (New Note) -->
+<button class="fixed bottom-[104px] right-6 z-40 bg-primary text-on-primary p-4 rounded-xl shadow-[0_15px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_20px_40px_rgba(156,208,205,0.2)] hover:bg-on-primary-container transition-all active:scale-95 flex items-center justify-center group">
+<span class="material-symbols-outlined text-3xl font-light group-hover:rotate-90 transition-transform duration-300">add</span>
+</button>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] z-50 bg-surface-container-highest/80 backdrop-blur-2xl rounded-xl border border-outline-variant/30 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex justify-around items-center px-4 py-3">
+<!-- Assistant -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container rounded-full transition-all active:scale-90 w-14 h-14 tap-highlight-transparent">
+<span class="material-symbols-outlined text-2xl mb-1">smart_toy</span>
+<span class="font-label text-[11px] font-medium">Assistant</span>
+</button>
+<!-- Notes (Active) -->
+<button class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full w-14 h-14 shadow-lg shadow-primary/20 transition-all active:scale-90 tap-highlight-transparent">
+<span class="material-symbols-outlined text-2xl mb-0.5" style="font-variation-settings: 'FILL' 1;">edit_note</span>
+<span class="font-label text-[11px] font-medium">Notes</span>
+</button>
+<!-- Wallet -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container rounded-full transition-all active:scale-90 w-14 h-14 tap-highlight-transparent">
+<span class="material-symbols-outlined text-2xl mb-1">account_balance_wallet</span>
+<span class="font-label text-[11px] font-medium">Wallet</span>
+</button>
+<!-- Pantry -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container rounded-full transition-all active:scale-90 w-14 h-14 tap-highlight-transparent">
+<span class="material-symbols-outlined text-2xl mb-1">shelves</span>
+<span class="font-label text-[11px] font-medium">Pantry</span>
+</button>
+<!-- Kitchen -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container rounded-full transition-all active:scale-90 w-14 h-14 tap-highlight-transparent">
+<span class="material-symbols-outlined text-2xl mb-1">restaurant_menu</span>
+<span class="font-label text-[11px] font-medium">Kitchen</span>
+</button>
+</nav>
+</body></html>

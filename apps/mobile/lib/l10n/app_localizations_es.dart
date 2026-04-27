@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'CraftR';
+  String get appTitle => 'Oga - housekeeper';
 
   @override
   String get assistantTooltip => 'Asistente';
@@ -308,7 +308,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   AppLocalizationsEsAr() : super('es_AR');
 
   @override
-  String get appTitle => 'CraftR';
+  String get appTitle => 'Oga - housekeeper';
 
   @override
   String get assistantTooltip => 'Asistente';

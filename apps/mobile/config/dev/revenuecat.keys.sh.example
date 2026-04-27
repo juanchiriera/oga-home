@@ -4,6 +4,7 @@
 # 2. En RevenueCat → Project settings → API keys, copiá:
 #    - App specific → Google Play (Android): suele empezar con goog_
 #    - App specific → App Store (iOS): suele empezar con appl_
+#    - o una sola clave de Test Store: suele empezar con test_
 # 3. Ejecutá la app con: ./scripts/run_dev.sh
 #    (el script pasa BILLING_LIVE=true para habilitar RevenueCat en dev;
 #     para desactivarlo: export BILLING_LIVE=false).
@@ -12,3 +13,5 @@
 
 export REVENUECAT_ANDROID_API_KEY="goog_REEMPLAZAR"
 export REVENUECAT_IOS_API_KEY="appl_REEMPLAZAR"
+# Alternativa sandbox/Test Store (una sola clave para ambas plataformas):
+# export REVENUECAT_API_KEY="test_REEMPLAZAR"

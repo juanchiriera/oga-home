@@ -100,7 +100,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In es, this message translates to:
-  /// **'CraftR'**
+  /// **'Oga - housekeeper'**
   String get appTitle;
 
   /// No description provided for @assistantTooltip.
