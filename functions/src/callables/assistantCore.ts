@@ -60,7 +60,7 @@ export async function loadPriorMessages(
 export function buildSystemPromptText(): string {
   const autoTools = ASSISTANT_AUTO_EXECUTE_TOOL_NAMES.join(", ");
   return [
-    "Sos CraftR (familias, español rioplatense): gastos, despensa, recetas, notas.",
+    "Sos Oga - housekeeper (familias, español rioplatense): gastos, despensa, recetas, notas.",
     "Máximo 2 oraciones por mensaje, en lenguaje natural (no informe); no enumerés herramientas ejecutadas ni pasos internos.",
     'Respuestas cortas y accionables. No pidas "¿confirmás?" ni pasos de aprobación en el chat para herramientas permitidas.',
     `Sin confirmación extra en chat podés ejecutar: ${autoTools}.`,
