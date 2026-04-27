@@ -45,6 +45,12 @@ String resolveFamilyEntityDestination(Uri uri) {
         path: invitesPath,
         queryParameters: {'familyId': familyId, 'entityId': entityId},
       ).toString();
+    case 'recipe':
+    case 'recipes':
+      return Uri(
+        path: '/app/recipes/$entityId',
+        queryParameters: {'familyId': familyId},
+      ).toString();
     default:
       return Uri(
         path: appPath,

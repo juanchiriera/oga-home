@@ -5,9 +5,17 @@ import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-class RecipesPage extends StatelessWidget {
+class RecipesPage extends StatefulWidget {
   const RecipesPage({super.key});
+
+  @override
+  State<RecipesPage> createState() => _RecipesPageState();
+}
+
+class _RecipesPageState extends State<RecipesPage> {
+  bool _isNavigatingToPreview = false;
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +76,7 @@ class RecipesPage extends StatelessWidget {
               extendBodyBehindAppBar: true,
               appBar: sanctuaryAppBar(context),
               body: ListView(
+                key: const PageStorageKey<String>('recipes-list'),
                 padding: EdgeInsets.fromLTRB(
                   24,
                   MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
@@ -162,6 +171,8 @@ class RecipesPage extends StatelessWidget {
                           recipeId: doc.id,
                           initial: draft,
                         ),
+                        onOpenPreview: () =>
+                            _openPreview(context, familyId, doc.id),
                         onDelete: () =>
                             _deleteRecipe(context, familyId, doc.id, draft),
                       ),
@@ -189,6 +200,25 @@ class RecipesPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _openPreview(BuildContext context, String familyId, String recipeId) {
+    if (_isNavigatingToPreview || !mounted) {
+      return;
+    }
+    _isNavigatingToPreview = true;
+    context
+        .push(
+          Uri(
+            path: '/app/recipes/$recipeId',
+            queryParameters: {'familyId': familyId},
+          ).toString(),
+        )
+        .whenComplete(() {
+          if (mounted) {
+            _isNavigatingToPreview = false;
+          }
+        });
   }
 
   static Future<void> _openEditor(
@@ -547,6 +577,113 @@ class RecipesPage extends StatelessWidget {
   }
 }
 
+class RecipePreviewPage extends StatelessWidget {
+  const RecipePreviewPage({super.key, required this.recipeId, this.familyId});
+
+  final String recipeId;
+  final String? familyId;
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return const Scaffold(body: Center(child: Text('Sin sesión')));
+    }
+
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .snapshots(includeMetadataChanges: true),
+      builder: (context, userSnap) {
+        if (!userSnap.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final activeFamilyId =
+            userSnap.data!.data()?['activeFamilyId'] as String?;
+        final resolvedFamilyId = familyId ?? activeFamilyId;
+        if (resolvedFamilyId == null || resolvedFamilyId.isEmpty) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Vista previa de receta')),
+            body: const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'No pudimos determinar el hogar para abrir esta receta.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        }
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('families')
+              .doc(resolvedFamilyId)
+              .collection('recipes')
+              .doc(recipeId)
+              .snapshots(includeMetadataChanges: true),
+          builder: (context, recipeSnap) {
+            if (!recipeSnap.hasData) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final data = recipeSnap.data!.data();
+            if (data == null) {
+              return Scaffold(
+                appBar: AppBar(title: const Text('Vista previa de receta')),
+                body: const Center(
+                  child: Text('La receta no existe o fue eliminada.'),
+                ),
+              );
+            }
+            final draft = RecipeDraft.fromFirestore(data);
+            return _RecipePreviewScaffold(draft: draft);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _RecipePreviewScaffold extends StatelessWidget {
+  const _RecipePreviewScaffold({required this.draft});
+
+  final RecipeDraft draft;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(draft.titulo)),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+        children: [
+          _RecipeEditorPreview(
+            titulo: draft.titulo,
+            descripcion: draft.descripcion,
+            ingredientesRaw: draft.ingredientes.join('\n'),
+            pasosRaw: draft.pasos.join('\n'),
+            tiempoRaw: draft.tiempoMin.toString(),
+            porcionesRaw: draft.porciones.toString(),
+            tagsRaw: draft.tags.join(', '),
+            favorita: draft.favorita,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Solo lectura',
+            style: theme.textTheme.labelMedium,
+            textAlign: TextAlign.end,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ImportedRecipeDraft {
   const _ImportedRecipeDraft({
     required this.titulo,
@@ -799,12 +936,14 @@ class _RecipeCard extends StatelessWidget {
   const _RecipeCard({
     required this.draft,
     required this.onToggleFavorite,
+    required this.onOpenPreview,
     required this.onEdit,
     required this.onDelete,
   });
 
   final RecipeDraft draft;
   final VoidCallback onToggleFavorite;
+  final VoidCallback onOpenPreview;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -812,77 +951,84 @@ class _RecipeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    return CozyCard(
-      color: scheme.surfaceContainerLowest,
-      padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  draft.titulo,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  draft.descripcion,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onOpenPreview,
+        child: CozyCard(
+          color: scheme.surfaceContainerLowest,
+          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _MetaChip(label: '${draft.tiempoMin} min'),
-                    _MetaChip(label: '${draft.porciones} porciones'),
-                    _MetaChip(
-                      label: '${draft.ingredientes.length} ingredientes',
+                    Text(
+                      draft.titulo,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    _MetaChip(label: '${draft.pasos.length} pasos'),
-                    ...draft.tags.map((tag) => _MetaChip(label: '#$tag')),
+                    const SizedBox(height: 4),
+                    Text(
+                      draft.descripcion,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _MetaChip(label: '${draft.tiempoMin} min'),
+                        _MetaChip(label: '${draft.porciones} porciones'),
+                        _MetaChip(
+                          label: '${draft.ingredientes.length} ingredientes',
+                        ),
+                        _MetaChip(label: '${draft.pasos.length} pasos'),
+                        ...draft.tags.map((tag) => _MetaChip(label: '#$tag')),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          Column(
-            children: [
-              IconButton(
-                onPressed: onToggleFavorite,
-                icon: Icon(
-                  draft.favorita
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border,
-                  color: draft.favorita
-                      ? scheme.error
-                      : scheme.onSurfaceVariant,
-                ),
               ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    onEdit();
-                  } else if (value == 'delete') {
-                    onDelete();
-                  }
-                },
-                itemBuilder: (context) => const [
-                  PopupMenuItem(value: 'edit', child: Text('Editar')),
-                  PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+              Column(
+                children: [
+                  IconButton(
+                    onPressed: onToggleFavorite,
+                    icon: Icon(
+                      draft.favorita
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border,
+                      color: draft.favorita
+                          ? scheme.error
+                          : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    onSelected: (value) {
+                      if (value == 'edit') {
+                        onEdit();
+                      } else if (value == 'delete') {
+                        onDelete();
+                      }
+                    },
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: 'edit', child: Text('Editar')),
+                      PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                    ],
+                  ),
                 ],
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
