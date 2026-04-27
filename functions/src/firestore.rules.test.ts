@@ -26,6 +26,10 @@ function expensePath(familyId: string, expenseId: string): string {
   return `families/${familyId}/expenses/${expenseId}`;
 }
 
+function recurringTemplatePath(familyId: string, templateId: string): string {
+  return `families/${familyId}/recurringTemplates/${templateId}`;
+}
+
 beforeAll(async () => {
   testEnv = await initializeTestEnvironment({
     projectId,
@@ -118,6 +122,77 @@ describe("firestore.rules · gastos tarjeta", () => {
         createdBy: "u2",
         status: "confirmed",
         currency: "CLP",
+      }),
+    );
+  });
+});
+
+describe("firestore.rules · recurringTemplates cuotas", () => {
+  it("permite crear plan installment con cuotas y startPeriodKey", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, memberPath("famD", "u3")), { role: "member" });
+    });
+
+    const userDb = testEnv.authenticatedContext("u3").firestore();
+    await assertSucceeds(
+      setDoc(doc(userDb, recurringTemplatePath("famD", "tpl-1")), {
+        active: true,
+        amount: 100.5,
+        categoryKey: "shopping",
+        type: "installment",
+        generationDay: "month_start",
+        totalInstallments: 6,
+        currentInstallment: 1,
+        startPeriodKey: "2026-05",
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        createdBy: "u3",
+      }),
+    );
+  });
+
+  it("rechaza installment sin totalInstallments/currentInstallment", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, memberPath("famE", "u4")), { role: "member" });
+    });
+
+    const userDb = testEnv.authenticatedContext("u4").firestore();
+    await assertFails(
+      setDoc(doc(userDb, recurringTemplatePath("famE", "tpl-bad")), {
+        active: true,
+        amount: 10,
+        categoryKey: "food",
+        type: "installment",
+        generationDay: "month_end",
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        createdBy: "u4",
+      }),
+    );
+  });
+
+  it("rechaza startPeriodKey con formato inválido", async () => {
+    await testEnv.withSecurityRulesDisabled(async (ctx) => {
+      const db = ctx.firestore();
+      await setDoc(doc(db, memberPath("famF", "u5")), { role: "member" });
+    });
+
+    const userDb = testEnv.authenticatedContext("u5").firestore();
+    await assertFails(
+      setDoc(doc(userDb, recurringTemplatePath("famF", "tpl-bad2")), {
+        active: true,
+        amount: 10,
+        categoryKey: "food",
+        type: "installment",
+        generationDay: "month_start",
+        totalInstallments: 3,
+        currentInstallment: 1,
+        startPeriodKey: "05-2026",
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+        createdBy: "u5",
       }),
     );
   });

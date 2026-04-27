@@ -18,10 +18,27 @@ export interface RecurringTemplateData {
   generationDay: GenerationDay;
   totalInstallments?: number | null;
   currentInstallment?: number | null;
+  /** Primer período YYYY-MM en el que puede generarse una cuota (inclusive). */
+  startPeriodKey?: string | null;
   merchant?: string | null;
   note?: string | null;
   lastGeneratedPeriod?: string | null;
   createdBy: string;
+}
+
+/** `periodKey` y `startPeriodKey` en formato YYYY-MM; el orden léxico coincide con el cronológico. */
+export function shouldDeferPeriodForStartKey(
+  periodKey: string,
+  startPeriodKey: string | null | undefined,
+): boolean {
+  if (startPeriodKey == null) {
+    return false;
+  }
+  const s = String(startPeriodKey).trim();
+  if (!/^\d{4}-\d{2}$/.test(s)) {
+    return false;
+  }
+  return periodKey < s;
 }
 
 function calendarPartsInTz(now: Date, timeZone: string): { y: number; m: number; d: number } {
@@ -106,6 +123,10 @@ async function processTemplate(
     return false;
   }
 
+  if (shouldDeferPeriodForStartKey(key, raw.startPeriodKey)) {
+    return false;
+  }
+
   if (!isGenerationCalendarDay(y, m, d, raw.generationDay)) {
     return false;
   }
@@ -126,6 +147,9 @@ async function processTemplate(
     }
     const t = fresh.data() as RecurringTemplateData;
     if (!t.active || t.lastGeneratedPeriod === key) {
+      return;
+    }
+    if (shouldDeferPeriodForStartKey(key, t.startPeriodKey)) {
       return;
     }
     if (!isGenerationCalendarDay(y, m, d, t.generationDay)) {
