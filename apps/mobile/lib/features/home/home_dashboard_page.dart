@@ -609,10 +609,8 @@ class _HomeFamilyOverview extends StatelessWidget {
                                         final level = StockLevel.parse(
                                           s['state'] as String?,
                                         );
-                                        final isOut = level == StockLevel.out;
-                                        final dotColor = isOut
-                                            ? scheme.error
-                                            : scheme.tertiary;
+                                        final dotColor =
+                                            level.indicatorDotColor(scheme);
                                         return Padding(
                                           padding: const EdgeInsets.only(
                                             bottom: 10,

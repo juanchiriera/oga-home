@@ -21,6 +21,15 @@ enum StockLevel {
       orElse: () => StockLevel.hay,
     );
   }
+
+  /// Punto de estado en listas: rojo (no hay), amarillo (queda poco), verde (hay).
+  Color indicatorDotColor(ColorScheme scheme) => switch (this) {
+    StockLevel.out => scheme.error,
+    StockLevel.low => scheme.brightness == Brightness.dark
+        ? const Color(0xFFFFE082)
+        : const Color(0xFFF9A825),
+    StockLevel.hay => scheme.secondary,
+  };
 }
 
 enum StockViewFilter {
@@ -637,8 +646,7 @@ class StockItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isOut = level == StockLevel.out;
-    final dot = isOut ? scheme.error : scheme.tertiary;
+    final dot = level.indicatorDotColor(scheme);
     return CozyCard(
       color: scheme.surfaceContainerLowest,
       padding: EdgeInsets.zero,
