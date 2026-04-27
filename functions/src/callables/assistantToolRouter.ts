@@ -27,7 +27,6 @@ const EXPENSE_CATEGORIES: Array<{ key: string; label: string; system: boolean }>
   { key: "other", label: "Otros", system: true },
 ];
 const SUPPORTED_EXPENSE_CURRENCIES = new Set(["ARS", "USD", "EUR"]);
-const CASH_PAYMENT_METHOD_TYPE = "cash";
 const DEFAULT_EXPENSE_CATEGORY_KEY = "other";
 
 export const CREATE_EXPENSE_FIELDS_POLICY = {
@@ -93,10 +92,6 @@ function utcEndOfDayInclusive(parts: { y: number; m: number; d: number }): Times
   );
 }
 
-function isoDateTodayUtc(now = new Date()): string {
-  return now.toISOString().slice(0, 10);
-}
-
 function normalizeCurrency(raw: unknown, fallback: string): string {
   const picked = String(raw ?? "").trim().toUpperCase();
   if (SUPPORTED_EXPENSE_CURRENCIES.has(picked)) {
@@ -125,33 +120,6 @@ function normalizeIsoDateOrNull(raw: unknown): string | null {
   } catch {
     return null;
   }
-}
-
-async function loadCreateExpenseDefaults(
-  db: admin.firestore.Firestore,
-  familyId: string,
-): Promise<CreateExpenseDefaultsContext> {
-  const familyRef = db.collection("families").doc(familyId);
-  const paymentMethodsRef = familyRef.collection("paymentMethods");
-  const [familySnap, paymentMethodsSnap] = await Promise.all([
-    familyRef.get(),
-    paymentMethodsRef.orderBy("name").limit(30).get(),
-  ]);
-
-  const familyCurrency = familySnap.exists ? familySnap.get("baseCurrency") : null;
-  const currency = normalizeCurrency(familyCurrency, "ARS");
-
-  const methods = paymentMethodsSnap.docs.filter((doc) => doc.get("archived") !== true);
-  const cashMethod =
-    methods.find((doc) => String(doc.get("type") ?? "") === CASH_PAYMENT_METHOD_TYPE) ?? null;
-  const fallbackMethod = methods[0] ?? null;
-  const paymentMethodId = cashMethod?.id ?? fallbackMethod?.id ?? null;
-
-  return {
-    currency,
-    occurredAtIso: isoDateTodayUtc(),
-    paymentMethodId,
-  };
 }
 
 export function resolveCreateExpenseDraft(
