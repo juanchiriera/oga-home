@@ -13,8 +13,8 @@ enum AppFlavor {
   }
 
   String get displayName => switch (this) {
-        AppFlavor.dev => 'CraftR (dev)',
-        AppFlavor.stg => 'CraftR (stg)',
-        AppFlavor.prod => 'CraftR',
+        AppFlavor.dev => 'Oga, the housekeeper (dev)',
+        AppFlavor.stg => 'Oga, the housekeeper (stg)',
+        AppFlavor.prod => 'Oga, the housekeeper',
       };
 }

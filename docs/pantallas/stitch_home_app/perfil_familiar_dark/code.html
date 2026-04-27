@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Family Profile - Hearth &amp; Habitat</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#d6e6d1",
+                    "tertiary-fixed-dim": "#e8c08c",
+                    "on-primary-fixed": "#00201f",
+                    "on-primary": "#003735",
+                    "on-primary-fixed-variant": "#194e4d",
+                    "tertiary-fixed": "#ffddb3",
+                    "on-tertiary-fixed-variant": "#5d4219",
+                    "on-error": "#690005",
+                    "background": "#0f1108",
+                    "primary-fixed-dim": "#9cd0cd",
+                    "inverse-on-surface": "#1b1d0e",
+                    "surface-tint": "#9cd0cd",
+                    "surface-container-highest": "#333524",
+                    "on-secondary-fixed-variant": "#225031",
+                    "on-error-container": "#ffdad6",
+                    "on-background": "#e4e3d3",
+                    "primary": "#9cd0cd",
+                    "surface-container-lowest": "#0a0c04",
+                    "secondary-container": "#225031",
+                    "on-primary-container": "#b8ece9",
+                    "surface-container-low": "#1b1d0e",
+                    "primary-container": "#194e4d",
+                    "outline": "#8a9391",
+                    "inverse-primary": "#0f4746",
+                    "secondary": "#a1d2aa",
+                    "on-tertiary-fixed": "#291800",
+                    "secondary-fixed-dim": "#a1d2aa",
+                    "tertiary-container": "#553b12",
+                    "inverse-surface": "#e4e3d3",
+                    "on-surface": "#e4e3d3",
+                    "error-container": "#93000a",
+                    "surface-dim": "#13140a",
+                    "on-secondary": "#0a391c",
+                    "error": "#ffb4ab",
+                    "tertiary": "#ffddb3",
+                    "outline-variant": "#404848",
+                    "on-surface-variant": "#bfc8c7",
+                    "primary-fixed": "#b8ece9",
+                    "surface-container-high": "#272a19",
+                    "surface-variant": "#404848",
+                    "on-tertiary-container": "#ffddb3",
+                    "on-tertiary": "#482a00",
+                    "secondary-fixed": "#bcefc5",
+                    "on-secondary-fixed": "#00210d",
+                    "surface": "#13140a",
+                    "surface-container": "#1f2112",
+                    "surface-bright": "#393a2a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #0f1108;
+            color: #e4e3d3;
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-6 py-4 bg-[#0f1108]/80 backdrop-blur-xl docked full-width top-0 sticky z-40 transition-colors shadow-sm shadow-black/20">
+<button aria-label="Menu" class="text-primary hover:bg-surface-container transition-colors rounded-full p-2 soft-press scale-98">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="text-xl font-bold tracking-tight text-primary font-headline">Family Sanctuary</h1>
+<button aria-label="Auto Awesome" class="text-primary hover:bg-surface-container transition-colors rounded-full p-2 soft-press scale-98">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">auto_awesome</span>
+</button>
+</header>
+<main class="flex-grow container mx-auto px-6 py-8 max-w-4xl space-y-12">
+<!-- Profile Header Area -->
+<section class="flex flex-col items-center md:flex-row md:items-start gap-8 bg-surface-container-low rounded-xl p-8 transition-colors border border-outline-variant/10">
+<div class="relative group">
+<div class="w-32 h-32 rounded-full overflow-hidden border-4 border-surface-container shadow-2xl">
+<img alt="Sarah's Profile Picture" class="w-full h-full object-cover" data-alt="Portrait of a smiling woman with soft natural lighting, cozy and warm atmosphere" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuN_mbr8E1Q-H6jleawDad_c1fVbw8BEIhUsOpO24VqNtFifMLRi3ZHJRIlEHZ5y2GauFMLIn_2YUR1446rt84YXB-MXC7HV64bJB--C3uhrFvlh9kEwETSySW3UToHoYZXQagsE_W7-SttMnyReAJAON3f3cp6mdD_Z8rTe4eG-GW_JczO0JAb2Xo6laoJ6-wfAI0EKQKIrp7jdCpnA_y2GtCkw9z-z0TdR5VVCfyLDqTsxxmVZzy8StUXW5knaf2GTfc8GcOgYo"/>
+</div>
+<button aria-label="Edit Profile Picture" class="absolute bottom-0 right-0 bg-primary text-on-primary rounded-full p-2 shadow-lg hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">edit</span>
+</button>
+</div>
+<div class="text-center md:text-left flex-grow space-y-2">
+<h2 class="text-3xl font-extrabold text-primary font-headline tracking-tight">Sarah Jenkins</h2>
+<p class="text-secondary font-medium font-body text-lg">Family Administrator</p>
+<div class="flex items-center justify-center md:justify-start gap-2 mt-4 text-primary-fixed-dim font-label bg-surface-container rounded-full px-4 py-1.5 inline-flex border border-outline-variant/20">
+<span class="material-symbols-outlined text-sm">home</span>
+<span>123 Maple Street</span>
+</div>
+</div>
+</section>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-8">
+<!-- Left Column: Family Members -->
+<div class="md:col-span-7 space-y-8">
+<section>
+<div class="flex justify-between items-end mb-6">
+<h3 class="text-2xl font-bold text-on-background font-headline">Family Members</h3>
+<span class="text-secondary font-label text-sm bg-surface-container-low px-3 py-1 rounded-full border border-outline-variant/20">4 Active</span>
+</div>
+<div class="space-y-4">
+<!-- Member Item -->
+<div class="flex items-center justify-between bg-surface-container-highest rounded-lg p-4 hover:bg-surface-variant transition-colors group border border-transparent hover:border-outline-variant/30">
+<div class="flex items-center gap-4">
+<img alt="David" class="w-12 h-12 rounded-full object-cover shadow-sm grayscale-[0.2]" data-alt="Portrait of a man smiling in casual clothes, soft warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHGeIfkTDBS-0C-aaZudbeUhzrk9L6C1DacLigVXXPUwTN9znlez7PyiDkN1Nh7EI-LnsoY7rU4T8C91-4RqT9n8NytexvP3tCYkS2FP_Tr5SgTV435O2ABrWEsyAVKizlk72Vdn0maZPEisIE_-U1qxF1reyRTImMEsG04qlLIOTtnMVWZsIRfSTIyu32HRg67-bamrTf7dYCP0u3qNX30MK6_Efqtv6Atyf67VqXsDVQLed5tp53a1YDrHN9GI4LandhIeh2e3k"/>
+<div>
+<h4 class="font-bold text-on-background font-headline">David Jenkins</h4>
+<p class="text-sm text-on-surface-variant font-label">Co-Admin</p>
+</div>
+</div>
+<button aria-label="Member Options" class="text-outline hover:text-primary transition-colors p-2">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Member Item -->
+<div class="flex items-center justify-between bg-surface-container rounded-lg p-4 hover:bg-surface-variant transition-colors group border border-transparent">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-lg shadow-sm">
+                                    L
+                                </div>
+<div>
+<h4 class="font-bold text-on-background font-headline">Leo Jenkins</h4>
+<p class="text-sm text-on-surface-variant font-label">Teen</p>
+</div>
+</div>
+<button aria-label="Member Options" class="text-outline hover:text-primary transition-colors p-2">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Member Item -->
+<div class="flex items-center justify-between bg-surface-container rounded-lg p-4 hover:bg-surface-variant transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center font-bold text-lg shadow-sm">
+                                    M
+                                </div>
+<div>
+<h4 class="font-bold text-on-background font-headline">Mia Jenkins</h4>
+<p class="text-sm text-on-surface-variant font-label">Child</p>
+</div>
+</div>
+<button aria-label="Member Options" class="text-outline hover:text-primary transition-colors p-2">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Add Member Button -->
+<button class="w-full flex items-center justify-center gap-3 bg-transparent border border-outline-variant/50 border-dashed rounded-lg p-4 text-primary hover:bg-surface-container-low hover:border-primary transition-all font-semibold">
+<span class="material-symbols-outlined">person_add</span>
+<span>Invite Family Member</span>
+</button>
+</div>
+</section>
+</div>
+<!-- Right Column: Settings & Plan -->
+<div class="md:col-span-5 space-y-8">
+<!-- Plan Status -->
+<section class="bg-gradient-to-br from-primary-container to-inverse-primary text-on-primary-container rounded-xl p-6 shadow-2xl relative overflow-hidden border border-primary/20">
+<div class="absolute top-0 right-0 opacity-10 transform translate-x-1/4 -translate-y-1/4">
+<span class="material-symbols-outlined text-[150px]" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2 text-primary-fixed">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+<span class="font-label font-bold tracking-wider uppercase text-xs">Current Plan</span>
+</div>
+<h3 class="text-2xl font-bold font-headline mb-4 text-white">Hearth Pro</h3>
+<p class="text-white/80 font-body text-sm mb-6 leading-relaxed">You have full access to advanced scheduling, premium AI assistance, and unlimited family members.</p>
+<button class="bg-primary text-on-primary font-bold py-3 px-6 rounded-full w-full hover:brightness-110 transition-all shadow-lg active:scale-95">
+                            Manage Subscription
+                        </button>
+</div>
+</section>
+<!-- Settings -->
+<section class="bg-surface-container-lowest rounded-xl p-6 shadow-xl border border-surface-container">
+<h3 class="text-lg font-bold text-on-background font-headline mb-6">Preferences</h3>
+<div class="space-y-1">
+<a class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-4">
+<div class="bg-surface-container p-2 rounded-full text-secondary group-hover:bg-secondary-container group-hover:text-on-secondary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">admin_panel_settings</span>
+</div>
+<span class="font-medium text-on-surface">Shared Permissions</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-4">
+<div class="bg-surface-container p-2 rounded-full text-secondary group-hover:bg-secondary-container group-hover:text-on-secondary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">notifications_active</span>
+</div>
+<span class="font-medium text-on-surface">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</a>
+<a class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-container-low transition-colors group" href="#">
+<div class="flex items-center gap-4">
+<div class="bg-surface-container p-2 rounded-full text-secondary group-hover:bg-secondary-container group-hover:text-on-secondary-container transition-colors">
+<span class="material-symbols-outlined text-[20px]">palette</span>
+</div>
+<span class="font-medium text-on-surface">Appearance</span>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</a>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 w-full z-50 flex justify-around items-center pb-4 pt-2 px-4 bg-surface-container/90 backdrop-blur-2xl rounded-[3rem] max-w-lg mx-auto left-4 right-4 shadow-2xl border border-outline-variant/10 md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-2 hover:scale-110 transition-transform duration-300 active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">cottage</span>
+<span class="text-[10px] font-label mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-primary rounded-full px-5 py-2 hover:scale-110 transition-transform duration-300 shadow-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="text-[10px] font-label mt-1">Family</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-2 hover:scale-110 transition-transform duration-300 active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">assignment_turned_in</span>
+<span class="text-[10px] font-label mt-1">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-5 py-2 hover:scale-110 transition-transform duration-300 active:scale-95" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">event</span>
+<span class="text-[10px] font-label mt-1">Plan</span>
+</a>
+</nav>
+</body></html>

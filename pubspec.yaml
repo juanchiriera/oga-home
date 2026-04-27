@@ -1,5 +1,5 @@
 name: craftr_workspace
-description: CraftR monorepo root (Melos workspace).
+description: Oga - housekeeper monorepo root (Melos workspace).
 publish_to: "none"
 
 environment:

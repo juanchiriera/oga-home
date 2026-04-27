@@ -32,5 +32,8 @@ fi
 if [[ -n "${REVENUECAT_IOS_API_KEY:-}" ]]; then
   flutter_args+=(--dart-define="REVENUECAT_IOS_API_KEY=${REVENUECAT_IOS_API_KEY}")
 fi
+if [[ -n "${REVENUECAT_API_KEY:-}" ]]; then
+  flutter_args+=(--dart-define="REVENUECAT_API_KEY=${REVENUECAT_API_KEY}")
+fi
 
 exec flutter "${flutter_args[@]}" "$@"

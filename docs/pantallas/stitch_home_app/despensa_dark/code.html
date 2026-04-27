@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sanctuary - Pantry &amp; Stock</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-fixed-variant": "#9cd0cd",
+                    "surface-container-lowest": "#0a0c07",
+                    "secondary": "#a1d2aa",
+                    "on-secondary-fixed-variant": "#bcefc5",
+                    "on-error-container": "#ffdad6",
+                    "surface-variant": "#404848",
+                    "surface-container-low": "#1b1d0e",
+                    "tertiary-fixed": "#6f5227",
+                    "inverse-primary": "#0f4746",
+                    "surface-container": "#1b1d0e",
+                    "surface-dim": "#131409",
+                    "inverse-on-surface": "#1b1d0e",
+                    "secondary-fixed": "#225031",
+                    "surface-container-highest": "#303221",
+                    "outline-variant": "#404848",
+                    "on-tertiary-fixed": "#ffddb3",
+                    "outline": "#8a9291",
+                    "error-container": "#93000a",
+                    "on-secondary-container": "#bcefc5",
+                    "inverse-surface": "#e4e4cc",
+                    "on-secondary": "#00210d",
+                    "secondary-fixed-dim": "#3a6847",
+                    "on-primary-container": "#b8ece9",
+                    "error": "#ffb4ab",
+                    "on-surface-variant": "#bfc8c7",
+                    "tertiary": "#e8c08c",
+                    "on-tertiary": "#291800",
+                    "on-secondary-fixed": "#ffffff",
+                    "surface-container-high": "#252714",
+                    "on-tertiary-fixed-variant": "#e8c08c",
+                    "surface": "#131409",
+                    "surface-bright": "#393a26",
+                    "tertiary-container": "#efc792",
+                    "on-background": "#e4e4cc",
+                    "tertiary-fixed-dim": "#5d4219",
+                    "on-tertiary-container": "#291800",
+                    "primary-container": "#b8ece9",
+                    "surface-tint": "#9cd0cd",
+                    "on-primary": "#00201f",
+                    "on-primary-fixed": "#ffffff",
+                    "on-error": "#690005",
+                    "primary-fixed": "#194e4d",
+                    "secondary-container": "#3a6847",
+                    "primary": "#9cd0cd",
+                    "background": "#0a0c07",
+                    "on-surface": "#e4e4cc",
+                    "primary-fixed-dim": "#0f4746"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .tap-highlight-transparent {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-xl shadow-sm shadow-black/20 flex items-center justify-between px-6 py-4">
+<div class="flex items-center">
+<img alt="Avatar" class="w-10 h-10 rounded-full object-cover border border-outline-variant" data-alt="Portrait of a young woman with natural makeup and soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5Zlsidurz9ekUig6FWEcyQkZhoqBFdavV1_w48Hms3zwIWJ_sCDKEb-Tg6qHp5u-zDS6piwmfLfXm735sd28UFnUEIFZ_daQ66EXfp1j6I0qzABG_8BNdcURn1WRr9JFvAK-U0ZCJO86GO-dsr9X0G54OMcBj1JY3wpuWoq-4pk_lGuok5hwPQbBy77LIx4mznpmm8TwnMDt4Ld5GoSyeUjLLgfKFx1KTfM8j68LYNIk4OpU50kPqPDujC4L0ERhav88rX7tB8wQ"/>
+</div>
+<h1 class="font-headline text-lg font-bold tracking-tight text-primary text-2xl italic">Sanctuary</h1>
+<button class="text-primary hover:bg-surface-container-highest transition-colors p-2 rounded-full tap-highlight-transparent active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-28 pb-40 px-6 max-w-md mx-auto flex flex-col gap-8">
+<!-- Header & Search -->
+<section class="flex flex-col gap-6">
+<div class="flex flex-col gap-1">
+<h2 class="font-headline text-3xl font-bold tracking-tight text-on-surface">Pantry &amp; Stock</h2>
+<p class="text-on-surface-variant font-body">Manage your sanctuary's provisions.</p>
+</div>
+<!-- Soft Search Field -->
+<div class="bg-surface-container-highest rounded-full px-5 py-4 flex items-center gap-3 transition-colors focus-within:bg-surface-container-high border border-outline-variant shadow-lg shadow-black/10">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none outline-none w-full text-on-surface placeholder:text-outline font-body text-base focus:ring-0 p-0" placeholder="Search provisions..." type="text"/>
+</div>
+<!-- Organic Filter Chips -->
+<div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
+<button class="bg-primary text-on-primary px-5 py-2.5 rounded-full font-label text-sm whitespace-nowrap tap-highlight-transparent shadow-md shadow-primary/20">All Items</button>
+<button class="bg-surface-container-highest text-on-surface-variant px-5 py-2.5 rounded-full font-label text-sm whitespace-nowrap tap-highlight-transparent hover:bg-surface-container-high transition-colors border border-outline-variant/30">Spices</button>
+<button class="bg-surface-container-highest text-on-surface-variant px-5 py-2.5 rounded-full font-label text-sm whitespace-nowrap tap-highlight-transparent hover:bg-surface-container-high transition-colors border border-outline-variant/30">Grains</button>
+<button class="bg-surface-container-highest text-on-surface-variant px-5 py-2.5 rounded-full font-label text-sm whitespace-nowrap tap-highlight-transparent hover:bg-surface-container-high transition-colors border border-outline-variant/30">Canned Goods</button>
+</div>
+</section>
+<!-- Shopping List (Generated from Red Items) - Bento Glass Card -->
+<section class="bg-surface-container-low rounded-lg p-6 flex flex-col gap-5 relative overflow-hidden border border-outline-variant/30">
+<!-- Decorative gradient orb -->
+<div class="absolute -top-12 -right-12 w-32 h-32 bg-error/10 rounded-full blur-2xl"></div>
+<div class="flex justify-between items-end relative z-10">
+<div class="flex flex-col gap-1">
+<span class="font-label text-xs tracking-wider text-error font-bold uppercase">Action Required</span>
+<h3 class="font-headline text-xl font-bold text-on-surface">Shopping List</h3>
+</div>
+<button class="bg-primary-container text-on-primary-container p-2 rounded-full shadow-lg tap-highlight-transparent active:scale-95 transition-transform">
+<span class="material-symbols-outlined">add_shopping_cart</span>
+</button>
+</div>
+<div class="flex flex-col gap-3 relative z-10">
+<!-- Out of stock item -->
+<div class="bg-surface-container-lowest/50 rounded px-4 py-3 flex items-center justify-between border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">water_drop</span>
+</div>
+<div>
+<p class="font-body font-medium text-on-surface">Extra Virgin Olive Oil</p>
+<p class="font-label text-xs text-error flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-error inline-block shadow-[0_0_8px_rgba(255,180,171,0.5)]"></span> Out of stock
+                            </p>
+</div>
+</div>
+</div>
+<!-- Out of stock item -->
+<div class="bg-surface-container-lowest/50 rounded px-4 py-3 flex items-center justify-between border border-outline-variant/20">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant/30 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined text-sm">grain</span>
+</div>
+<div>
+<p class="font-body font-medium text-on-surface">Arborio Rice</p>
+<p class="font-label text-xs text-error flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-error inline-block shadow-[0_0_8px_rgba(255,180,171,0.5)]"></span> Out of stock
+                            </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Inventory List -->
+<section class="flex flex-col gap-4">
+<h3 class="font-headline text-lg font-bold text-on-surface px-2">Current Inventory</h3>
+<div class="flex flex-col gap-3">
+<!-- Have it (Green) -->
+<div class="bg-surface-container-lowest rounded-DEFAULT p-4 flex items-center justify-between shadow-lg shadow-black/20 border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<img alt="Oats" class="w-12 h-12 rounded object-cover opacity-80" data-alt="Close up of rolled oats in a rustic wooden bowl with natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_Wov92d_OVxeK9F1dFc-4ldCgdYrQhqWZz-B2fw6EMkiko7GrIsz25AbdvTktqJaav0Qx41QsTapH1w7hHzm9s3xf2wKRnInEXZ15UwgP_HDyT_6rZ9dXUxLqvAyLvOompCmh7hT2uaHuYHsDSXYRNsQtrCxlBWnHUdfSZtrFT2gC6lHmDyG44gcHBqK_orXImjrDIAfsyERrOd7_4iI5oCLAtlNMDrdZn1YNEaJopx_OK4au537GzjsNtw97mI9eHh_a8K6M5MI"/>
+<div class="flex flex-col">
+<span class="font-body font-medium text-on-surface">Rolled Oats</span>
+<span class="font-label text-xs text-on-surface-variant">Pantry • Shelf 2</span>
+</div>
+</div>
+<div class="bg-secondary-container/20 py-1.5 px-3 rounded-full flex items-center gap-2 border border-secondary/30">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_10px_rgba(161,210,170,0.4)]"></span>
+<span class="font-label text-xs font-medium text-secondary">Have it</span>
+</div>
+</div>
+<!-- Have it (Green) -->
+<div class="bg-surface-container-lowest rounded-DEFAULT p-4 flex items-center justify-between shadow-lg shadow-black/20 border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<img alt="Pasta" class="w-12 h-12 rounded object-cover opacity-80" data-alt="Dried fusilli pasta scattered on a light beige linen cloth" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzm0-y3a2VW13PEmPwyUBBxsICDgtNo6lN4cCa2msXXpSpasqUPEk5Zoi432hh-uUw7ohdohhEpLy1Ov2_LGbJXPiPMgOAecx0NqdUjI9KeQQls63IVe6FxlMcwI13nExWh5jfzxHXnzZe5-slOo10RPcPGyXag_c7RjV3BAswhAaHMZGlSoa-8Jdod3GaMKeeA1AzUwATvXwBsdsp37-JKbnxHAqH2Qqz8q1Ntv8hv24XyESPVoEcbbzRDXH4YsVGDU20D5YL1sc"/>
+<div class="flex flex-col">
+<span class="font-body font-medium text-on-surface">Fusilli Pasta</span>
+<span class="font-label text-xs text-on-surface-variant">Pantry • Shelf 1</span>
+</div>
+</div>
+<div class="bg-secondary-container/20 py-1.5 px-3 rounded-full flex items-center gap-2 border border-secondary/30">
+<span class="w-2.5 h-2.5 rounded-full bg-secondary shadow-[0_0_10px_rgba(161,210,170,0.4)]"></span>
+<span class="font-label text-xs font-medium text-secondary">Have it</span>
+</div>
+</div>
+<!-- Low Stock (Yellow) -->
+<div class="bg-surface-container-lowest rounded-DEFAULT p-4 flex items-center justify-between shadow-lg shadow-black/20 border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded bg-tertiary-container/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">local_cafe</span>
+</div>
+<div class="flex flex-col">
+<span class="font-body font-medium text-on-surface">Whole Bean Coffee</span>
+<span class="font-label text-xs text-on-surface-variant">Kitchen Island</span>
+</div>
+</div>
+<div class="bg-tertiary-container/20 py-1.5 px-3 rounded-full flex items-center gap-2 border border-tertiary/30">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary shadow-[0_0_10px_rgba(232,192,140,0.4)]"></span>
+<span class="font-label text-xs font-medium text-tertiary">Low stock</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[92%] rounded-xl z-50 bg-surface-container-high/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex justify-around items-center px-4 py-3 border border-outline-variant/20">
+<!-- Assistant (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest rounded-full transition-all tap-highlight-transparent active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">smart_toy</span>
+<span class="font-label text-[11px] font-medium mt-1">Assistant</span>
+</button>
+<!-- Notes (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest rounded-full transition-all tap-highlight-transparent active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">edit_note</span>
+<span class="font-label text-[11px] font-medium mt-1">Notes</span>
+</button>
+<!-- Wallet (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest rounded-full transition-all tap-highlight-transparent active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">account_balance_wallet</span>
+<span class="font-label text-[11px] font-medium mt-1">Wallet</span>
+</button>
+<!-- Pantry (Active) -->
+<button class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full w-14 h-14 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all tap-highlight-transparent active:scale-90 duration-300 ease-out relative -top-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">shelves</span>
+<span class="font-label text-[11px] font-medium mt-0.5">Pantry</span>
+</button>
+<!-- Kitchen (Inactive) -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-highest rounded-full transition-all tap-highlight-transparent active:scale-90 duration-300 ease-out">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">restaurant_menu</span>
+<span class="font-label text-[11px] font-medium mt-1">Kitchen</span>
+</button>
+</nav>
+</body></html>
