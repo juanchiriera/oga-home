@@ -511,97 +511,19 @@ class _StockListPageState extends State<StockListPage> {
                           final d = item.doc;
                           final name = item.name;
                           final level = item.level;
-                          final isOut = level == StockLevel.out;
-                          final dot = isOut ? scheme.error : scheme.tertiary;
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: CozyCard(
-                              color: scheme.surfaceContainerLowest,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
+                            child: StockItemTile(
+                              name: name,
+                              level: level,
+                              onTap: () => StockListPage._editItem(
+                                context,
+                                familyId,
+                                d.id,
+                                name,
+                                level,
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    decoration: BoxDecoration(
-                                      color: scheme.surfaceContainer,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.inventory_2_outlined,
-                                      color: scheme.outline,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          name,
-                                          style: theme.textTheme.titleSmall
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                color: dot,
-                                                shape: BoxShape.circle,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Text(
-                                              level.label,
-                                              style: theme.textTheme.labelSmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        scheme.onSurfaceVariant,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuButton<String>(
-                                    onSelected: (action) async {
-                                      if (action == 'edit') {
-                                        await StockListPage._editItem(
-                                          context,
-                                          familyId,
-                                          d.id,
-                                          name,
-                                          level,
-                                        );
-                                      } else if (action == 'delete') {
-                                        await base.doc(d.id).delete();
-                                      }
-                                    },
-                                    itemBuilder: (context) => const [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Text('Editar'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Text('Eliminar'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                              onDelete: () => base.doc(d.id).delete(),
                             ),
                           );
                         }),
@@ -679,6 +601,107 @@ class _StockSyncBanner extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class StockItemTile extends StatelessWidget {
+  const StockItemTile({
+    super.key,
+    required this.name,
+    required this.level,
+    required this.onTap,
+    required this.onDelete,
+  });
+
+  final String name;
+  final StockLevel level;
+  final Future<void> Function() onTap;
+  final Future<void> Function() onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isOut = level == StockLevel.out;
+    final dot = isOut ? scheme.error : scheme.tertiary;
+    return CozyCard(
+      color: scheme.surfaceContainerLowest,
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        key: const Key('stock-item-tile'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.inventory_2_outlined,
+                  color: scheme.outline,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: dot,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          level.label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                key: const Key('stock-item-menu'),
+                onSelected: (action) async {
+                  if (action == 'edit') {
+                    await onTap();
+                  } else if (action == 'delete') {
+                    await onDelete();
+                  }
+                },
+                itemBuilder: (context) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
