@@ -433,11 +433,7 @@ class _StockListPageState extends State<StockListPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      CozyCard(
-                        color: scheme.surfaceContainerLow,
-                        padding: const EdgeInsets.all(18),
-                        child: _StockSyncBanner(snapshot: q.data!),
-                      ),
+                      _StockSyncBanner(snapshot: q.data!),
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -569,38 +565,45 @@ class _StockSyncBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = _StockSyncStatus.fromSnapshot(snapshot);
+    if (status == _StockSyncStatus.synced) {
+      return const SizedBox.shrink();
+    }
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tone = status.tone(scheme);
-    return Row(
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                status.label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: tone,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                status.message,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+    return CozyCard(
+      color: scheme.surfaceContainerLow,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: tone, shape: BoxShape.circle),
           ),
-        ),
-      ],
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  status.label,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: tone,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  status.message,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -722,13 +725,13 @@ enum _StockSyncStatus {
   }
 
   String get label => switch (this) {
-    _StockSyncStatus.synced => 'Sincronizado',
+    _StockSyncStatus.synced => '',
     _StockSyncStatus.pendingUpload => 'Pendiente de sincronizar',
     _StockSyncStatus.showingCachedData => 'Mostrando datos offline',
   };
 
   String get message => switch (this) {
-    _StockSyncStatus.synced => 'El stock refleja el último estado en la nube.',
+    _StockSyncStatus.synced => '',
     _StockSyncStatus.pendingUpload =>
       'Hay cambios locales que se enviarán al reconectar.',
     _StockSyncStatus.showingCachedData =>
