@@ -6,6 +6,7 @@ import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
 import 'package:craftr_mobile/features/expenses/expense_money.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
 import 'package:craftr_mobile/l10n/l10n.dart';
+import 'package:craftr_mobile/features/invite/family_invite_flow.dart';
 import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
 import 'package:craftr_mobile/features/stock/stock_list_page.dart';
 import 'package:craftr_mobile/services/auth_service.dart';
@@ -416,15 +417,15 @@ class _HomeFamilyOverview extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: FilledButton(
-                                    onPressed: onInvites,
-                                    child: Text(l10n.homeInvitations),
-                                  ),
-                                ),
-                              ],
+                            FilledButton(
+                              onPressed: () =>
+                                  createAndShowFamilyInviteLink(context, familyId),
+                              child: Text(l10n.homeGenerateInvite),
+                            ),
+                            const SizedBox(height: 10),
+                            OutlinedButton(
+                              onPressed: onInvites,
+                              child: Text(l10n.homeInvitations),
                             ),
                             const SizedBox(height: 24),
                             InkWell(

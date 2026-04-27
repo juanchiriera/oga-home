@@ -1,25 +1,37 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
+import 'package:craftr_mobile/features/invite/family_invite_flow.dart';
+import 'package:craftr_mobile/l10n/l10n.dart';
 import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 /// Lista invitaciones pendientes del hogar activo (solo owners ven acciones).
 class InvitesListPage extends StatelessWidget {
   const InvitesListPage({super.key});
 
+  static String _formatExpiry(BuildContext context, dynamic exp) {
+    if (exp is Timestamp) {
+      final localeTag = Localizations.localeOf(context).toLanguageTag();
+      return DateFormat.yMMMd(localeTag).add_Hm().format(exp.toDate());
+    }
+    return exp?.toString() ?? '—';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) {
-      return const Scaffold(body: Center(child: Text('Sin sesión')));
+      return Scaffold(body: Center(child: Text(l10n.invitesNoSession)));
     }
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: sanctuaryAppBar(context, title: 'Invitaciones'),
+      appBar: sanctuaryAppBar(context, title: l10n.invitesListTitle),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -31,9 +43,7 @@ class InvitesListPage extends StatelessWidget {
           }
           final familyId = snap.data!.data()?['activeFamilyId'] as String?;
           if (familyId == null || familyId.isEmpty) {
-            return const Center(
-              child: Text('Primero creá o unite a un hogar.'),
-            );
+            return Center(child: Text(l10n.invitesNeedFamily));
           }
           return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: FirebaseFirestore.instance
@@ -48,22 +58,50 @@ class InvitesListPage extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               final docs = invSnap.data!.docs;
+              final bottom = 32 + MediaQuery.paddingOf(context).bottom;
+              final top = MediaQuery.paddingOf(context).top + kToolbarHeight + 8;
+
               if (docs.isEmpty) {
-                return const Center(
-                  child: Text('No hay invitaciones pendientes.'),
+                return ListView(
+                  padding: EdgeInsets.fromLTRB(24, top, 24, bottom),
+                  children: [
+                    CozyCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            l10n.invitesEmptyTitle,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: scheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l10n.invitesEmptyDescription,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              height: 1.45,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          FilledButton(
+                            onPressed: () =>
+                                createAndShowFamilyInviteLink(context, familyId),
+                            child: Text(l10n.homeGenerateInvite),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 );
               }
               return ListView(
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
-                  24,
-                  32 + MediaQuery.paddingOf(context).bottom,
-                ),
+                padding: EdgeInsets.fromLTRB(24, top, 24, bottom),
                 children: [
                   CozyCard(
                     child: Text(
-                      'Invitaciones pendientes para sumar miembros al hogar.',
+                      l10n.invitesPendingIntro,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -73,6 +111,7 @@ class InvitesListPage extends StatelessWidget {
                   ...docs.map((d) {
                     final data = d.data();
                     final exp = data['expiresAt'];
+                    final expLabel = _formatExpiry(context, exp);
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: CozyCard(
@@ -105,7 +144,7 @@ class InvitesListPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Expira: $exp',
+                                    l10n.invitesExpiresLabel(expLabel),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: scheme.onSurfaceVariant,
                                     ),
@@ -122,6 +161,12 @@ class InvitesListPage extends StatelessWidget {
                       ),
                     );
                   }),
+                  const SizedBox(height: 8),
+                  FilledButton.tonal(
+                    onPressed: () =>
+                        createAndShowFamilyInviteLink(context, familyId),
+                    child: Text(l10n.homeGenerateInvite),
+                  ),
                 ],
               );
             },

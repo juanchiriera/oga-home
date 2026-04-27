@@ -313,6 +313,102 @@ abstract class AppLocalizations {
   /// **'Invitaciones'**
   String get homeInvitations;
 
+  /// No description provided for @homeGenerateInvite.
+  ///
+  /// In es, this message translates to:
+  /// **'Generar invitación'**
+  String get homeGenerateInvite;
+
+  /// No description provided for @inviteCreatedSheetTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Invitación lista'**
+  String get inviteCreatedSheetTitle;
+
+  /// No description provided for @inviteCreatedSheetSubtitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartí este enlace con quien querés sumar al hogar. También podés copiarlo o usar el menú de compartir del sistema.'**
+  String get inviteCreatedSheetSubtitle;
+
+  /// No description provided for @inviteCreatedExpires.
+  ///
+  /// In es, this message translates to:
+  /// **'Vence el {date}'**
+  String inviteCreatedExpires(String date);
+
+  /// No description provided for @inviteLinkCopy.
+  ///
+  /// In es, this message translates to:
+  /// **'Copiar enlace'**
+  String get inviteLinkCopy;
+
+  /// No description provided for @inviteLinkShare.
+  ///
+  /// In es, this message translates to:
+  /// **'Compartir'**
+  String get inviteLinkShare;
+
+  /// No description provided for @inviteCopiedToClipboard.
+  ///
+  /// In es, this message translates to:
+  /// **'Enlace copiado'**
+  String get inviteCopiedToClipboard;
+
+  /// No description provided for @inviteCreateErrorPermissionDenied.
+  ///
+  /// In es, this message translates to:
+  /// **'No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.'**
+  String get inviteCreateErrorPermissionDenied;
+
+  /// No description provided for @inviteCreateErrorGeneric.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo crear la invitación: {message}'**
+  String inviteCreateErrorGeneric(String message);
+
+  /// No description provided for @invitesListTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Invitaciones'**
+  String get invitesListTitle;
+
+  /// No description provided for @invitesEmptyTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay invitaciones pendientes'**
+  String get invitesEmptyTitle;
+
+  /// No description provided for @invitesEmptyDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Generá un enlace para invitar a alguien a unirse a este hogar.'**
+  String get invitesEmptyDescription;
+
+  /// No description provided for @invitesPendingIntro.
+  ///
+  /// In es, this message translates to:
+  /// **'Invitaciones pendientes para sumar miembros al hogar.'**
+  String get invitesPendingIntro;
+
+  /// No description provided for @invitesExpiresLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Vence: {date}'**
+  String invitesExpiresLabel(String date);
+
+  /// No description provided for @invitesNoSession.
+  ///
+  /// In es, this message translates to:
+  /// **'Sin sesión'**
+  String get invitesNoSession;
+
+  /// No description provided for @invitesNeedFamily.
+  ///
+  /// In es, this message translates to:
+  /// **'Primero creá o unite a un hogar.'**
+  String get invitesNeedFamily;
+
   /// No description provided for @homeActiveHousehold.
   ///
   /// In es, this message translates to:
