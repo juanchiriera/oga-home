@@ -43,10 +43,14 @@ class FamilyAssistantPage extends StatelessWidget {
                 : sanctuaryAppBar(
                     context,
                     title: 'Asistente',
-                    leading: IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Cerrar',
-                      onPressed: onClose,
+                    leading: Semantics(
+                      button: true,
+                      label: 'Cerrar asistente',
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
+                        onPressed: onClose,
+                      ),
                     ),
                   ),
             body: const Center(child: CircularProgressIndicator()),
@@ -61,10 +65,14 @@ class FamilyAssistantPage extends StatelessWidget {
               title: 'Asistente',
               leading: onClose == null
                   ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Cerrar',
-                      onPressed: onClose,
+                  : Semantics(
+                      button: true,
+                      label: 'Cerrar asistente',
+                      child: IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
+                        onPressed: onClose,
+                      ),
                     ),
             ),
             body: Center(
@@ -298,13 +306,14 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _streamBuffer = null;
     });
     _controller.clear();
-    _messageBuffer.queue(
-      localMessage.text,
-      clientMessageId: localMessage.clientMessageId,
-    );
+    _messageBuffer.queue(localMessage.text);
   }
 
   Future<void> _sendBufferedBatch(BufferedAssistantBatch batch) async {
+    final bufferedMessageIds = _localMessages
+        .where((m) => m.status == _LocalUserMessageStatus.pending)
+        .map((m) => m.clientMessageId)
+        .toList(growable: false);
     if (!mounted) return;
     setState(() {
       _sending = true;
@@ -313,7 +322,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
     if (idToken == null) {
       if (mounted) {
-        _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
+        _markLocalMessageStatuses(
+          bufferedMessageIds,
+          _LocalUserMessageStatus.failed,
+        );
         setState(() => _sending = false);
         ScaffoldMessenger.of(
           context,
@@ -363,19 +375,28 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
           if (threadId != null && threadId.isNotEmpty && mounted) {
             setState(() => _activeThreadId = threadId);
           }
-          _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.sent);
+          _markLocalMessageStatuses(
+            bufferedMessageIds,
+            _LocalUserMessageStatus.sent,
+          );
         } else if (t == 'delta') {
           final piece = map['text'] as String? ?? '';
           if (piece.isEmpty) {
             continue;
           }
-          _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.sent);
+          _markLocalMessageStatuses(
+            bufferedMessageIds,
+            _LocalUserMessageStatus.sent,
+          );
           streamAccum += piece;
           if (mounted) {
             setState(() => _streamBuffer = streamAccum);
           }
         } else if (t == 'error') {
-          _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
+          _markLocalMessageStatuses(
+            bufferedMessageIds,
+            _LocalUserMessageStatus.failed,
+          );
           final m = map['message'] as String? ?? 'Error del asistente';
           if (mounted) {
             setState(() => _streamBuffer = null);
@@ -393,7 +414,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       }
     } on SocketException {
       if (mounted) {
-        _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
+        _markLocalMessageStatuses(
+          bufferedMessageIds,
+          _LocalUserMessageStatus.failed,
+        );
         setState(() => _streamBuffer = null);
         ScaffoldMessenger.of(
           context,
@@ -401,7 +425,10 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       }
     } catch (e) {
       if (mounted) {
-        _markBatchLocalMessageStatus(batch, _LocalUserMessageStatus.failed);
+        _markLocalMessageStatuses(
+          bufferedMessageIds,
+          _LocalUserMessageStatus.failed,
+        );
         setState(() => _streamBuffer = null);
         ScaffoldMessenger.of(
           context,
@@ -431,11 +458,11 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     });
   }
 
-  void _markBatchLocalMessageStatus(
-    BufferedAssistantBatch batch,
+  void _markLocalMessageStatuses(
+    List<String> clientMessageIds,
     _LocalUserMessageStatus status,
   ) {
-    for (final clientMessageId in batch.clientMessageIds) {
+    for (final clientMessageId in clientMessageIds) {
       _markLocalMessageStatus(clientMessageId, status);
     }
   }
@@ -556,16 +583,24 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         title: 'Asistente',
         leading: widget.onClose == null
             ? null
-            : IconButton(
-                icon: const Icon(Icons.close),
-                tooltip: 'Cerrar',
-                onPressed: widget.onClose,
+            : Semantics(
+                button: true,
+                label: 'Cerrar asistente',
+                child: IconButton(
+                  icon: const Icon(Icons.close),
+                  tooltip: 'Cerrar',
+                  onPressed: widget.onClose,
+                ),
               ),
         actions: [
-          IconButton(
-            tooltip: 'Conversaciones',
-            icon: const Icon(Icons.history),
-            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+          Semantics(
+            button: true,
+            label: 'Abrir historial de conversaciones',
+            child: IconButton(
+              tooltip: 'Conversaciones',
+              icon: const Icon(Icons.history),
+              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+            ),
           ),
         ],
       ),
@@ -730,22 +765,32 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  FilledButton(
-                    onPressed: offline || _sending ? null : _send,
-                    style: FilledButton.styleFrom(
-                      shape: const CircleBorder(),
-                      padding: const EdgeInsets.all(14),
+                  Semantics(
+                    button: true,
+                    enabled: !offline && !_sending,
+                    label: _sending
+                        ? 'Enviando mensaje'
+                        : 'Enviar mensaje al asistente',
+                    child: Tooltip(
+                      message: _sending ? 'Enviando mensaje' : 'Enviar mensaje',
+                      child: FilledButton(
+                        onPressed: offline || _sending ? null : _send,
+                        style: FilledButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(14),
+                        ),
+                        child: _sending
+                            ? SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: scheme.onPrimary,
+                                ),
+                              )
+                            : const Icon(Icons.send_rounded),
+                      ),
                     ),
-                    child: _sending
-                        ? SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: scheme.onPrimary,
-                            ),
-                          )
-                        : const Icon(Icons.send_rounded),
                   ),
                 ],
               ),
@@ -855,7 +900,7 @@ class _MessagesList extends StatelessWidget {
                         )
                       : AssistantMarkdownMessage(
                           text: text,
-                          textColor: scheme.onSurfaceVariant,
+                          textColor: scheme.onSurface,
                         ),
                 ),
               );
@@ -916,11 +961,7 @@ class _MessagesList extends StatelessWidget {
                               ? 'Enviando...'
                               : 'Enviado',
                           style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(
-                                color: scheme.onPrimaryContainer.withValues(
-                                  alpha: 0.78,
-                                ),
-                              ),
+                              ?.copyWith(color: scheme.onPrimaryContainer),
                         ),
                     ],
                   ),
@@ -960,7 +1001,7 @@ class _MessagesList extends StatelessWidget {
                       Text(
                         'IA escribiendo...',
                         style: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(color: scheme.onSurfaceVariant),
+                            ?.copyWith(color: scheme.onSurface),
                       ),
                     ],
                   ),
@@ -989,7 +1030,7 @@ class _MessagesList extends StatelessWidget {
                   ),
                   child: AssistantMarkdownMessage(
                     text: streamingReply!,
-                    textColor: scheme.onSurfaceVariant,
+                    textColor: scheme.onSurface,
                   ),
                 ),
               ),
