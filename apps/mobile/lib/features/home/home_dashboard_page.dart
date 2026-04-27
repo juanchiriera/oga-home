@@ -16,6 +16,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
+/// Resolves visible title from `families/{id}` document fields (`name`).
+String familyDisplayNameFromFirestoreFields(
+  Map<String, dynamic>? fields,
+  String unnamedLabel,
+) {
+  final raw = (fields?['name'] as String?)?.trim();
+  if (raw == null || raw.isEmpty) return unnamedLabel;
+  return raw;
+}
+
 class HomeDashboardPage extends StatefulWidget {
   const HomeDashboardPage({super.key, required this.flavor});
 
@@ -293,6 +303,15 @@ class _HomeFamilyOverview extends StatelessWidget {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: familyRef.snapshots(),
       builder: (context, familySnap) {
+        final familyDoc = familySnap.data;
+        final householdLabel = !familySnap.hasData || familyDoc == null
+            ? '\u2026'
+            : (!familyDoc.exists
+                  ? l10n.homeUnnamedItem
+                  : familyDisplayNameFromFirestoreFields(
+                      familyDoc.data(),
+                      l10n.homeUnnamedItem,
+                    ));
         final baseCurrency = normalizeCurrency(
           familySnap.data?.data()?['baseCurrency'] as String?,
           fallback: 'ARS',
@@ -391,7 +410,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             SelectableText(
-                              familyId,
+                              householdLabel,
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
