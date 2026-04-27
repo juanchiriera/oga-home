@@ -49,6 +49,28 @@ void main() {
     });
   });
 
+  group('truncateNoteContentForPreview', () {
+    test('returns short text unchanged', () {
+      expect(truncateNoteContentForPreview('hola'), 'hola');
+      expect(truncateNoteContentForPreview(''), '');
+    });
+
+    test('truncates long ASCII with ellipsis', () {
+      final long = 'x' * (kSharedNotePreviewMaxChars + 50);
+      final out = truncateNoteContentForPreview(long);
+      expect(out.endsWith('…'), isTrue);
+      expect(out.length, lessThan(long.length));
+    });
+
+    test('preserves whole emoji when truncating after ascii prefix', () {
+      const emoji = '😀';
+      final s = '${'a' * 10}$emoji$emoji';
+      final out = truncateNoteContentForPreview(s, maxChars: 11);
+      expect(out, 'aaaaaaaaaa😀…');
+      expect(out.contains('\uFFFD'), isFalse);
+    });
+  });
+
   group('NoteMarkdownContent', () {
     testWidgets('renders plain text without markdown widget', (tester) async {
       await tester.pumpWidget(
