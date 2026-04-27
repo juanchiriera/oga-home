@@ -31,6 +31,21 @@ Uri? safeNoteLinkUri(String? href) {
   return null;
 }
 
+/// Max grapheme clusters for floating preview; full content opens in the editor.
+const int kSharedNotePreviewMaxChars = 3200;
+
+/// Truncates note body for preview sheets without splitting grapheme clusters.
+String truncateNoteContentForPreview(
+  String content, {
+  int maxChars = kSharedNotePreviewMaxChars,
+}) {
+  final t = content.trimRight();
+  if (t.isEmpty) return t;
+  final chars = t.characters;
+  if (chars.length <= maxChars) return t;
+  return '${chars.take(maxChars).toString().trimRight()}…';
+}
+
 class NoteMarkdownContent extends StatelessWidget {
   const NoteMarkdownContent({
     super.key,
