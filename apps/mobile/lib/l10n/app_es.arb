@@ -127,6 +127,7 @@
   "revenueCatTitle": "RevenueCat UI",
   "revenueCatDescription": "Paywall y centro de cliente configurados en RevenueCat.",
   "revenueCatPaywall": "Paywall",
+  "revenueCatOpenPaywallPayment": "Pagar suscripción (sandbox)",
   "revenueCatCustomerCenter": "Centro de cliente",
   "revenueCatPaywallError": "Paywall: {error}",
   "@revenueCatPaywallError": {

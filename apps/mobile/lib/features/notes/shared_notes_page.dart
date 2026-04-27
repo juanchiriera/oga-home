@@ -2,8 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/notes/family_links_page.dart';
 import 'package:craftr_mobile/features/notes/shared_note_editor_page.dart';
+import 'package:craftr_mobile/features/notes/shared_note_preview_page.dart';
 import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
-import 'package:craftr_mobile/features/notes/widgets/shared_note_preview_sheet.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -174,16 +174,11 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _NoteCard(
                           doc: doc,
-                          onOpenPreview: () {
-                            final data = doc.data();
-                            showSharedNotePreviewSheet(
-                              context,
-                              title: data['title'] as String? ?? '(sin título)',
-                              content: data['content'] as String? ?? '',
-                              onOpenFullDetail: () =>
-                                  _openNoteEditor(context, noteDoc: doc),
-                            );
-                          },
+                          onOpen: () => _openNotePreview(
+                            context,
+                            familyId: familyId,
+                            noteDoc: doc,
+                          ),
                           onEdit: () => _openNoteEditor(context, noteDoc: doc),
                           onDelete: () => _deleteNote(context, doc.reference),
                         ),
@@ -194,6 +189,27 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
             },
           );
         },
+      ),
+    );
+  }
+
+  Future<void> _openNotePreview(
+    BuildContext context, {
+    required String familyId,
+    required QueryDocumentSnapshot<Map<String, dynamic>> noteDoc,
+  }) async {
+    if (!context.mounted) {
+      return;
+    }
+    final data = noteDoc.data();
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (ctx) => SharedNotePreviewPage(
+          familyId: familyId,
+          noteRef: noteDoc.reference,
+          title: data['title'] as String? ?? '(sin título)',
+          content: data['content'] as String? ?? '',
+        ),
       ),
     );
   }
@@ -264,13 +280,13 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
 class _NoteCard extends StatelessWidget {
   const _NoteCard({
     required this.doc,
-    required this.onOpenPreview,
+    required this.onOpen,
     required this.onEdit,
     required this.onDelete,
   });
 
   final QueryDocumentSnapshot<Map<String, dynamic>> doc;
-  final VoidCallback onOpenPreview;
+  final VoidCallback onOpen;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -296,7 +312,7 @@ class _NoteCard extends StatelessWidget {
               label: 'Vista previa de nota: $title',
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTap: onOpenPreview,
+                onTap: onOpen,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

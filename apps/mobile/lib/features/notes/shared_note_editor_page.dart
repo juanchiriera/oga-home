@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
 import 'package:flutter/material.dart';
 
 /// Full-screen editor for a shared family note (aligned with recipe detail flow).
@@ -28,6 +27,44 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
   bool _saving = false;
+
+  /// Bordes casi rectos: el tema global usa pastillas (radius 999) poco aptas
+  /// para bloques de texto largos.
+  InputDecoration _noteEditorFieldDecoration(
+    BuildContext context, {
+    String? labelText,
+    String? hintText,
+    bool alignLabelWithHint = false,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(25);
+    final outlineColor = scheme.outline;
+
+    OutlineInputBorder shape({Color? borderColor, double width = 1}) {
+      return OutlineInputBorder(
+        borderRadius: radius,
+        borderSide: BorderSide(
+          color: borderColor ?? outlineColor,
+          width: width,
+        ),
+      );
+    }
+
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      alignLabelWithHint: alignLabelWithHint,
+      filled: true,
+      fillColor: scheme.surfaceContainerHighest,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: shape(),
+      enabledBorder: shape(borderColor: outlineColor.withValues(alpha: 0.55)),
+      focusedBorder: shape(borderColor: scheme.primary, width: 2),
+      errorBorder: shape(borderColor: scheme.error),
+      focusedErrorBorder: shape(borderColor: scheme.error, width: 2),
+      disabledBorder: shape(borderColor: outlineColor.withValues(alpha: 0.35)),
+    );
+  }
 
   @override
   void initState() {
@@ -68,10 +105,7 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
             .collection('families')
             .doc(widget.familyId)
             .collection('sharedNotes')
-            .add({
-              ...payload,
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+            .add({...payload, 'createdAt': FieldValue.serverTimestamp()});
       } else {
         await widget.noteRef!.update(payload);
       }
@@ -79,9 +113,9 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo guardar: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('No se pudo guardar: $e')));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -129,10 +163,7 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
             controller: _titleController,
             autofocus: widget.noteRef == null && widget.initialTitle.isEmpty,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
-              labelText: 'Título',
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(labelText: 'Título'),
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
             ),
@@ -151,49 +182,12 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
             maxLines: 24,
             keyboardType: TextInputType.multiline,
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(
+            decoration: _noteEditorFieldDecoration(
+              context,
               hintText: 'Markdown soportado: listas, negritas, links…',
               alignLabelWithHint: true,
-              border: OutlineInputBorder(),
             ),
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),
-          ),
-          const SizedBox(height: 20),
-          ExpansionTile(
-            title: Text(
-              'Vista previa',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            subtitle: Text(
-              'Así se verá la nota al leerla',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: AnimatedBuilder(
-                  animation: Listenable.merge([
-                    _titleController,
-                    _contentController,
-                  ]),
-                  builder: (context, _) {
-                    return NoteMarkdownContent(
-                      text: _contentController.text,
-                      textStyle: theme.textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurface,
-                        height: 1.45,
-                      ),
-                      linkColor: scheme.primary,
-                    );
-                  },
-                ),
-              ),
-            ],
           ),
         ],
       ),

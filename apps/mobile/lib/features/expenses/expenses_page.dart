@@ -699,6 +699,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ExpenseAmountCurrencyRow(
+                    // AlertDialog measures content with IntrinsicWidth; do not use
+                    // LayoutBuilder inside the row. Approximate dialog content width.
+                    availableWidth: (MediaQuery.sizeOf(ctx).width - 80).clamp(
+                      0.0,
+                      560.0,
+                    ),
                     amountController: amountController,
                     selectedCurrency: selectedCurrency,
                     baseCurrency: baseCurrency,
@@ -2279,11 +2285,17 @@ String _formatDate(DateTime value) {
 class ExpenseAmountCurrencyRow extends StatelessWidget {
   const ExpenseAmountCurrencyRow({
     super.key,
+    this.availableWidth,
     required this.amountController,
     required this.selectedCurrency,
     required this.baseCurrency,
     required this.onCurrencyChanged,
   });
+
+  /// When set (e.g. inside [AlertDialog]), used for responsive flex ratios.
+  /// Avoids [LayoutBuilder], which cannot answer intrinsic sizing that dialogs
+  /// use to size their content.
+  final double? availableWidth;
 
   final TextEditingController amountController;
   final String selectedCurrency;
@@ -2292,54 +2304,52 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 360;
-        final amountFlex = isCompact ? 3 : 5;
-        final currencyFlex = isCompact ? 2 : 3;
-        return Row(
-          key: const Key('expense-amount-currency-row'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: amountFlex,
-              child: TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                decoration: const InputDecoration(labelText: 'Monto *'),
-              ),
+    final width =
+        availableWidth ?? MediaQuery.sizeOf(context).width;
+    final isCompact = width < 360;
+    final amountFlex = isCompact ? 3 : 5;
+    final currencyFlex = isCompact ? 2 : 3;
+    return Row(
+      key: const Key('expense-amount-currency-row'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: amountFlex,
+          child: TextField(
+            controller: amountController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: currencyFlex,
-              child: DropdownButtonFormField<String>(
-                key: ValueKey<String>('expense-currency-$selectedCurrency'),
-                initialValue: selectedCurrency,
-                isExpanded: true,
-                decoration: InputDecoration(
-                  labelText: 'Moneda *',
-                  helperText: 'Base: $baseCurrency',
-                ),
-                items: kSupportedCurrencies
-                    .map(
-                      (currency) => DropdownMenuItem<String>(
-                        value: currency,
-                        child: Text(currency, overflow: TextOverflow.ellipsis),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    onCurrencyChanged(value);
-                  }
-                },
-              ),
+            decoration: const InputDecoration(labelText: 'Monto *'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: currencyFlex,
+          child: DropdownButtonFormField<String>(
+            key: ValueKey<String>('expense-currency-$selectedCurrency'),
+            initialValue: selectedCurrency,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: 'Moneda *',
+              helperText: 'Base: $baseCurrency',
             ),
-          ],
-        );
-      },
+            items: kSupportedCurrencies
+                .map(
+                  (currency) => DropdownMenuItem<String>(
+                    value: currency,
+                    child: Text(currency, overflow: TextOverflow.ellipsis),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              if (value != null) {
+                onCurrencyChanged(value);
+              }
+            },
+          ),
+        ),
+      ],
     );
   }
 }

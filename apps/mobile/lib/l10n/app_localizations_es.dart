@@ -251,6 +251,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get revenueCatPaywall => 'Paywall';
 
   @override
+  String get revenueCatOpenPaywallPayment => 'Pagar suscripción (sandbox)';
+
+  @override
   String get revenueCatCustomerCenter => 'Centro de cliente';
 
   @override
@@ -545,6 +548,9 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get revenueCatPaywall => 'Paywall';
+
+  @override
+  String get revenueCatOpenPaywallPayment => 'Pagar suscripción (sandbox)';
 
   @override
   String get revenueCatCustomerCenter => 'Centro de cliente';

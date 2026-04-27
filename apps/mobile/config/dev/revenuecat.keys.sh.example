@@ -5,6 +5,8 @@
 #    - App specific → Google Play (Android): suele empezar con goog_
 #    - App specific → App Store (iOS): suele empezar con appl_
 # 3. Ejecutá la app con: ./scripts/run_dev.sh
+#    (el script pasa BILLING_LIVE=true para habilitar RevenueCat en dev;
+#     para desactivarlo: export BILLING_LIVE=false).
 #
 # `revenuecat.keys.sh` está en .gitignore; no lo subas al repo.
 

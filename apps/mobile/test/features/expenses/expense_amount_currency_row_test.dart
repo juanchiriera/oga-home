@@ -19,6 +19,7 @@ void main() {
                 child: StatefulBuilder(
                   builder: (context, setState) {
                     return ExpenseAmountCurrencyRow(
+                      availableWidth: 320,
                       amountController: amountController,
                       selectedCurrency: selectedCurrency,
                       baseCurrency: 'ARS',

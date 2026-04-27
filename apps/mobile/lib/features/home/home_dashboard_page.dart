@@ -926,19 +926,18 @@ class _RevenueCatUiActions extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilledButton.tonal(
-                onPressed: () => _presentPaywall(context),
-                child: Text(l10n.revenueCatPaywall),
-              ),
-              OutlinedButton(
-                onPressed: () => _presentCustomerCenter(context),
-                child: Text(l10n.revenueCatCustomerCenter),
-              ),
-            ],
+          FilledButton.icon(
+            icon: const Icon(Icons.payment_rounded),
+            label: Text(l10n.revenueCatOpenPaywallPayment),
+            onPressed: () => _presentPaywall(context),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton(
+              onPressed: () => _presentCustomerCenter(context),
+              child: Text(l10n.revenueCatCustomerCenter),
+            ),
           ),
         ],
       ),

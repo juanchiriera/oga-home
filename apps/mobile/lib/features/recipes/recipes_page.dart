@@ -639,11 +639,6 @@ class _RecipePreviewScaffold extends StatelessWidget {
             favorita: draft.favorita,
           ),
           const SizedBox(height: 12),
-          Text(
-            'Solo lectura',
-            style: theme.textTheme.labelMedium,
-            textAlign: TextAlign.end,
-          ),
         ],
       ),
     );

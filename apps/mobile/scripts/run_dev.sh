@@ -20,6 +20,12 @@ flutter_args=(
   --dart-define=FLAVOR=dev
 )
 
+# Sandbox / RevenueCat: el SDK y el paywall solo arrancan con BILLING_LIVE=true
+# (ver [lib/core/monetization.dart]). Desactivar: export BILLING_LIVE=false antes de ejecutar.
+if [[ "${BILLING_LIVE:-true}" != "false" ]]; then
+  flutter_args+=(--dart-define=BILLING_LIVE=true)
+fi
+
 if [[ -n "${REVENUECAT_ANDROID_API_KEY:-}" ]]; then
   flutter_args+=(--dart-define="REVENUECAT_ANDROID_API_KEY=${REVENUECAT_ANDROID_API_KEY}")
 fi

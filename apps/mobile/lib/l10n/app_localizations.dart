@@ -529,6 +529,12 @@ abstract class AppLocalizations {
   /// **'Paywall'**
   String get revenueCatPaywall;
 
+  /// No description provided for @revenueCatOpenPaywallPayment.
+  ///
+  /// In es, this message translates to:
+  /// **'Pagar suscripción (sandbox)'**
+  String get revenueCatOpenPaywallPayment;
+
   /// No description provided for @revenueCatCustomerCenter.
   ///
   /// In es, this message translates to:

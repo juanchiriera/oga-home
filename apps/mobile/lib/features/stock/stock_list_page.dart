@@ -33,6 +33,12 @@ enum StockViewFilter {
     StockViewFilter.inStock => 'En stock',
     StockViewFilter.missing => 'Falta comprar',
   };
+
+  String get compactLabel => switch (this) {
+    StockViewFilter.all => 'Todos',
+    StockViewFilter.inStock => 'Stock',
+    StockViewFilter.missing => 'Falta',
+  };
 }
 
 class StockListPage extends StatefulWidget {
@@ -466,15 +472,20 @@ class _StockListPageState extends State<StockListPage> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
+                      SizedBox(
+                        width: double.infinity,
                         child: SegmentedButton<StockViewFilter>(
+                          expandedInsets: EdgeInsets.zero,
+                          style: const ButtonStyle(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           segments: StockViewFilter.values
                               .map(
                                 (filter) => ButtonSegment(
                                   value: filter,
                                   label: Text(
-                                    '${filter.label} (${counts[filter] ?? 0})',
+                                    '${filter.compactLabel} ${counts[filter] ?? 0}',
                                   ),
                                 ),
                               )
