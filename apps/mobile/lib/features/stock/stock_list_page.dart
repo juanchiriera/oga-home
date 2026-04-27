@@ -25,9 +25,10 @@ enum StockLevel {
   /// Punto de estado en listas: rojo (no hay), amarillo (queda poco), verde (hay).
   Color indicatorDotColor(ColorScheme scheme) => switch (this) {
     StockLevel.out => scheme.error,
-    StockLevel.low => scheme.brightness == Brightness.dark
-        ? const Color(0xFFFFE082)
-        : const Color(0xFFF9A825),
+    StockLevel.low =>
+      scheme.brightness == Brightness.dark
+          ? const Color(0xFFFFE082)
+          : const Color(0xFFF9A825),
     StockLevel.hay => scheme.secondary,
   };
 }
@@ -318,250 +319,255 @@ class _StockListPageState extends State<StockListPage> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: sanctuaryAppBar(context),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .snapshots(includeMetadataChanges: true),
-        builder: (context, userSnap) {
-          if (!userSnap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final familyId = userSnap.data!.data()?['activeFamilyId'] as String?;
-          if (familyId == null || familyId.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: kSanctuaryScreenPadding,
-                child: Text(
-                  'Creá o elegí un hogar para ver la despensa.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge,
+      body: SanctuaryScrollUnderAppBarFade(
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .snapshots(includeMetadataChanges: true),
+          builder: (context, userSnap) {
+            if (!userSnap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final familyId =
+                userSnap.data!.data()?['activeFamilyId'] as String?;
+            if (familyId == null || familyId.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: kSanctuaryScreenPadding,
+                  child: Text(
+                    'Creá o elegí un hogar para ver la despensa.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyLarge,
+                  ),
                 ),
-              ),
-            );
-          }
-          final familyRef = FirebaseFirestore.instance
-              .collection('families')
-              .doc(familyId);
-          return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: familyRef.snapshots(includeMetadataChanges: true),
-            builder: (context, familySnap) {
-              if (!familySnap.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              final includeLow = StockListPage._readIncludeLow(
-                familySnap.data?.data(),
               );
-              final base = familyRef.collection('stockItems');
-              final Query<Map<String, dynamic>> query = base.orderBy('name');
-              return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: query.snapshots(includeMetadataChanges: true),
-                builder: (context, q) {
-                  if (!q.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  final docs = q.data!.docs;
-                  final parsed = docs
-                      .map(
-                        (d) => (
-                          doc: d,
-                          name: d.data()['name'] as String? ?? '(sin nombre)',
-                          level: StockLevel.parse(d.data()['state'] as String?),
-                        ),
-                      )
-                      .toList();
-                  final counts = StockListPage.buildFilterCounts(
-                    parsed.map((item) => item.level),
-                    includeLow: includeLow,
-                  );
-                  final qLower = _query.toLowerCase();
-                  final filterOnly = parsed
-                      .where(
-                        (item) => StockListPage.matchesFilter(
-                          item.level,
-                          filter: _selectedFilter,
-                          includeLow: includeLow,
-                        ),
-                      )
-                      .toList();
-                  final filtered = qLower.isEmpty
-                      ? filterOnly
-                      : filterOnly
-                            .where(
-                              (item) =>
-                                  item.name.toLowerCase().contains(qLower),
-                            )
-                            .toList();
-                  final hasItems = filtered.isNotEmpty;
+            }
+            final familyRef = FirebaseFirestore.instance
+                .collection('families')
+                .doc(familyId);
+            return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              stream: familyRef.snapshots(includeMetadataChanges: true),
+              builder: (context, familySnap) {
+                if (!familySnap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final includeLow = StockListPage._readIncludeLow(
+                  familySnap.data?.data(),
+                );
+                final base = familyRef.collection('stockItems');
+                final Query<Map<String, dynamic>> query = base.orderBy('name');
+                return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: query.snapshots(includeMetadataChanges: true),
+                  builder: (context, q) {
+                    if (!q.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final docs = q.data!.docs;
+                    final parsed = docs
+                        .map(
+                          (d) => (
+                            doc: d,
+                            name: d.data()['name'] as String? ?? '(sin nombre)',
+                            level: StockLevel.parse(
+                              d.data()['state'] as String?,
+                            ),
+                          ),
+                        )
+                        .toList();
+                    final counts = StockListPage.buildFilterCounts(
+                      parsed.map((item) => item.level),
+                      includeLow: includeLow,
+                    );
+                    final qLower = _query.toLowerCase();
+                    final filterOnly = parsed
+                        .where(
+                          (item) => StockListPage.matchesFilter(
+                            item.level,
+                            filter: _selectedFilter,
+                            includeLow: includeLow,
+                          ),
+                        )
+                        .toList();
+                    final filtered = qLower.isEmpty
+                        ? filterOnly
+                        : filterOnly
+                              .where(
+                                (item) =>
+                                    item.name.toLowerCase().contains(qLower),
+                              )
+                              .toList();
+                    final hasItems = filtered.isNotEmpty;
 
-                  return ListView(
-                    padding: EdgeInsets.fromLTRB(
-                      24,
-                      MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
-                      24,
-                      sanctuaryScrollBottomPadding(context),
-                    ),
-                    children: [
-                      Text(
-                        'Despensa y stock',
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.4,
-                        ),
+                    return ListView(
+                      padding: EdgeInsets.fromLTRB(
+                        24,
+                        MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                        24,
+                        sanctuaryScrollBottomPadding(context),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Gestioná lo que falta comprar y el estado de cada ítem.',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.45,
+                      children: [
+                        Text(
+                          'Despensa y stock',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.4,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 20),
-                      DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: scheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(999),
-                          boxShadow: [
-                            BoxShadow(
-                              color: scheme.shadow.withValues(alpha: 0.04),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Gestioná lo que falta comprar y el estado de cada ítem.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: scheme.shadow.withValues(alpha: 0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (v) => setState(() => _query = v.trim()),
+                            decoration: InputDecoration(
+                              hintText: 'Buscar en la despensa…',
+                              prefixIcon: Icon(
+                                Icons.search_rounded,
+                                color: scheme.outline,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _StockSyncBanner(snapshot: q.data!),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _selectedFilter.label,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.tune_rounded),
+                              tooltip: 'Ajustes de stock',
+                              onPressed: () => StockListPage._showSettings(
+                                context,
+                                familyRef: familyRef,
+                                includeLow: includeLow,
+                              ),
                             ),
                           ],
                         ),
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (v) => setState(() => _query = v.trim()),
-                          decoration: InputDecoration(
-                            hintText: 'Buscar en la despensa…',
-                            prefixIcon: Icon(
-                              Icons.search_rounded,
-                              color: scheme.outline,
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
-                            ),
+                        const SizedBox(height: 4),
+                        Text(
+                          includeLow
+                              ? 'Falta comprar incluye: no hay + queda poco'
+                              : 'Falta comprar incluye: solo no hay',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      _StockSyncBanner(snapshot: q.data!),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _selectedFilter.label,
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<StockViewFilter>(
+                            expandedInsets: EdgeInsets.zero,
+                            style: const ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.tune_rounded),
-                            tooltip: 'Ajustes de stock',
-                            onPressed: () => StockListPage._showSettings(
-                              context,
-                              familyRef: familyRef,
-                              includeLow: includeLow,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        includeLow
-                            ? 'Falta comprar incluye: no hay + queda poco'
-                            : 'Falta comprar incluye: solo no hay',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: SegmentedButton<StockViewFilter>(
-                          expandedInsets: EdgeInsets.zero,
-                          style: const ButtonStyle(
-                            visualDensity: VisualDensity.compact,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          segments: StockViewFilter.values
-                              .map(
-                                (filter) => ButtonSegment(
-                                  value: filter,
-                                  label: Text(
-                                    '${filter.compactLabel} ${counts[filter] ?? 0}',
+                            segments: StockViewFilter.values
+                                .map(
+                                  (filter) => ButtonSegment(
+                                    value: filter,
+                                    label: Text(
+                                      '${filter.compactLabel} ${counts[filter] ?? 0}',
+                                    ),
                                   ),
+                                )
+                                .toList(),
+                            selected: {_selectedFilter},
+                            onSelectionChanged: (selection) {
+                              setState(() => _selectedFilter = selection.first);
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (!hasItems)
+                          CozyCard(
+                            child: Text(
+                              _query.isEmpty
+                                  ? switch (_selectedFilter) {
+                                      StockViewFilter.all =>
+                                        'No hay ítems en stock.',
+                                      StockViewFilter.inStock =>
+                                        'No hay ítems en stock.',
+                                      StockViewFilter.missing =>
+                                        'Nada pendiente para comprar.',
+                                    }
+                                  : 'No hay coincidencias para “$_query”.',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          )
+                        else
+                          ...filtered.map((item) {
+                            final d = item.doc;
+                            final name = item.name;
+                            final level = item.level;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: StockItemTile(
+                                name: name,
+                                level: level,
+                                onTap: () => StockListPage._editItem(
+                                  context,
+                                  familyId,
+                                  d.id,
+                                  name,
+                                  level,
                                 ),
-                              )
-                              .toList(),
-                          selected: {_selectedFilter},
-                          onSelectionChanged: (selection) {
-                            setState(() => _selectedFilter = selection.first);
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (!hasItems)
-                        CozyCard(
-                          child: Text(
-                            _query.isEmpty
-                                ? switch (_selectedFilter) {
-                                    StockViewFilter.all =>
-                                      'No hay ítems en stock.',
-                                    StockViewFilter.inStock =>
-                                      'No hay ítems en stock.',
-                                    StockViewFilter.missing =>
-                                      'Nada pendiente para comprar.',
-                                  }
-                                : 'No hay coincidencias para “$_query”.',
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        )
-                      else
-                        ...filtered.map((item) {
-                          final d = item.doc;
-                          final name = item.name;
-                          final level = item.level;
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: StockItemTile(
-                              name: name,
-                              level: level,
-                              onTap: () => StockListPage._editItem(
-                                context,
-                                familyId,
-                                d.id,
-                                name,
-                                level,
+                                onDelete: () => base.doc(d.id).delete(),
                               ),
-                              onDelete: () => base.doc(d.id).delete(),
-                            ),
-                          );
-                        }),
-                      if (_query.isEmpty &&
-                          filtered.length != filterOnly.length)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            'Mostrando ${filtered.length} de ${filterOnly.length} '
-                            'en ${_selectedFilter.label.toLowerCase()}.',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: scheme.onSurfaceVariant,
+                            );
+                          }),
+                        if (_query.isEmpty &&
+                            filtered.length != filterOnly.length)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              'Mostrando ${filtered.length} de ${filterOnly.length} '
+                              'en ${_selectedFilter.label.toLowerCase()}.',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  );
-                },
-              );
-            },
-          );
-        },
+                      ],
+                    );
+                  },
+                );
+              },
+            );
+          },
+        ),
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(

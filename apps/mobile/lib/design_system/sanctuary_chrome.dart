@@ -10,6 +10,97 @@ const EdgeInsets kSanctuaryScreenPadding = EdgeInsets.symmetric(horizontal: 24);
 double sanctuaryScrollBottomPadding(BuildContext context) =>
     108 + MediaQuery.paddingOf(context).bottom;
 
+/// Vertical extent where list content scrolls under [sanctuaryAppBar].
+double sanctuaryAppBarScrollFadeHeight(BuildContext context) =>
+    MediaQuery.paddingOf(context).top + kToolbarHeight + 24;
+
+/// Soft mask so scrolled content fades under the frosted app bar.
+class SanctuaryScrollUnderAppBarFade extends StatelessWidget {
+  const SanctuaryScrollUnderAppBarFade({
+    super.key,
+    required this.child,
+    this.fadeHeight,
+  });
+
+  final Widget child;
+  final double? fadeHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final h = fadeHeight ?? sanctuaryAppBarScrollFadeHeight(context);
+    final base = Theme.of(context).scaffoldBackgroundColor;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        child,
+        Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            height: h,
+            width: double.infinity,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color.lerp(
+                        base,
+                        scheme.surface,
+                        0.35,
+                      )!.withValues(alpha: 1),
+                      base.withValues(alpha: 0.5),
+                      base.withValues(alpha: 0),
+                    ],
+                    stops: const [0.2, 0.57, 1.0],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Gradient above the bottom [NavigationBar]: content tucks behind while scrolling.
+class SanctuaryNavBarScrollFade extends StatelessWidget {
+  const SanctuaryNavBarScrollFade({super.key});
+
+  static const double height = 100;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).scaffoldBackgroundColor;
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  base,
+                  base.withValues(alpha: 0.88),
+                  base.withValues(alpha: 0),
+                ],
+                stops: const [0.0, 0.38, 1.0],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Shared FAB spacing token to keep distance from [SanctuaryBottomNav].
 const double kSanctuaryFabBottomOffset = 72;
 
@@ -23,7 +114,7 @@ double sanctuaryFabBottomInset(BuildContext context) {
 /// Frosted app bar matching dashboard / despensa / notas references.
 PreferredSizeWidget sanctuaryAppBar(
   BuildContext context, {
-  String title = 'Sanctuary',
+  String title = 'Oga',
   Widget? leading,
   List<Widget>? actions,
   bool centerTitle = true,
@@ -32,14 +123,31 @@ PreferredSizeWidget sanctuaryAppBar(
   return AppBar(
     leading: leading,
     automaticallyImplyLeading: leading == null,
-    title: Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-        fontStyle: FontStyle.italic,
-        fontWeight: FontWeight.w800,
-        color: scheme.primary,
-        letterSpacing: -0.5,
-      ),
+    title: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontStyle: FontStyle.normal,
+            fontWeight: FontWeight.w800,
+            color: scheme.primary,
+            letterSpacing: -0.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'the housekeeper',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            fontWeight: FontWeight.w500,
+            color: scheme.primary.withValues(alpha: 0.9),
+            letterSpacing: 0.3,
+            height: 1.0,
+          ),
+        ),
+      ],
     ),
     centerTitle: centerTitle,
     actions: actions,

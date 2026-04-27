@@ -1,5 +1,6 @@
 import 'package:craftr_mobile/core/flavor.dart';
 import 'package:craftr_mobile/core/entitlements_scope.dart';
+import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/expenses/expenses_page.dart';
 import 'package:craftr_mobile/features/assistant/family_assistant_page.dart';
 import 'package:craftr_mobile/features/home/home_dashboard_page.dart';
@@ -137,7 +138,13 @@ class _MainShellState extends State<MainShell> {
     final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
     return Scaffold(
-      body: IndexedStack(index: selectedIndex, children: pages),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          IndexedStack(index: selectedIndex, children: pages),
+          const SanctuaryNavBarScrollFade(),
+        ],
+      ),
       floatingActionButton: iaEnabled
           ? FloatingActionButton(
               onPressed: () => _openAssistantPanel(context),

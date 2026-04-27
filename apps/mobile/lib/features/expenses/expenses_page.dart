@@ -137,29 +137,32 @@ class _ExpensesPageState extends State<ExpensesPage> {
           ),
         ],
       ),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .snapshots(),
-        builder: (context, userSnap) {
-          if (userSnap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (userSnap.hasError) {
-            return _ErrorState(
-              onRetry: () => setState(() {}),
-              message: 'No se pudo cargar el hogar activo.',
-            );
-          }
-          final familyId = userSnap.data?.data()?['activeFamilyId'] as String?;
-          if (familyId == null || familyId.isEmpty) {
-            return const Center(
-              child: Text('Creá o elegí un hogar para registrar gastos.'),
-            );
-          }
-          return _ExpensesContent(familyId: familyId);
-        },
+      body: SanctuaryScrollUnderAppBarFade(
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .snapshots(),
+          builder: (context, userSnap) {
+            if (userSnap.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (userSnap.hasError) {
+              return _ErrorState(
+                onRetry: () => setState(() {}),
+                message: 'No se pudo cargar el hogar activo.',
+              );
+            }
+            final familyId =
+                userSnap.data?.data()?['activeFamilyId'] as String?;
+            if (familyId == null || familyId.isEmpty) {
+              return const Center(
+                child: Text('Creá o elegí un hogar para registrar gastos.'),
+              );
+            }
+            return _ExpensesContent(familyId: familyId);
+          },
+        ),
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(
@@ -464,7 +467,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       final picked = await showDatePicker(
                         context: ctx,
                         initialDate: firstMonth,
-                        firstDate: DateTime(DateTime.now().year, DateTime.now().month, 1),
+                        firstDate: DateTime(
+                          DateTime.now().year,
+                          DateTime.now().month,
+                          1,
+                        ),
                         lastDate: DateTime(2100),
                         helpText: 'Mes del primer cargo programado',
                       );
@@ -508,9 +515,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final nRaw = int.tryParse(installmentsController.text.trim());
     if (nRaw == null || nRaw < 2 || nRaw > 240) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Indicá entre 2 y 240 cuotas.'),
-        ),
+        const SnackBar(content: Text('Indicá entre 2 y 240 cuotas.')),
       );
       return;
     }
@@ -1924,13 +1929,13 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                     (t['amount'] as num?)?.toDouble() ?? 0;
                                 final total = t['totalInstallments'] as int?;
                                 final cur = t['currentInstallment'] as int?;
-                                final gen =
-                                    t['generationDay'] as String? ?? '';
+                                final gen = t['generationDay'] as String? ?? '';
                                 final merchant = t['merchant'] as String?;
                                 final note = t['note'] as String?;
                                 final createdBy =
                                     t['createdBy'] as String? ?? '';
-                                final title = (merchant != null &&
+                                final title =
+                                    (merchant != null &&
                                         merchant.trim().isNotEmpty)
                                     ? merchant.trim()
                                     : (note != null && note.trim().isNotEmpty
@@ -1961,16 +1966,15 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                           if (!active) 'Inactivo',
                                         ].join('\n'),
                                       ),
-                                      trailing: active &&
+                                      trailing:
+                                          active &&
                                               uid != null &&
                                               uid == createdBy
                                           ? TextButton(
                                               onPressed: () async {
-                                                final go =
-                                                    await showDialog<bool>(
+                                                final go = await showDialog<bool>(
                                                   context: context,
-                                                  builder: (ctx) =>
-                                                      AlertDialog(
+                                                  builder: (ctx) => AlertDialog(
                                                     title: const Text(
                                                       'Cancelar plan',
                                                     ),
@@ -1982,9 +1986,9 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                                       TextButton(
                                                         onPressed: () =>
                                                             Navigator.pop(
-                                                          ctx,
-                                                          false,
-                                                        ),
+                                                              ctx,
+                                                              false,
+                                                            ),
                                                         child: const Text(
                                                           'Volver',
                                                         ),
@@ -1992,9 +1996,9 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                                       FilledButton(
                                                         onPressed: () =>
                                                             Navigator.pop(
-                                                          ctx,
-                                                          true,
-                                                        ),
+                                                              ctx,
+                                                              true,
+                                                            ),
                                                         child: const Text(
                                                           'Detener plan',
                                                         ),
@@ -2010,14 +2014,14 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                                   await doc.reference.update({
                                                     'active': false,
                                                     'updatedAt':
-                                                        FieldValue
-                                                            .serverTimestamp(),
+                                                        FieldValue.serverTimestamp(),
                                                   });
                                                   if (!context.mounted) {
                                                     return;
                                                   }
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     const SnackBar(
                                                       content: Text(
                                                         'Plan detenido.',
@@ -2028,8 +2032,9 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                                   if (!context.mounted) {
                                                     return;
                                                   }
-                                                  ScaffoldMessenger.of(context)
-                                                      .showSnackBar(
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
                                                     const SnackBar(
                                                       content: Text(
                                                         'No se pudo actualizar '
@@ -2304,8 +2309,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width =
-        availableWidth ?? MediaQuery.sizeOf(context).width;
+    final width = availableWidth ?? MediaQuery.sizeOf(context).width;
     final isCompact = width < 360;
     final amountFlex = isCompact ? 3 : 5;
     final currencyFlex = isCompact ? 2 : 3;
@@ -2317,9 +2321,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
           flex: amountFlex,
           child: TextField(
             controller: amountController,
-            keyboardType: const TextInputType.numberWithOptions(
-              decimal: true,
-            ),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Monto *'),
           ),
         ),

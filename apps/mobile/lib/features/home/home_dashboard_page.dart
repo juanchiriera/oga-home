@@ -138,126 +138,132 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
           const SizedBox(width: 4),
         ],
       ),
-      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .snapshots(),
-        builder: (context, userSnap) {
-          if (!userSnap.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final data = userSnap.data!.data();
-          final familyId = data?['activeFamilyId'] as String?;
-          return ListView(
-            padding: EdgeInsets.fromLTRB(
-              24,
-              MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
-              24,
-              sanctuaryScrollBottomPadding(context),
-            ),
-            children: [
-              SanctuaryAssistantHero(
-                greetingLine: l10n.homeGreetingLine(
-                  _greetingPrefix(context),
-                  firstName,
-                ),
-                subtitle: familyId != null && familyId.isNotEmpty
-                    ? l10n.homeHeroSubtitleWithFamily
-                    : l10n.homeHeroSubtitleWithoutFamily,
+      body: SanctuaryScrollUnderAppBarFade(
+        child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .snapshots(),
+          builder: (context, userSnap) {
+            if (!userSnap.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final data = userSnap.data!.data();
+            final familyId = data?['activeFamilyId'] as String?;
+            return ListView(
+              padding: EdgeInsets.fromLTRB(
+                24,
+                MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                24,
+                sanctuaryScrollBottomPadding(context),
               ),
-              const SizedBox(height: 12),
-              Text(
-                widget.flavor.displayName,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: scheme.secondary,
-                  fontWeight: FontWeight.w600,
+              children: [
+                SanctuaryAssistantHero(
+                  greetingLine: l10n.homeGreetingLine(
+                    _greetingPrefix(context),
+                    firstName,
+                  ),
+                  subtitle: familyId != null && familyId.isNotEmpty
+                      ? l10n.homeHeroSubtitleWithFamily
+                      : l10n.homeHeroSubtitleWithoutFamily,
                 ),
-              ),
-              const SizedBox(height: 20),
-              if (MonetizationConfig.billingLive && _billingState != null)
-                FutureBuilder<_BillingUiState>(
-                  future: _billingState,
-                  builder: (context, snap) {
-                    final state = snap.data;
-                    if (snap.connectionState == ConnectionState.waiting &&
-                        state == null) {
-                      return CozyCard(
-                        color: scheme.surfaceContainer,
-                        child: Row(
-                          children: [
-                            const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(child: Text(l10n.homeLoadingSandboxPlans)),
-                          ],
-                        ),
-                      );
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _BillingStateCard(
-                          state: state ?? const _BillingUiState.error(),
-                          onRetry: _refreshBillingState,
-                        ),
-                        if (RevenueCatConfig.isConfigured) ...[
-                          const SizedBox(height: 10),
-                          _RevenueCatUiActions(),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              const SizedBox(height: 20),
-              if (familyId == null || familyId.isEmpty) ...[
-                CozyCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Text(
-                        l10n.homeFamilySpaceTitle,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: scheme.primary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.homeFamilySpaceDescription,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: scheme.onSurfaceVariant,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: () => context.push('/create-family'),
-                        child: Text(l10n.homeCreateFamily),
-                      ),
-                      const SizedBox(height: 10),
-                      OutlinedButton(
-                        onPressed: null,
-                        child: Text(l10n.homeInvitations),
-                      ),
-                    ],
+                const SizedBox(height: 12),
+                Text(
+                  widget.flavor.displayName,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: scheme.secondary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ] else
-                _HomeFamilyOverview(
-                  familyId: familyId,
-                  onOpenStock: () => context.go('/app?tab=stock'),
-                  onOpenExpenses: () => context.go('/app?tab=gastos'),
-                  onOpenNotes: () => context.go('/app?tab=notas'),
-                  onOpenRecipes: () => context.go('/app?tab=recetas'),
-                  onInvites: () => context.push('/invites'),
-                ),
-            ],
-          );
-        },
+                const SizedBox(height: 20),
+                if (MonetizationConfig.billingLive && _billingState != null)
+                  FutureBuilder<_BillingUiState>(
+                    future: _billingState,
+                    builder: (context, snap) {
+                      final state = snap.data;
+                      if (snap.connectionState == ConnectionState.waiting &&
+                          state == null) {
+                        return CozyCard(
+                          color: scheme.surfaceContainer,
+                          child: Row(
+                            children: [
+                              const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(l10n.homeLoadingSandboxPlans),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _BillingStateCard(
+                            state: state ?? const _BillingUiState.error(),
+                            onRetry: _refreshBillingState,
+                          ),
+                          if (RevenueCatConfig.isConfigured) ...[
+                            const SizedBox(height: 10),
+                            _RevenueCatUiActions(),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                const SizedBox(height: 20),
+                if (familyId == null || familyId.isEmpty) ...[
+                  CozyCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          l10n.homeFamilySpaceTitle,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: scheme.primary,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          l10n.homeFamilySpaceDescription,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            height: 1.45,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: () => context.push('/create-family'),
+                          child: Text(l10n.homeCreateFamily),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          onPressed: null,
+                          child: Text(l10n.homeInvitations),
+                        ),
+                      ],
+                    ),
+                  ),
+                ] else
+                  _HomeFamilyOverview(
+                    familyId: familyId,
+                    onOpenStock: () => context.go('/app?tab=stock'),
+                    onOpenExpenses: () => context.go('/app?tab=gastos'),
+                    onOpenNotes: () => context.go('/app?tab=notas'),
+                    onOpenRecipes: () => context.go('/app?tab=recetas'),
+                    onInvites: () => context.push('/invites'),
+                  ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -418,8 +424,10 @@ class _HomeFamilyOverview extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             FilledButton(
-                              onPressed: () =>
-                                  createAndShowFamilyInviteLink(context, familyId),
+                              onPressed: () => createAndShowFamilyInviteLink(
+                                context,
+                                familyId,
+                              ),
                               child: Text(l10n.homeGenerateInvite),
                             ),
                             const SizedBox(height: 10),
@@ -609,8 +617,8 @@ class _HomeFamilyOverview extends StatelessWidget {
                                         final level = StockLevel.parse(
                                           s['state'] as String?,
                                         );
-                                        final dotColor =
-                                            level.indicatorDotColor(scheme);
+                                        final dotColor = level
+                                            .indicatorDotColor(scheme);
                                         return Padding(
                                           padding: const EdgeInsets.only(
                                             bottom: 10,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 ThemeData craftrLightTheme() {
@@ -89,6 +90,17 @@ ThemeData _buildTheme(ColorScheme scheme) {
   final scaffoldSurface = scheme.brightness == Brightness.dark
       ? scheme.surfaceDim
       : scheme.surface;
+  final statusBarStyle = scheme.brightness == Brightness.light
+      ? const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        )
+      : const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        );
 
   return ThemeData(
     useMaterial3: true,
@@ -112,6 +124,7 @@ ThemeData _buildTheme(ColorScheme scheme) {
     appBarTheme: AppBarTheme(
       backgroundColor: scaffoldSurface.withValues(alpha: 0.9),
       foregroundColor: scheme.primary,
+      systemOverlayStyle: statusBarStyle,
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: true,
@@ -155,22 +168,35 @@ ThemeData _buildTheme(ColorScheme scheme) {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      indicatorColor: scheme.primary,
+      // Claro: indicador pastel + texto/ícono verde oscuro (evita blanco sobre crema).
+      // Oscuro: indicador primary + contraste existente.
+      indicatorColor: scheme.brightness == Brightness.light
+          ? scheme.secondaryContainer
+          : scheme.primary,
       backgroundColor: scaffoldSurface.withValues(alpha: 0.82),
       shadowColor: scheme.shadow.withValues(alpha: 0.22),
       surfaceTintColor: Colors.transparent,
       height: 84,
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
+        final Color selectedColor = scheme.brightness == Brightness.light
+            ? scheme.onSecondaryContainer
+            : scheme.primary;
+        final Color unselectedColor = scheme.brightness == Brightness.light
+            ? const Color(0xFF1B1D0E)
+            : scheme.onSurfaceVariant;
         return textTheme.labelSmall?.copyWith(
           fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-          color: selected ? scheme.primary : scheme.onSurfaceVariant,
+          color: selected ? selectedColor : unselectedColor,
         );
       }),
       iconTheme: WidgetStateProperty.resolveWith((states) {
         final selected = states.contains(WidgetState.selected);
+        final Color selectedColor = scheme.brightness == Brightness.light
+            ? scheme.onSecondaryContainer
+            : scheme.onPrimary;
         return IconThemeData(
-          color: selected ? scheme.onPrimary : scheme.onSurfaceVariant,
+          color: selected ? selectedColor : scheme.onSurfaceVariant,
         );
       }),
     ),

@@ -40,13 +40,15 @@ class _RecipesPageState extends State<RecipesPage> {
           return Scaffold(
             extendBodyBehindAppBar: true,
             appBar: sanctuaryAppBar(context),
-            body: Center(
-              child: Padding(
-                padding: kSanctuaryScreenPadding,
-                child: Text(
-                  'Creá o elegí un hogar para ver recetas.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge,
+            body: SanctuaryScrollUnderAppBarFade(
+              child: Center(
+                child: Padding(
+                  padding: kSanctuaryScreenPadding,
+                  child: Text(
+                    'Creá o elegí un hogar para ver recetas.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
                 ),
               ),
             ),
@@ -66,7 +68,9 @@ class _RecipesPageState extends State<RecipesPage> {
               return Scaffold(
                 extendBodyBehindAppBar: true,
                 appBar: sanctuaryAppBar(context),
-                body: const Center(child: CircularProgressIndicator()),
+                body: const SanctuaryScrollUnderAppBarFade(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               );
             }
             final docs = snap.data!.docs;
@@ -75,76 +79,79 @@ class _RecipesPageState extends State<RecipesPage> {
             return Scaffold(
               extendBodyBehindAppBar: true,
               appBar: sanctuaryAppBar(context),
-              body: ListView(
-                key: const PageStorageKey<String>('recipes-list'),
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
-                  24,
-                  sanctuaryScrollBottomPadding(context),
-                ),
-                children: [
-                  Text(
-                    'Recetario',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.4,
-                    ),
+              body: SanctuaryScrollUnderAppBarFade(
+                child: ListView(
+                  key: const PageStorageKey<String>('recipes-list'),
+                  padding: EdgeInsets.fromLTRB(
+                    24,
+                    MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                    24,
+                    sanctuaryScrollBottomPadding(context),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Tu colección de inspiraciones culinarias y tradiciones familiares.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
-                      height: 1.45,
+                  children: [
+                    Text(
+                      'Recetario',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.4,
+                          ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: ImportRecipeFromUrlButton(
-                      onPressed: () =>
-                          _importRecipeFromUrlFlow(context, familyId),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tu colección de inspiraciones culinarias y tradiciones familiares.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
                     ),
-                  ),
-                  _RecipesStatusBanner(snapshot: snap.data!),
-                  CozyCard(
-                    child: Text(
-                      'Guardá recetas con ingredientes, pasos y porciones.',
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: ImportRecipeFromUrlButton(
+                        onPressed: () =>
+                            _importRecipeFromUrlFlow(context, familyId),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (docs.isEmpty)
+                    _RecipesStatusBanner(snapshot: snap.data!),
                     CozyCard(
                       child: Text(
-                        'Todavía no hay recetas. Creá la primera.',
+                        'Guardá recetas con ingredientes, pasos y porciones.',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
-                  ...docs.map((doc) {
-                    final data = doc.data();
-                    final draft = RecipeDraft.fromFirestore(data);
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RecipeCard(
-                        draft: draft,
-                        onToggleFavorite: () =>
-                            _toggleFavorite(familyId, doc.id, data),
-                        onEdit: () => _openEditor(
-                          context,
-                          familyId: familyId,
-                          recipeId: doc.id,
-                          initial: draft,
+                    const SizedBox(height: 16),
+                    if (docs.isEmpty)
+                      CozyCard(
+                        child: Text(
+                          'Todavía no hay recetas. Creá la primera.',
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
-                        onOpenPreview: () =>
-                            _openPreview(context, familyId, doc.id),
-                        onDelete: () =>
-                            _deleteRecipe(context, familyId, doc.id, draft),
                       ),
-                    );
-                  }),
-                ],
+                    ...docs.map((doc) {
+                      final data = doc.data();
+                      final draft = RecipeDraft.fromFirestore(data);
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _RecipeCard(
+                          draft: draft,
+                          onToggleFavorite: () =>
+                              _toggleFavorite(familyId, doc.id, data),
+                          onEdit: () => _openEditor(
+                            context,
+                            familyId: familyId,
+                            recipeId: doc.id,
+                            initial: draft,
+                          ),
+                          onOpenPreview: () =>
+                              _openPreview(context, familyId, doc.id),
+                          onDelete: () =>
+                              _deleteRecipe(context, familyId, doc.id, draft),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
               ),
               floatingActionButton: Padding(
                 padding: EdgeInsets.only(
