@@ -171,7 +171,7 @@ export async function runAssistantOpenRouterWithTools(params: {
     buildSystemPromptText(),
     "Usá herramientas para datos reales; no inventes montos ni IDs.",
     "Flujos compuestos: encadená herramientas auto-ejecutables sin preguntar entre paso y paso.",
-    "Tu texto final va solo al usuario (útil y breve); no repitas bloque de trazabilidad porque el sistema agrega un resumen al pie.",
+    "Tu mensaje visible al usuario: máximo 2 oraciones, tono conversacional; no listes nombres de herramientas ni pasos internos.",
   ].join(" ");
 
   const messages: ChatMessageWithTools[] = [
@@ -257,7 +257,12 @@ export async function runAssistantOpenRouterWithTools(params: {
     if (!text) {
       return "No obtuve una respuesta clara del asistente.";
     }
-    return `${text}\n\n${buildPlannerTraceabilitySummary(planner)}`;
+    logger.info("assistantOpenRouterTools:planner_traceability", {
+      familyId: params.toolCtx.familyId,
+      conversationId: params.toolCtx.conversationId,
+      plannerTraceability: buildPlannerTraceabilitySummary(planner),
+    });
+    return text;
   }
 }
 
