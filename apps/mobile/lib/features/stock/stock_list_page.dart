@@ -23,6 +23,18 @@ enum StockLevel {
   }
 }
 
+enum StockViewFilter {
+  all,
+  inStock,
+  missing;
+
+  String get label => switch (this) {
+    StockViewFilter.all => 'Todos',
+    StockViewFilter.inStock => 'En stock',
+    StockViewFilter.missing => 'Falta comprar',
+  };
+}
+
 class StockListPage extends StatefulWidget {
   const StockListPage({super.key});
 
@@ -41,6 +53,44 @@ class StockListPage extends StatefulWidget {
     return stock['include_low'] == true;
   }
 
+  static bool isInStockLevel(StockLevel level) => level != StockLevel.out;
+
+  static bool isMissingLevel(StockLevel level, {required bool includeLow}) {
+    if (level == StockLevel.out) {
+      return true;
+    }
+    return includeLow && level == StockLevel.low;
+  }
+
+  static bool matchesFilter(
+    StockLevel level, {
+    required StockViewFilter filter,
+    required bool includeLow,
+  }) {
+    return switch (filter) {
+      StockViewFilter.all => true,
+      StockViewFilter.inStock => isInStockLevel(level),
+      StockViewFilter.missing => isMissingLevel(level, includeLow: includeLow),
+    };
+  }
+
+  static Map<StockViewFilter, int> buildFilterCounts(
+    Iterable<StockLevel> levels, {
+    required bool includeLow,
+  }) {
+    final counts = <StockViewFilter, int>{
+      for (final filter in StockViewFilter.values) filter: 0,
+    };
+    for (final level in levels) {
+      for (final filter in StockViewFilter.values) {
+        if (matchesFilter(level, filter: filter, includeLow: includeLow)) {
+          counts[filter] = (counts[filter] ?? 0) + 1;
+        }
+      }
+    }
+    return counts;
+  }
+
   static Future<void> _showSettings(
     BuildContext context, {
     required DocumentReference<Map<String, dynamic>> familyRef,
@@ -57,7 +107,9 @@ class StockListPage extends StatefulWidget {
               value: localIncludeLow,
               contentPadding: EdgeInsets.zero,
               title: const Text('Incluir "queda poco"'),
-              subtitle: const Text('También mostrar ítems low en Falta comprar'),
+              subtitle: const Text(
+                'También mostrar ítems low en Falta comprar',
+              ),
               onChanged: (value) => setLocal(() => localIncludeLow = value),
             ),
             actions: [
@@ -89,7 +141,10 @@ class StockListPage extends StatefulWidget {
     if (uid == null) {
       return;
     }
-    final user = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    final user = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
     final familyId = user.data()?['activeFamilyId'] as String?;
     if (familyId == null || familyId.isEmpty || !context.mounted) {
       return;
@@ -228,6 +283,7 @@ class StockListPage extends StatefulWidget {
 class _StockListPageState extends State<StockListPage> {
   final _searchController = TextEditingController();
   String _query = '';
+  StockViewFilter _selectedFilter = StockViewFilter.all;
 
   @override
   void dispose() {
@@ -269,18 +325,20 @@ class _StockListPageState extends State<StockListPage> {
               ),
             );
           }
-          final familyRef = FirebaseFirestore.instance.collection('families').doc(familyId);
+          final familyRef = FirebaseFirestore.instance
+              .collection('families')
+              .doc(familyId);
           return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
             stream: familyRef.snapshots(includeMetadataChanges: true),
             builder: (context, familySnap) {
               if (!familySnap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final includeLow = StockListPage._readIncludeLow(familySnap.data?.data());
+              final includeLow = StockListPage._readIncludeLow(
+                familySnap.data?.data(),
+              );
               final base = familyRef.collection('stockItems');
-              final Query<Map<String, dynamic>> query = includeLow
-                  ? base.where('state', whereIn: ['out', 'low']).orderBy('name')
-                  : base.where('state', isEqualTo: 'out').orderBy('name');
+              final Query<Map<String, dynamic>> query = base.orderBy('name');
               return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                 stream: query.snapshots(includeMetadataChanges: true),
                 builder: (context, q) {
@@ -288,16 +346,37 @@ class _StockListPageState extends State<StockListPage> {
                     return const Center(child: CircularProgressIndicator());
                   }
                   final docs = q.data!.docs;
+                  final parsed = docs
+                      .map(
+                        (d) => (
+                          doc: d,
+                          name: d.data()['name'] as String? ?? '(sin nombre)',
+                          level: StockLevel.parse(d.data()['state'] as String?),
+                        ),
+                      )
+                      .toList();
+                  final counts = StockListPage.buildFilterCounts(
+                    parsed.map((item) => item.level),
+                    includeLow: includeLow,
+                  );
                   final qLower = _query.toLowerCase();
+                  final filterOnly = parsed
+                      .where(
+                        (item) => StockListPage.matchesFilter(
+                          item.level,
+                          filter: _selectedFilter,
+                          includeLow: includeLow,
+                        ),
+                      )
+                      .toList();
                   final filtered = qLower.isEmpty
-                      ? docs
-                      : docs
-                          .where(
-                            (d) => (d.data()['name'] as String? ?? '')
-                                .toLowerCase()
-                                .contains(qLower),
-                          )
-                          .toList();
+                      ? filterOnly
+                      : filterOnly
+                            .where(
+                              (item) =>
+                                  item.name.toLowerCase().contains(qLower),
+                            )
+                            .toList();
                   final hasItems = filtered.isNotEmpty;
 
                   return ListView(
@@ -341,7 +420,10 @@ class _StockListPageState extends State<StockListPage> {
                           onChanged: (v) => setState(() => _query = v.trim()),
                           decoration: InputDecoration(
                             hintText: 'Buscar en la despensa…',
-                            prefixIcon: Icon(Icons.search_rounded, color: scheme.outline),
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: scheme.outline,
+                            ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 18,
@@ -361,7 +443,7 @@ class _StockListPageState extends State<StockListPage> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Falta comprar',
+                              _selectedFilter.label,
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -381,10 +463,30 @@ class _StockListPageState extends State<StockListPage> {
                       const SizedBox(height: 4),
                       Text(
                         includeLow
-                            ? 'Incluye: no hay + queda poco'
-                            : 'Incluye: solo no hay',
+                            ? 'Falta comprar incluye: no hay + queda poco'
+                            : 'Falta comprar incluye: solo no hay',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SegmentedButton<StockViewFilter>(
+                          segments: StockViewFilter.values
+                              .map(
+                                (filter) => ButtonSegment(
+                                  value: filter,
+                                  label: Text(
+                                    '${filter.label} (${counts[filter] ?? 0})',
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          selected: {_selectedFilter},
+                          onSelectionChanged: (selection) {
+                            setState(() => _selectedFilter = selection.first);
+                          },
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -392,16 +494,23 @@ class _StockListPageState extends State<StockListPage> {
                         CozyCard(
                           child: Text(
                             _query.isEmpty
-                                ? 'Nada pendiente para comprar.'
+                                ? switch (_selectedFilter) {
+                                    StockViewFilter.all =>
+                                      'No hay ítems en stock.',
+                                    StockViewFilter.inStock =>
+                                      'No hay ítems en stock.',
+                                    StockViewFilter.missing =>
+                                      'Nada pendiente para comprar.',
+                                  }
                                 : 'No hay coincidencias para “$_query”.',
                             style: theme.textTheme.bodyMedium,
                           ),
                         )
                       else
-                        ...filtered.map((d) {
-                          final data = d.data();
-                          final name = data['name'] as String? ?? '(sin nombre)';
-                          final level = StockLevel.parse(data['state'] as String?);
+                        ...filtered.map((item) {
+                          final d = item.doc;
+                          final name = item.name;
+                          final level = item.level;
                           final isOut = level == StockLevel.out;
                           final dot = isOut ? scheme.error : scheme.tertiary;
                           return Padding(
@@ -430,13 +539,15 @@ class _StockListPageState extends State<StockListPage> {
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           name,
-                                          style: theme.textTheme.titleSmall?.copyWith(
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                                          style: theme.textTheme.titleSmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
                                         ),
                                         const SizedBox(height: 4),
                                         Row(
@@ -452,10 +563,12 @@ class _StockListPageState extends State<StockListPage> {
                                             const SizedBox(width: 8),
                                             Text(
                                               level.label,
-                                              style: theme.textTheme.labelSmall?.copyWith(
-                                                color: scheme.onSurfaceVariant,
-                                                fontWeight: FontWeight.w600,
-                                              ),
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                    color:
+                                                        scheme.onSurfaceVariant,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                             ),
                                           ],
                                         ),
@@ -477,8 +590,14 @@ class _StockListPageState extends State<StockListPage> {
                                       }
                                     },
                                     itemBuilder: (context) => const [
-                                      PopupMenuItem(value: 'edit', child: Text('Editar')),
-                                      PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text('Editar'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text('Eliminar'),
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -486,6 +605,18 @@ class _StockListPageState extends State<StockListPage> {
                             ),
                           );
                         }),
+                      if (_query.isEmpty &&
+                          filtered.length != filterOnly.length)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            'Mostrando ${filtered.length} de ${filterOnly.length} '
+                            'en ${_selectedFilter.label.toLowerCase()}.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
                     ],
                   );
                 },
