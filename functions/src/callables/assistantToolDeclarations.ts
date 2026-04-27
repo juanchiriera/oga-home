@@ -35,6 +35,9 @@ export const assistantOpenAiTools: AssistantOpenAiTool[] = [
           category_key: optStr("Clave de categoría (p. ej. food, transport)"),
           status: optStr("confirmed | pending_card_cycle | cancelled"),
           currency: optStr("ARS | USD | EUR"),
+          start_after: optStr(
+            "Cursor opaco devuelto por list_expenses.next_cursor para paginar",
+          ),
           limit: {
             type: "integer",
             description: "Máximo de documentos (default 40, max 80)",
