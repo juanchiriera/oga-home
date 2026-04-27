@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 
 import {
@@ -212,6 +212,45 @@ function asRecord(args: unknown): Record<string, unknown> {
     : {};
 }
 
+type ExpenseListCursor = {
+  occurredAtMs: number;
+  docId: string;
+};
+
+function decodeExpenseCursor(raw: unknown): ExpenseListCursor | null {
+  const value = String(raw ?? "").trim();
+  if (!value) {
+    return null;
+  }
+  let parsed: unknown;
+  try {
+    const encoded = value.replace(/-/g, "+").replace(/_/g, "/");
+    const padLength = (4 - (encoded.length % 4)) % 4;
+    const padded = `${encoded}${"=".repeat(padLength)}`;
+    parsed = JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+  } catch {
+    throw new Error("cursor inválido");
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error("cursor inválido");
+  }
+  const occurredAtMs = Number((parsed as { t?: unknown }).t);
+  const docId = String((parsed as { id?: unknown }).id ?? "").trim();
+  if (!Number.isFinite(occurredAtMs) || occurredAtMs <= 0 || !docId) {
+    throw new Error("cursor inválido");
+  }
+  return { occurredAtMs, docId };
+}
+
+function encodeExpenseCursor(doc: admin.firestore.QueryDocumentSnapshot): string | null {
+  const occurredAt = doc.get("occurredAt");
+  if (!(occurredAt instanceof Timestamp)) {
+    return null;
+  }
+  const json = JSON.stringify({ t: occurredAt.toMillis(), id: doc.id });
+  return Buffer.from(json, "utf8").toString("base64url");
+}
+
 function assertHttpsUrl(raw: unknown): string {
   const value = String(raw ?? "").trim();
   if (!value) {
@@ -257,12 +296,23 @@ async function handleListExpenses(
   const col = db.collection("families").doc(familyId).collection("expenses");
   const limitRaw = Number(raw.limit ?? 40);
   const limit = Math.min(80, Math.max(1, Number.isFinite(limitRaw) ? limitRaw : 40));
+  const pageSize = limit + 1;
 
   const dateFrom = raw.date_from != null ? String(raw.date_from).trim() : "";
   const dateTo = raw.date_to != null ? String(raw.date_to).trim() : "";
   const categoryKey = raw.category_key != null ? String(raw.category_key).trim() : "";
   const status = raw.status != null ? String(raw.status).trim() : "";
-  const currency = raw.currency != null ? String(raw.currency).trim() : "";
+  if (status && !["confirmed", "pending_card_cycle", "cancelled"].includes(status)) {
+    return rejected("status debe ser confirmed | pending_card_cycle | cancelled");
+  }
+
+  const currencyRaw = raw.currency != null ? String(raw.currency).trim() : "";
+  const currency = currencyRaw.toUpperCase();
+  if (currency && !SUPPORTED_EXPENSE_CURRENCIES.has(currency)) {
+    return rejected("currency debe ser ARS | USD | EUR");
+  }
+
+  const cursor = decodeExpenseCursor(raw.start_after);
 
   let q: admin.firestore.Query = col;
 
@@ -280,9 +330,21 @@ async function handleListExpenses(
     q = q.where("occurredAt", "<=", utcEndOfDayInclusive(parseIsoDateOnly(dateTo)));
   }
 
-  q = q.orderBy("occurredAt", "desc").limit(limit);
+  if (status) {
+    q = q.where("status", "==", status);
+  }
+  if (currency) {
+    q = q.where("currency", "==", currency);
+  }
+
+  q = q.orderBy("occurredAt", "desc").orderBy(FieldPath.documentId(), "desc").limit(pageSize);
+  if (cursor) {
+    q = q.startAfter(Timestamp.fromMillis(cursor.occurredAtMs), cursor.docId);
+  }
   const snap = await q.get();
-  const items = snap.docs.map((d) => {
+  const hasMore = snap.size > limit;
+  const pageDocs = hasMore ? snap.docs.slice(0, limit) : snap.docs;
+  const items = pageDocs.map((d) => {
     const x = d.data();
     return {
       id: d.id,
@@ -296,15 +358,15 @@ async function handleListExpenses(
       paymentMethodId: x.paymentMethodId ?? null,
     };
   });
-  let filtered = items;
-  if (status) {
-    filtered = filtered.filter((r) => r.status === status);
-  }
-  if (currency) {
-    filtered = filtered.filter((r) => r.currency === currency);
-  }
+  const nextCursor = hasMore ? encodeExpenseCursor(pageDocs[pageDocs.length - 1]) : null;
   return {
-    response: { ok: true, expenses: filtered, count: filtered.length },
+    response: {
+      ok: true,
+      expenses: items,
+      count: items.length,
+      has_more: hasMore,
+      next_cursor: nextCursor,
+    },
     auditResult: "ok",
   };
 }
