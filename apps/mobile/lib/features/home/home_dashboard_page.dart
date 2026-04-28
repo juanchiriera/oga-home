@@ -1,4 +1,5 @@
 import 'package:craftr_mobile/core/flavor.dart';
+import 'package:craftr_mobile/core/entitlements_scope.dart';
 import 'package:craftr_mobile/core/monetization.dart';
 import 'package:craftr_mobile/core/revenuecat_config.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
@@ -211,7 +212,20 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                           ),
                           if (RevenueCatConfig.isConfigured) ...[
                             const SizedBox(height: 10),
-                            _RevenueCatUiActions(),
+                            _RevenueCatUiActions(
+                              onRevenueCatStateMayHaveChanged: () async {
+                                if (!mounted) {
+                                  return;
+                                }
+                                await _refreshBillingState();
+                                if (!mounted) {
+                                  return;
+                                }
+                                await MainShellEntitlementsScope.refresh(
+                                  this.context,
+                                );
+                              },
+                            ),
                           ],
                         ],
                       );
@@ -907,6 +921,10 @@ class _HomeFamilyOverview extends StatelessWidget {
 
 /// Paywall y Customer Center de [purchases_ui_flutter] (requiere paywalls en el dashboard RC).
 class _RevenueCatUiActions extends StatelessWidget {
+  const _RevenueCatUiActions({required this.onRevenueCatStateMayHaveChanged});
+
+  final Future<void> Function() onRevenueCatStateMayHaveChanged;
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -935,13 +953,17 @@ class _RevenueCatUiActions extends StatelessWidget {
           FilledButton.icon(
             icon: const Icon(Icons.payment_rounded),
             label: Text(l10n.revenueCatOpenPaywallPayment),
-            onPressed: () => _presentPaywall(context),
+            onPressed: () =>
+                _presentPaywall(context, onRevenueCatStateMayHaveChanged),
           ),
           const SizedBox(height: 10),
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton(
-              onPressed: () => _presentCustomerCenter(context),
+              onPressed: () => _presentCustomerCenter(
+                context,
+                onRevenueCatStateMayHaveChanged,
+              ),
               child: Text(l10n.revenueCatCustomerCenter),
             ),
           ),
@@ -950,9 +972,13 @@ class _RevenueCatUiActions extends StatelessWidget {
     );
   }
 
-  static Future<void> _presentPaywall(BuildContext context) async {
+  static Future<void> _presentPaywall(
+    BuildContext context,
+    Future<void> Function() onRevenueCatStateMayHaveChanged,
+  ) async {
     try {
       await RevenueCatUI.presentPaywall();
+      await onRevenueCatStateMayHaveChanged();
     } catch (e) {
       if (!context.mounted) {
         return;
@@ -963,9 +989,13 @@ class _RevenueCatUiActions extends StatelessWidget {
     }
   }
 
-  static Future<void> _presentCustomerCenter(BuildContext context) async {
+  static Future<void> _presentCustomerCenter(
+    BuildContext context,
+    Future<void> Function() onRevenueCatStateMayHaveChanged,
+  ) async {
     try {
       await RevenueCatUI.presentCustomerCenter();
+      await onRevenueCatStateMayHaveChanged();
     } catch (e) {
       if (!context.mounted) {
         return;

@@ -5,6 +5,8 @@ import 'package:craftr_mobile/core/monetization.dart';
 import 'package:craftr_mobile/core/firebase_options.dart';
 import 'package:craftr_mobile/core/firestore_bootstrap.dart';
 import 'package:craftr_mobile/core/purchases_bootstrap.dart';
+import 'package:craftr_mobile/services/purchases_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +17,10 @@ Future<void> main() async {
   await bootstrapAppCheck();
   await bootstrapFirestore();
   await bootstrapPurchases();
+  final currentUid = FirebaseAuth.instance.currentUser?.uid;
+  if (currentUid != null) {
+    await PurchasesService().logIn(currentUid);
+  }
   final entitlementsRemoteConfig = EntitlementsRemoteConfig();
   await entitlementsRemoteConfig.initialize();
   runApp(CraftrApp(entitlementsRemoteConfig: entitlementsRemoteConfig));

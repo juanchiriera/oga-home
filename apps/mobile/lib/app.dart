@@ -34,6 +34,7 @@ class CraftrApp extends StatelessWidget {
           builder: (context, child) {
             return MainShellEntitlementsScope(
               entitlements: entitlements,
+              refreshEntitlements: entitlementsRemoteConfig.refresh,
               child: child ?? const SizedBox.shrink(),
             );
           },
