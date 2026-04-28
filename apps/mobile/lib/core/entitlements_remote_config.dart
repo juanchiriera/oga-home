@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:craftr_mobile/core/monetization.dart';
+import 'package:craftr_mobile/services/purchases_service.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 
@@ -19,22 +20,24 @@ class EntitlementsState {
 }
 
 class EntitlementsRemoteConfig {
-  EntitlementsRemoteConfig({FirebaseRemoteConfig? remoteConfig})
-    : _remoteConfig = remoteConfig ?? FirebaseRemoteConfig.instance;
+  EntitlementsRemoteConfig({
+    FirebaseRemoteConfig? remoteConfig,
+    PurchasesService? purchasesService,
+  }) : _remoteConfig = remoteConfig ?? FirebaseRemoteConfig.instance,
+       _purchasesService = purchasesService ?? PurchasesService();
 
   static const _allOnKey = 'entitlements_all_on';
   static const _iaAssistantKey = 'ia_assistant_enabled';
   final FirebaseRemoteConfig _remoteConfig;
+  final PurchasesService _purchasesService;
   final ValueNotifier<EntitlementsState> state = ValueNotifier(
     const EntitlementsState(allOn: false, iaAssistantEnabled: false),
   );
   StreamSubscription<RemoteConfigUpdate>? _updatesSubscription;
+  bool _customerInfoListenerRegistered = false;
 
   Future<void> initialize() async {
-    await _remoteConfig.setDefaults({
-      _allOnKey: false,
-      _iaAssistantKey: false,
-    });
+    await _remoteConfig.setDefaults({_allOnKey: false, _iaAssistantKey: false});
     await _remoteConfig.setConfigSettings(
       RemoteConfigSettings(
         fetchTimeout: const Duration(seconds: 15),
@@ -43,9 +46,15 @@ class EntitlementsRemoteConfig {
     );
 
     await _fetchAndApply();
+    _registerCustomerInfoUpdatesListenerIfNeeded();
     _updatesSubscription ??= _remoteConfig.onConfigUpdated.listen((_) async {
       await _fetchAndApply();
     });
+  }
+
+  /// Fuerza una resincronización inmediata de entitlements.
+  Future<void> refresh() async {
+    await _fetchAndApply();
   }
 
   Future<void> _fetchAndApply() async {
@@ -54,10 +63,10 @@ class EntitlementsRemoteConfig {
     } catch (_) {
       // Si falla la red, mantenemos el ultimo valor activo o defaults.
     }
-    _syncState();
+    await _syncState();
   }
 
-  void _syncState() {
+  Future<void> _syncState() async {
     if (!MonetizationConfig.billingLive) {
       const nextState = EntitlementsState(
         allOn: true,
@@ -69,8 +78,10 @@ class EntitlementsRemoteConfig {
       }
       return;
     }
+    final remoteAllOn = _remoteConfig.getBool(_allOnKey);
+    final premiumActive = await _purchasesService.isPremiumActive();
     final nextState = EntitlementsState(
-      allOn: _remoteConfig.getBool(_allOnKey),
+      allOn: remoteAllOn || premiumActive,
       iaAssistantEnabled: _remoteConfig.getBool(_iaAssistantKey),
     );
     if (state.value.allOn != nextState.allOn ||
@@ -79,7 +90,24 @@ class EntitlementsRemoteConfig {
     }
   }
 
+  void _registerCustomerInfoUpdatesListenerIfNeeded() {
+    if (_customerInfoListenerRegistered || !_purchasesService.isConfigured) {
+      return;
+    }
+    _purchasesService.addCustomerInfoUpdateListener(_onCustomerInfoUpdated);
+    _customerInfoListenerRegistered = true;
+  }
+
+  void _onCustomerInfoUpdated(dynamic _) {
+    unawaited(_syncState());
+  }
+
   Future<void> dispose() async {
+    if (_customerInfoListenerRegistered) {
+      _purchasesService.removeCustomerInfoUpdateListener(
+        _onCustomerInfoUpdated,
+      );
+    }
     await _updatesSubscription?.cancel();
     state.dispose();
   }
