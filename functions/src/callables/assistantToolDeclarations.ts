@@ -183,14 +183,14 @@ export const assistantOpenAiTools: AssistantOpenAiTool[] = [
     type: "function",
     function: {
       name: "create_stock_item",
-      description: "Crea ítem de stock con nombre y estado inicial.",
+      description: "Crea ítem de stock con nombre. Si no llega state, usa out (sin stock).",
       parameters: {
         type: "object",
         properties: {
           name: str("Nombre del producto"),
-          state: str("hay | low | out"),
+          state: optStr("hay | low | out (opcional, default out)"),
         },
-        required: ["name", "state"],
+        required: ["name"],
       },
     },
   },
