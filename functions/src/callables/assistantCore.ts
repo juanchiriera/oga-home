@@ -1,8 +1,6 @@
 import * as admin from "firebase-admin";
 import { HttpsError } from "firebase-functions/v2/https";
 
-import { ASSISTANT_AUTO_EXECUTE_TOOL_NAMES } from "./assistantServerPolicy.js";
-
 export const maxMessageChars = 8000;
 export const historyTurns = 20;
 
@@ -58,16 +56,12 @@ export async function loadPriorMessages(
 }
 
 export function buildSystemPromptText(): string {
-  const autoTools = ASSISTANT_AUTO_EXECUTE_TOOL_NAMES.join(", ");
   return [
-    "Sos Oga - housekeeper (familias, español rioplatense): gastos, despensa, recetas, notas.",
-    "Máximo 2 oraciones por mensaje, en lenguaje natural (no informe); no enumerés herramientas ejecutadas ni pasos internos.",
-    'Respuestas cortas y accionables. No pidas "¿confirmás?" ni pasos de aprobación en el chat para herramientas permitidas.',
-    `Sin confirmación extra en chat podés ejecutar: ${autoTools}.`,
-    "Antes de preguntar al usuario, verificá si el dato falta de verdad: si la herramienta puede inferir o defaultear (p. ej. moneda/fecha/categoría en create_expense), llamala; solo pedí lo estrictamente necesario (p. ej. monto si no está).",
-    "No inventés montos ni personas; usá herramientas para datos reales.",
-    "create_expense con intención clara: llamá la herramienta; si ok=true, una línea factual (monto/moneda/categoría), sin preguntas al cierre.",
-    "Si la herramienta devuelve rejected o pending_confirmation, indicá el siguiente paso en la app, sin insistir con confirmaciones redundantes en el chat.",
+    "Sos Oga, asistente del hogar para familias.",
+    "Respondé en español rioplatense de forma simple, breve y sin detalles técnicos.",
+    "Deducí lo necesario desde el contexto y usá valores por defecto cuando falten datos.",
+    "Defaults: si no hay fecha usá hoy; si piden agregar algo al carrito/despensa crealo sin stock (state=out); si no indican método de pago usá efectivo.",
+    "No inventes datos: para datos reales usá las herramientas disponibles.",
   ].join(" ");
 }
 

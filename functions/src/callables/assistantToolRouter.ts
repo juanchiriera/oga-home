@@ -467,9 +467,10 @@ async function handleCreateStockItem(
   raw: Record<string, unknown>,
 ): Promise<ToolExecutionResult> {
   const name = String(raw.name ?? "").trim();
-  const state = String(raw.state ?? "").trim();
-  if (!name || !state) {
-    return rejected("name y state son obligatorios");
+  const stateRaw = String(raw.state ?? "").trim();
+  const state = stateRaw || "out";
+  if (!name) {
+    return rejected("name es obligatorio");
   }
   if (!["hay", "low", "out"].includes(state)) {
     return rejected("state debe ser hay, low u out");
@@ -581,9 +582,9 @@ async function handleCreateExpense(
   raw: Record<string, unknown>,
 ): Promise<ToolExecutionResult> {
   const amount = Number(raw.amount ?? 0);
-  const currency = String(raw.currency ?? "").trim().toUpperCase();
-  const categoryKey = String(raw.category_key ?? "").trim();
-  const occurredAtIso = String(raw.occurred_at ?? "").trim();
+  const currency = String(raw.currency ?? "ARS").trim().toUpperCase();
+  const categoryKey = String(raw.category_key ?? "").trim() || DEFAULT_EXPENSE_CATEGORY_KEY;
+  const occurredAtIso = String(raw.occurred_at ?? "").trim() || new Date().toISOString().slice(0, 10);
   const paymentMethodId = String(raw.payment_method_id ?? "").trim();
   const merchant = raw.merchant != null ? String(raw.merchant).trim() : "";
   const note = raw.note != null ? String(raw.note).trim() : "";
@@ -620,6 +621,17 @@ async function handleCreateExpense(
     const paymentMethodType = String(paymentMethodSnap.get("type") ?? "").trim();
     status = paymentMethodType === "credit_card" ? "pending_card_cycle" : "confirmed";
     resolvedPaymentMethodId = paymentMethodId;
+  } else {
+    const defaultCashPaymentMethod = await ctx.db
+      .collection("families")
+      .doc(ctx.familyId)
+      .collection("paymentMethods")
+      .where("type", "==", "cash")
+      .limit(1)
+      .get();
+    if (!defaultCashPaymentMethod.empty) {
+      resolvedPaymentMethodId = defaultCashPaymentMethod.docs[0].id;
+    }
   }
 
   const now = FieldValue.serverTimestamp();
@@ -648,6 +660,7 @@ async function handleCreateExpense(
       currency,
       category_key: categoryKey,
       occurred_at: occurredAtIso,
+      payment_method_id: resolvedPaymentMethodId,
       status,
     },
     auditResult: "ok",

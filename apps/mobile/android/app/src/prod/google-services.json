@@ -1,0 +1,90 @@
+{
+  "project_info": {
+    "project_number": "662650052724",
+    "project_id": "oga-home",
+    "storage_bucket": "oga-home.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662650052724:android:149b47abd481ddecd03121",
+        "android_client_info": {
+          "package_name": "ar.com.vanguardia.craftr.craftr_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnHwbaAAu-TOUjyplglZiaGqygHxsakJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "662650052724-lqmqm04n8un62731tibct2djdj2i470e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "ar.com.vanguardia.craftr.craftrMobile"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662650052724:android:4057c99871ed2cded03121",
+        "android_client_info": {
+          "package_name": "ar.com.vanguardia.craftr.craftr_mobile.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662650052724-nj54qg7flghh3ffrepaphtjiml7hetj9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ar.com.vanguardia.craftr.craftr_mobile.dev",
+            "certificate_hash": "54224d3beb2482980f5bc6e839acf6054a8995a3"
+          }
+        },
+        {
+          "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnHwbaAAu-TOUjyplglZiaGqygHxsakJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "662650052724-lqmqm04n8un62731tibct2djdj2i470e.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "ar.com.vanguardia.craftr.craftrMobile"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

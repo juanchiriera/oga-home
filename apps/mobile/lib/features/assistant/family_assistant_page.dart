@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io' show SocketException;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,13 +6,12 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:craftr_mobile/design_system/design_system.dart';
 import 'package:craftr_mobile/features/assistant/assistant_chat_local_visibility.dart';
+import 'package:craftr_mobile/features/assistant/assistant_functions_client.dart';
 import 'package:craftr_mobile/features/assistant/assistant_message_buffer.dart';
 import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
 import 'package:craftr_mobile/features/assistant/widgets/assistant_markdown_message.dart';
-import 'package:craftr_mobile/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
 /// Chat del asistente por familia: historial en Firestore, turnos vía
 /// [familyAssistantChatStream] (NDJSON, chunks de texto; requiere red).
@@ -107,12 +105,14 @@ class _FamilyAssistantBody extends StatefulWidget {
 class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _controller = TextEditingController();
+  final _chatScrollController = ScrollController();
   final _activeConversationResolver = ActiveConversationResolver(
     localStore: SecureLocalActiveConversationStore(),
     remoteStore: FirestoreRemoteActiveConversationStore(),
     threadsStore: FirestoreAssistantConversationThreadsStore(),
   );
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+  final _assistantFunctionsClient = AssistantFunctionsClient();
   late final AssistantMessageBuffer _messageBuffer;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _threadsSub;
   String? _activeThreadId;
@@ -121,6 +121,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   bool _bootstrappingConversation = true;
   bool? _online;
   String? _streamBuffer;
+  bool _scrollScheduled = false;
   final List<_LocalUserMessage> _localMessages = <_LocalUserMessage>[];
 
   @override
@@ -149,10 +150,31 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   void dispose() {
     _connectivitySub?.cancel();
+    _assistantFunctionsClient.dispose();
     _messageBuffer.dispose();
     _threadsSub?.cancel();
+    _chatScrollController.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _scrollToBottom({bool animated = true}) {
+    if (_scrollScheduled) return;
+    _scrollScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollScheduled = false;
+      if (!mounted || !_chatScrollController.hasClients) return;
+      final target = _chatScrollController.position.maxScrollExtent;
+      if (animated) {
+        _chatScrollController.animateTo(
+          target,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+        );
+      } else {
+        _chatScrollController.jumpTo(target);
+      }
+    });
   }
 
   Future<void> _refreshConnectivity() async {
@@ -185,6 +207,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         _activeThreadId = resolved;
         _bootstrappingConversation = false;
       });
+      _scrollToBottom(animated: false);
     } catch (_) {
       if (!mounted) return;
       setState(() => _bootstrappingConversation = false);
@@ -239,15 +262,17 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     final uid = _uid;
     if (uid == null || _sending) return;
     try {
-      final newId = await _activeConversationResolver.startNewConversation(
+      await _activeConversationResolver.setActiveConversation(
         uid: uid,
         familyId: widget.familyId,
+        conversationId: null,
       );
       if (!mounted) return;
       setState(() {
-        _activeThreadId = newId;
+        _activeThreadId = null;
         _streamBuffer = null;
       });
+      _scrollToBottom(animated: false);
       _scaffoldKey.currentState?.closeEndDrawer();
     } catch (e) {
       if (!mounted) return;
@@ -272,6 +297,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _streamBuffer = null;
       _localMessages.add(localMessage);
     });
+    _scrollToBottom();
     await _sendLocalMessage(localMessage);
   }
 
@@ -338,47 +364,24 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       return;
     }
 
-    final uri = Uri.parse(familyAssistantStreamUrl());
-    final request = http.Request('POST', uri);
-    request.headers['Authorization'] = 'Bearer $idToken';
-    request.headers['Content-Type'] = 'application/json; charset=utf-8';
-    request.body = jsonEncode({
-      'familyId': widget.familyId,
-      if (_activeThreadId != null && _activeThreadId!.isNotEmpty)
-        'threadId': _activeThreadId!,
-      'message': batch.message,
-      'clientMessageIds': batch.clientMessageIds,
-      'batchMeta': {
-        'buffer_size': batch.bufferSize,
-        'delay_ms': batch.delayMs,
-        'tokens_saved_estimados': batch.tokensSavedEstimated,
-      },
-    });
-
-    final client = http.Client();
     var streamAccum = '';
     try {
-      final response = await client.send(request);
-      if (response.statusCode != 200) {
-        final buf = StringBuffer();
-        await for (final s in response.stream.transform(utf8.decoder)) {
-          buf.write(s);
-        }
-        throw Exception('HTTP ${response.statusCode}: ${buf.toString()}');
-      }
-      await for (final line
-          in response.stream
-              .transform(utf8.decoder)
-              .transform(const LineSplitter())) {
-        if (line.isEmpty) {
-          continue;
-        }
-        final map = jsonDecode(line) as Map<String, dynamic>;
+      await for (final map in _assistantFunctionsClient.streamAssistantChat(
+        idToken: idToken,
+        familyId: widget.familyId,
+        threadId: _activeThreadId,
+        message: batch.message,
+        clientMessageIds: batch.clientMessageIds,
+        bufferSize: batch.bufferSize,
+        delayMs: batch.delayMs,
+        tokensSavedEstimated: batch.tokensSavedEstimated,
+      )) {
         final t = map['type'] as String?;
         if (t == 'meta') {
           final threadId = map['threadId'] as String?;
           if (threadId != null && threadId.isNotEmpty && mounted) {
             setState(() => _activeThreadId = threadId);
+            _scrollToBottom(animated: false);
           }
           _markLocalMessageStatuses(
             bufferedMessageIds,
@@ -396,6 +399,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
           streamAccum += piece;
           if (mounted) {
             setState(() => _streamBuffer = streamAccum);
+            _scrollToBottom(animated: false);
           }
         } else if (t == 'error') {
           _markLocalMessageStatuses(
@@ -413,6 +417,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         } else if (t == 'done') {
           if (mounted) {
             setState(() => _streamBuffer = null);
+            _scrollToBottom(animated: false);
           }
           return;
         }
@@ -440,7 +445,6 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
         ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
-      client.close();
       if (mounted) {
         setState(() => _sending = false);
       }
@@ -485,6 +489,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
       _activeThreadId = threadId;
       _streamBuffer = null;
     });
+    _scrollToBottom(animated: false);
     _scaffoldKey.currentState?.closeEndDrawer();
   }
 
@@ -550,14 +555,11 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
     }
 
     try {
-      final callable = craftrFunctions().httpsCallable(
-        'renameAssistantThreadTitle',
+      await _assistantFunctionsClient.renameAssistantThreadTitle(
+        familyId: widget.familyId,
+        threadId: threadId,
+        conversationTitle: newTitle,
       );
-      await callable.call({
-        'familyId': widget.familyId,
-        'threadId': threadId,
-        'conversationTitle': newTitle,
-      });
     } on FirebaseFunctionsException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -702,6 +704,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
             ),
           Expanded(
             child: ListView(
+              controller: _chatScrollController,
               padding: EdgeInsets.fromLTRB(
                 24,
                 topPad + (offline ? 8 : 0),
@@ -735,6 +738,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
                     sending: _sending,
                     localMessages: _localMessages,
                     onRetry: _retryMessage,
+                    onContentChanged: () => _scrollToBottom(animated: false),
                   ),
               ],
             ),
@@ -815,6 +819,7 @@ class _MessagesList extends StatelessWidget {
     this.sending = false,
     this.localMessages = const <_LocalUserMessage>[],
     required this.onRetry,
+    this.onContentChanged,
   });
 
   final String familyId;
@@ -823,6 +828,7 @@ class _MessagesList extends StatelessWidget {
   final bool sending;
   final List<_LocalUserMessage> localMessages;
   final ValueChanged<String> onRetry;
+  final VoidCallback? onContentChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -869,6 +875,9 @@ class _MessagesList extends StatelessWidget {
             !sending) {
           return const SizedBox.shrink();
         }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          onContentChanged?.call();
+        });
         return Column(
           children: [
             ...docs.map((d) {
