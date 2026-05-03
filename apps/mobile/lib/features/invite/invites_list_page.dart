@@ -59,7 +59,7 @@ class InvitesListPage extends StatelessWidget {
               }
               final docs = invSnap.data!.docs;
               final bottom = 32 + MediaQuery.paddingOf(context).bottom;
-              final top = MediaQuery.paddingOf(context).top + kToolbarHeight + 8;
+              final top = MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8;
 
               if (docs.isEmpty) {
                 return ListView(
