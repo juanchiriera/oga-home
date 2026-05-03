@@ -74,6 +74,10 @@ jobs:
   build_android:
     needs: [lint_and_test, functions_test, functions_smoke]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        flavor: [dev, prod]
     defaults:
       run:
         working-directory: apps/mobile
@@ -90,8 +94,8 @@ jobs:
           cache: true
       - name: Pub get
         run: flutter pub get
-      - name: Build APK (dev flavor)
-        run: flutter build apk --flavor dev --dart-define=FLAVOR=dev
+      - name: Build APK (${{ matrix.flavor }} flavor)
+        run: flutter build apk --flavor ${{ matrix.flavor }} --dart-define=FLAVOR=${{ matrix.flavor }}
 
   build_ios:
     needs: [lint_and_test, functions_test, functions_smoke]
