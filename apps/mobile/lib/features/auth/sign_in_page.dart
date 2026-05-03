@@ -120,11 +120,7 @@ class _SignInPageState extends State<SignInPage> {
                     padding: const EdgeInsets.fromLTRB(32, 14, 32, 22),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.home_rounded,
-                          color: scheme.primary,
-                          size: 32,
-                        ),
+                        const AppBrandLogo(height: 40),
                         const SizedBox(width: 12),
                         Text(
                           l10n.signInBrand,

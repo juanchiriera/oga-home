@@ -84,7 +84,7 @@ class _RecipesPageState extends State<RecipesPage> {
                   key: const PageStorageKey<String>('recipes-list'),
                   padding: EdgeInsets.fromLTRB(
                     24,
-                    MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                    MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
                     24,
                     sanctuaryScrollBottomPadding(context),
                   ),

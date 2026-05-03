@@ -60,7 +60,7 @@ class _InviteAcceptPageState extends State<InviteAcceptPage> {
       body: Padding(
         padding: EdgeInsets.fromLTRB(
           24,
-          MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+          MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
           24,
           24 + MediaQuery.paddingOf(context).bottom,
         ),

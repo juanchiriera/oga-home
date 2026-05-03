@@ -63,7 +63,7 @@ class FamilyLinksPage extends StatelessWidget {
                 return ListView(
                   padding: EdgeInsets.fromLTRB(
                     24,
-                    MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                    MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
                     24,
                     28 + MediaQuery.paddingOf(context).bottom,
                   ),
@@ -119,7 +119,7 @@ class FamilyLinksPage extends StatelessWidget {
               return ListView(
                 padding: EdgeInsets.fromLTRB(
                   24,
-                  MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+                  MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
                   24,
                   28 + MediaQuery.paddingOf(context).bottom,
                 ),

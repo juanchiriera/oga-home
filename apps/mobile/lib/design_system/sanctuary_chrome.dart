@@ -3,8 +3,29 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+/// Logo de marca (`assets/branding/app_logo.png`), alineado con la paleta del design system.
+class AppBrandLogo extends StatelessWidget {
+  const AppBrandLogo({super.key, this.height = 32});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      'assets/branding/app_logo.png',
+      height: height,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.high,
+      semanticLabel: 'Oga',
+    );
+  }
+}
+
 /// Horizontal padding aligned with `docs/pantallas` stitch layouts (24–32px).
 const EdgeInsets kSanctuaryScreenPadding = EdgeInsets.symmetric(horizontal: 24);
+
+/// Debe coincidir con [sanctuaryAppBar] `toolbarHeight`.
+const double kSanctuaryAppBarToolbarHeight = 100;
 
 /// Extra scroll padding so content clears [SanctuaryBottomNav] + safe area.
 double sanctuaryScrollBottomPadding(BuildContext context) =>
@@ -12,7 +33,7 @@ double sanctuaryScrollBottomPadding(BuildContext context) =>
 
 /// Vertical extent where list content scrolls under [sanctuaryAppBar].
 double sanctuaryAppBarScrollFadeHeight(BuildContext context) =>
-    MediaQuery.paddingOf(context).top + kToolbarHeight + 24;
+    MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 24;
 
 /// Soft mask so scrolled content fades under the frosted app bar.
 class SanctuaryScrollUnderAppBarFade extends StatelessWidget {
@@ -120,15 +141,24 @@ PreferredSizeWidget sanctuaryAppBar(
   bool centerTitle = true,
 }) {
   final scheme = Theme.of(context).colorScheme;
+  final theme = Theme.of(context);
   return AppBar(
+    toolbarHeight: kSanctuaryAppBarToolbarHeight,
     leading: leading,
     automaticallyImplyLeading: leading == null,
     title: Column(
       mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        const AppBrandLogo(height: 52),
+        const SizedBox(height: 6),
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleLarge?.copyWith(
             fontStyle: FontStyle.normal,
             fontWeight: FontWeight.w800,
             color: scheme.primary,
@@ -138,7 +168,10 @@ PreferredSizeWidget sanctuaryAppBar(
         const SizedBox(height: 2),
         Text(
           'the housekeeper',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelSmall?.copyWith(
             fontSize: 14,
             fontStyle: FontStyle.italic,
             fontWeight: FontWeight.w500,

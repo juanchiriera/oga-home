@@ -61,7 +61,7 @@ class _ProfilePageState extends State<ProfilePage> {
           return ListView(
             padding: EdgeInsets.fromLTRB(
               24,
-              MediaQuery.paddingOf(context).top + kToolbarHeight + 8,
+              MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
               24,
               32 + MediaQuery.paddingOf(context).bottom,
             ),

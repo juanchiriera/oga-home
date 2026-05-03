@@ -578,7 +578,7 @@ class _FamilyAssistantBodyState extends State<_FamilyAssistantBody> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final topPad = MediaQuery.paddingOf(context).top + kToolbarHeight + 8;
+    final topPad = MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8;
     final offline = _online == false;
     final threadId = _activeThreadId;
 
