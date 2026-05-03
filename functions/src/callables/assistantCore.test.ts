@@ -8,13 +8,14 @@ import {
 } from "./assistantCore.js";
 
 describe("buildSystemPromptText", () => {
-  it("lista herramientas auto-ejecutables y política de brevedad", () => {
+  it("define tono simple, defaults y uso de herramientas para datos reales", () => {
     const text = buildSystemPromptText();
-    expect(text).toContain("create_expense");
-    expect(text).toContain("list_expenses");
-    expect(text).toContain("Sin confirmación extra en chat");
-    expect(text).toContain("Máximo 2 oraciones");
-    expect(text).toContain("no enumerés herramientas");
+    expect(text).toContain("Oga");
+    expect(text).toContain("sin detalles técnicos");
+    expect(text).toContain("Defaults");
+    expect(text).toContain("hoy");
+    expect(text).toContain("efectivo");
+    expect(text).toContain("herramientas");
   });
 });
 

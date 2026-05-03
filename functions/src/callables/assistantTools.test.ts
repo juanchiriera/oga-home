@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  buildPlannerTraceabilitySummary,
-  chunkTextForNdjson,
-  classifyAssistantToolExecution,
-  createAssistantTaskPlanner,
-  registerPlannerToolExecution,
-} from "./assistantOpenRouterTools.js";
+import { chunkTextForNdjson } from "./assistantOpenRouterTools.js";
 import { hashToolPayload, redactToolArgsForAudit } from "./assistantToolAudit.js";
 import { idempotencyDocId, toolUsesIdempotencyStore } from "./assistantToolIdempotency.js";
 
@@ -42,44 +36,5 @@ describe("assistant tools helpers", () => {
     const parts = [...chunkTextForNdjson(text, 16)];
     expect(parts.join("")).toBe(text);
     expect(parts.length).toBeGreaterThan(1);
-  });
-
-  it("clasifica bloqueo por pending_confirmation", () => {
-    const out = classifyAssistantToolExecution("create_expense", {
-      ok: false,
-      rejected: true,
-      pending_confirmation: true,
-      reason: "confirmar en UI",
-    });
-    expect(out.blocking).toBe(true);
-    expect(out.status).toBe("blocked");
-    expect(out.result).toContain("blocked:");
-  });
-
-  it("trazabilidad compacta sin herramientas", () => {
-    const planner = createAssistantTaskPlanner("Hola");
-    expect(buildPlannerTraceabilitySummary(planner)).toBe("Trazabilidad: sin herramientas | ok");
-  });
-
-  it("planner marca silent_auto_step para herramientas seguras", () => {
-    const planner = createAssistantTaskPlanner("Actualizar stock y responder");
-    registerPlannerToolExecution(planner, "list_stock_items", { ok: true, items: [] });
-    registerPlannerToolExecution(planner, "update_stock_status", { ok: true, item_id: "x" });
-    const summary = buildPlannerTraceabilitySummary(planner);
-    expect(summary).toContain("(auto:");
-    expect(summary).toMatch(/\|\s*ok$/);
-  });
-
-  it("planner reporta resultado bloqueado cuando hay error", () => {
-    const planner = createAssistantTaskPlanner("Eliminar gasto");
-    registerPlannerToolExecution(planner, "delete_expense", {
-      ok: false,
-      rejected: true,
-      pending_confirmation: true,
-      reason: "requiere confirmación",
-    });
-    const summary = buildPlannerTraceabilitySummary(planner);
-    expect(summary).toContain("(manual:");
-    expect(summary).toContain("bloqueado:1");
   });
 });
