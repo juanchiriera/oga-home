@@ -17,7 +17,7 @@ Identificadores registrados en Firebase para esta app:
 
 Archivos en el repo:
 
-- Android: `android/app/src/{dev,stg,prod}/google-services.json` (mismo contenido: tres clientes Android del proyecto).
+- Android: `android/app/src/{dev,stg,prod}/google-services.json` (mismo contenido: tres clientes Android del proyecto). Además `android/app/google-services.json` como respaldo del plugin de Google Services si falta algún archivo por flavor.
 - iOS: `ios/Runner/GoogleService-Info.plist` (app iOS `ar.craftr.oga`).
 - Dart: `lib/firebase_options.dart` (opciones por plataforma; podés regenerarlas con [FlutterFire CLI](https://firebase.flutter.dev/docs/cli/) si preferís).
 
@@ -39,7 +39,8 @@ firebase apps:sdkconfig ANDROID 1:662650052724:android:857d66273bc2cfdbd03121 \
 jq '.client |= map(select((.client_info.android_client_info.package_name // "") | test("^ar\\.craftr\\.oga")))' \
   /tmp/google-services.json > /tmp/google-services-filtered.json
 
-# Copiar a los tres flavors
+# Copiar a los tres flavors y al módulo app (respaldo Gradle)
+cp /tmp/google-services-filtered.json android/app/google-services.json
 cp /tmp/google-services-filtered.json android/app/src/dev/google-services.json
 cp /tmp/google-services-filtered.json android/app/src/stg/google-services.json
 cp /tmp/google-services-filtered.json android/app/src/prod/google-services.json

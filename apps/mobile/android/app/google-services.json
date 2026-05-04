@@ -1,0 +1,142 @@
+{
+  "project_info": {
+    "project_number": "662650052724",
+    "project_id": "oga-home",
+    "storage_bucket": "oga-home.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662650052724:android:857d66273bc2cfdbd03121",
+        "android_client_info": {
+          "package_name": "ar.craftr.oga"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662650052724-cjm3g3tc3r7hkovfepbh4vnjt8jhk5ko.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ar.craftr.oga",
+            "certificate_hash": "54224d3beb2482980f5bc6e839acf6054a8995a3"
+          }
+        },
+        {
+          "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnHwbaAAu-TOUjyplglZiaGqygHxsakJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "662650052724-k4tqt0vspgog4qlhf6eb4qcdijifkuae.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "ar.craftr.oga"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662650052724:android:b6996921d350e763d03121",
+        "android_client_info": {
+          "package_name": "ar.craftr.oga.dev"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662650052724-0adt2ebjj3qnvonn29rvn2kedif89tgn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ar.craftr.oga.dev",
+            "certificate_hash": "54224d3beb2482980f5bc6e839acf6054a8995a3"
+          }
+        },
+        {
+          "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnHwbaAAu-TOUjyplglZiaGqygHxsakJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "662650052724-k4tqt0vspgog4qlhf6eb4qcdijifkuae.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "ar.craftr.oga"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:662650052724:android:ecbfcaa6545f8098d03121",
+        "android_client_info": {
+          "package_name": "ar.craftr.oga.stg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "662650052724-7hcn0j04g7hqboc3kb1va7vmlqg6k0e4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ar.craftr.oga.stg",
+            "certificate_hash": "54224d3beb2482980f5bc6e839acf6054a8995a3"
+          }
+        },
+        {
+          "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnHwbaAAu-TOUjyplglZiaGqygHxsakJM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "662650052724-58kfv950j6tpg9gk3roi3kob5geoh79c.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "662650052724-k4tqt0vspgog4qlhf6eb4qcdijifkuae.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "ar.craftr.oga"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
