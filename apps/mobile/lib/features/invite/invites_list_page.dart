@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Lista invitaciones pendientes del hogar activo (solo owners ven acciones).
+/// Lista invitaciones pendientes del hogar activo.
 class InvitesListPage extends StatelessWidget {
   const InvitesListPage({super.key});
 

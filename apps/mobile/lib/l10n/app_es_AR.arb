@@ -60,7 +60,7 @@
   "inviteLinkCopy": "Copiar enlace",
   "inviteLinkShare": "Compartir",
   "inviteCopiedToClipboard": "Enlace copiado",
-  "inviteCreateErrorPermissionDenied": "No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.",
+  "inviteCreateErrorPermissionDenied": "No podés crear invitaciones: revisá que tu suscripción incluya invitaciones a hogares.",
   "inviteCreateErrorGeneric": "No se pudo crear la invitación: {message}",
   "@inviteCreateErrorGeneric": {
     "placeholders": {

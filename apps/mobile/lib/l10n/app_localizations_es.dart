@@ -150,7 +150,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get inviteCreateErrorPermissionDenied =>
-      'No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.';
+      'No podés crear invitaciones: revisá que tu suscripción incluya invitaciones a hogares.';
 
   @override
   String inviteCreateErrorGeneric(String message) {
@@ -449,7 +449,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get inviteCreateErrorPermissionDenied =>
-      'No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.';
+      'No podés crear invitaciones: revisá que tu suscripción incluya invitaciones a hogares.';
 
   @override
   String inviteCreateErrorGeneric(String message) {

@@ -90,8 +90,8 @@ export const createFamilyInvite = onCall({ region }, async (request) => {
     .collection("members")
     .doc(uid)
     .get();
-  if (!memberSnap.exists || memberSnap.get("role") !== "owner") {
-    throw new HttpsError("permission-denied", "Solo owners pueden invitar");
+  if (!memberSnap.exists) {
+    throw new HttpsError("permission-denied", "No pertenecés a este hogar");
   }
   await assertEntitlement(familyId, "invites");
 
@@ -191,8 +191,8 @@ export const revokeFamilyInvite = onCall({ region }, async (request) => {
     .collection("members")
     .doc(uid)
     .get();
-  if (!memberSnap.exists || memberSnap.get("role") !== "owner") {
-    throw new HttpsError("permission-denied", "Solo owners pueden revocar");
+  if (!memberSnap.exists) {
+    throw new HttpsError("permission-denied", "No pertenecés a este hogar");
   }
   await assertEntitlement(familyId, "invites");
 

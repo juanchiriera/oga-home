@@ -14,7 +14,9 @@ Future<void> createAndShowFamilyInviteLink(
   final l10n = context.l10n;
   final messenger = ScaffoldMessenger.maybeOf(context);
 
-  await showDialog<void>(
+  // `showDialog` completes when popped; awaiting it would block until after the
+  // callable finishes — which never runs — so the UI would hang on the spinner.
+  showDialog<void>(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) {
@@ -155,7 +157,9 @@ Future<void> createAndShowFamilyInviteLink(
       Navigator.of(context, rootNavigator: true).pop();
     }
     final msg = e.code == 'permission-denied'
-        ? l10n.inviteCreateErrorPermissionDenied
+        ? ((e.message != null && e.message!.trim().isNotEmpty)
+            ? l10n.inviteCreateErrorGeneric(e.message!.trim())
+            : l10n.inviteCreateErrorPermissionDenied)
         : l10n.inviteCreateErrorGeneric(e.message ?? e.code);
     messenger?.showSnackBar(SnackBar(content: Text(msg)));
   } catch (e) {

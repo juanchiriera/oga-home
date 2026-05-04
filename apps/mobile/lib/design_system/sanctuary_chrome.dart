@@ -14,7 +14,7 @@ class AppBrandLogo extends StatelessWidget {
     return Image.asset(
       'assets/branding/app_logo.png',
       height: height,
-      fit: BoxFit.contain,
+      fit: BoxFit.fill,
       filterQuality: FilterQuality.high,
       semanticLabel: 'Oga',
     );
@@ -151,28 +151,15 @@ PreferredSizeWidget sanctuaryAppBar(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const AppBrandLogo(height: 52),
-        const SizedBox(height: 6),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontStyle: FontStyle.normal,
-            fontWeight: FontWeight.w800,
-            color: scheme.primary,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 8),
+        const AppBrandLogo(height: 80),
         Text(
           'the housekeeper',
           textAlign: TextAlign.center,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.labelSmall?.copyWith(
-            fontSize: 14,
+            fontSize: 12,
             fontStyle: FontStyle.italic,
             fontWeight: FontWeight.w500,
             color: scheme.primary.withValues(alpha: 0.9),
