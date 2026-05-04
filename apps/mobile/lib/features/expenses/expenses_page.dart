@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/expenses/expense_import_flow.dart';
-import 'package:craftr_mobile/features/expenses/expense_lifecycle.dart';
-import 'package:craftr_mobile/features/expenses/expense_month_window.dart';
-import 'package:craftr_mobile/features/expenses/expense_money.dart';
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/expenses/expense_import_flow.dart';
+import 'package:oga/features/expenses/expense_lifecycle.dart';
+import 'package:oga/features/expenses/expense_month_window.dart';
+import 'package:oga/features/expenses/expense_money.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 

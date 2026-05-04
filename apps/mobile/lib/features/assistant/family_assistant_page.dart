@@ -4,12 +4,12 @@ import 'dart:io' show SocketException;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/assistant/assistant_chat_local_visibility.dart';
-import 'package:craftr_mobile/features/assistant/assistant_functions_client.dart';
-import 'package:craftr_mobile/features/assistant/assistant_message_buffer.dart';
-import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
-import 'package:craftr_mobile/features/assistant/widgets/assistant_markdown_message.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/assistant/assistant_chat_local_visibility.dart';
+import 'package:oga/features/assistant/assistant_functions_client.dart';
+import 'package:oga/features/assistant/assistant_message_buffer.dart';
+import 'package:oga/features/assistant/active_conversation_state.dart';
+import 'package:oga/features/assistant/widgets/assistant_markdown_message.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 

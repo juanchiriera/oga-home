@@ -1,5 +1,5 @@
-import 'package:craftr_mobile/core/monetization.dart';
-import 'package:craftr_mobile/core/revenuecat_config.dart';
+import 'package:oga/core/monetization.dart';
+import 'package:oga/core/revenuecat_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 

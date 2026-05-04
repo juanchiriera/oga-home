@@ -15,7 +15,7 @@
 		<key>CFBundleInfoDictionaryVersion</key>
 		<string>6.0</string>
 		<key>CFBundleName</key>
-		<string>craftr_mobile</string>
+		<string>oga</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -72,7 +72,7 @@
 				<key>CFBundleTypeRole</key>
 				<string>Editor</string>
 				<key>CFBundleURLName</key>
-				<string>ar.com.vanguardia.craftr.invite</string>
+				<string>ar.craftr.oga.invite</string>
 				<key>CFBundleURLSchemes</key>
 				<array>
 					<string>craftr</string>

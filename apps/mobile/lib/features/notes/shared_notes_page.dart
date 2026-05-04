@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/notes/family_links_page.dart';
-import 'package:craftr_mobile/features/notes/shared_note_editor_page.dart';
-import 'package:craftr_mobile/features/notes/shared_note_preview_page.dart';
-import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/notes/family_links_page.dart';
+import 'package:oga/features/notes/shared_note_editor_page.dart';
+import 'package:oga/features/notes/shared_note_preview_page.dart';
+import 'package:oga/features/notes/widgets/note_markdown_content.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 

@@ -1,5 +1,5 @@
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

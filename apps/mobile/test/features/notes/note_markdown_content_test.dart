@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
+import 'package:oga/features/notes/widgets/note_markdown_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';

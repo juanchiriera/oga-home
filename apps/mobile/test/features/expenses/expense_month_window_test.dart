@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/expenses/expense_month_window.dart';
+import 'package:oga/features/expenses/expense_month_window.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

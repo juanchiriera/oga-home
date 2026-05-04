@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/assistant/widgets/assistant_markdown_message.dart';
+import 'package:oga/features/assistant/widgets/assistant_markdown_message.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

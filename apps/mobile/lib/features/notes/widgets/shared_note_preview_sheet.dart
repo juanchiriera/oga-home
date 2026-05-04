@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
+import 'package:oga/features/notes/widgets/note_markdown_content.dart';
 import 'package:flutter/material.dart';
 
 /// Floating preview: tap outside, drag down, close icon, or system back dismiss.

@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "ar.com.vanguardia.craftr.craftr_mobile"
+    namespace = "ar.craftr.oga"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -23,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "ar.com.vanguardia.craftr.craftr_mobile"
+        applicationId = "ar.craftr.oga"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

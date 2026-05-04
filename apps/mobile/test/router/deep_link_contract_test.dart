@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/router/deep_link_contract.dart';
+import 'package:oga/router/deep_link_contract.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

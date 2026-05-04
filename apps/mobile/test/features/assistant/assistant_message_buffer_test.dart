@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/assistant/assistant_message_buffer.dart';
+import 'package:oga/features/assistant/assistant_message_buffer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

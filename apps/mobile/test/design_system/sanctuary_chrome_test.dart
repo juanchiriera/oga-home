@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/design_system/sanctuary_chrome.dart';
+import 'package:oga/design_system/sanctuary_chrome.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
