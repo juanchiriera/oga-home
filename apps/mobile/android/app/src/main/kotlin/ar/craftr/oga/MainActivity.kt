@@ -1,4 +1,4 @@
-package ar.com.vanguardia.craftr.craftr_mobile
+package ar.craftr.oga
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

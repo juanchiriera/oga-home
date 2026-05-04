@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/expenses/expenses_page.dart';
+import 'package:oga/features/expenses/expenses_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

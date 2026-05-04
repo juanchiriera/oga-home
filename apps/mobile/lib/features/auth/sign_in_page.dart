@@ -1,6 +1,6 @@
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/l10n/l10n.dart';
-import 'package:craftr_mobile/services/auth_service.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/l10n/l10n.dart';
+import 'package:oga/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 

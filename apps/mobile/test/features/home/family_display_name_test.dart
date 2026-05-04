@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/home/home_dashboard_page.dart';
+import 'package:oga/features/home/home_dashboard_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

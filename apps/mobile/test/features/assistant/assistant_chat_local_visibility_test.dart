@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/assistant/assistant_chat_local_visibility.dart';
+import 'package:oga/features/assistant/assistant_chat_local_visibility.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

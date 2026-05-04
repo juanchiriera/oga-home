@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/core/entitlements_remote_config.dart';
+import 'package:oga/core/entitlements_remote_config.dart';
 import 'package:flutter/material.dart';
 
 class MainShellEntitlementsScope extends InheritedWidget {

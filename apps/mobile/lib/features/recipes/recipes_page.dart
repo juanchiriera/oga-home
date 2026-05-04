@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/recipes/recipe_draft.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';

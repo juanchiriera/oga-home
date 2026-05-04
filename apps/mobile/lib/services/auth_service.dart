@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:craftr_mobile/services/purchases_service.dart';
+import 'package:oga/services/purchases_service.dart';
 
 class AuthService {
   AuthService({

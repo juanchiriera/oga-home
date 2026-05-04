@@ -57,7 +57,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBnHwbaAAu-TOUjyplglZiaGqygHxsakJM',
-    appId: '1:662650052724:android:4057c99871ed2cded03121',
+    appId: '1:662650052724:android:857d66273bc2cfdbd03121',
     messagingSenderId: '662650052724',
     projectId: 'oga-home',
     storageBucket: 'oga-home.firebasestorage.app',
@@ -65,13 +65,13 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBwmKJQO7RkmEn_lImnhmvi6NT6PP5vR3Y',
-    appId: '1:662650052724:ios:13d3509b66442362d03121',
+    appId: '1:662650052724:ios:dc4dd91abfe2ae66d03121',
     messagingSenderId: '662650052724',
     projectId: 'oga-home',
     storageBucket: 'oga-home.firebasestorage.app',
-    androidClientId: '662650052724-nj54qg7flghh3ffrepaphtjiml7hetj9.apps.googleusercontent.com',
-    iosClientId: '662650052724-lqmqm04n8un62731tibct2djdj2i470e.apps.googleusercontent.com',
-    iosBundleId: 'ar.com.vanguardia.craftr.craftrMobile',
+    androidClientId: '662650052724-0adt2ebjj3qnvonn29rvn2kedif89tgn.apps.googleusercontent.com',
+    iosClientId: '662650052724-k4tqt0vspgog4qlhf6eb4qcdijifkuae.apps.googleusercontent.com',
+    iosBundleId: 'ar.craftr.oga',
   );
 
 }

@@ -1,8 +1,8 @@
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/core/entitlements_remote_config.dart';
-import 'package:craftr_mobile/core/entitlements_scope.dart';
-import 'package:craftr_mobile/l10n/app_localizations.dart';
-import 'package:craftr_mobile/router/app_router.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/core/entitlements_remote_config.dart';
+import 'package:oga/core/entitlements_scope.dart';
+import 'package:oga/l10n/app_localizations.dart';
+import 'package:oga/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 

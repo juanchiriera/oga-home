@@ -1,13 +1,13 @@
-import 'package:craftr_mobile/core/flavor.dart';
-import 'package:craftr_mobile/core/entitlements_scope.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/expenses/expenses_page.dart';
-import 'package:craftr_mobile/features/assistant/family_assistant_page.dart';
-import 'package:craftr_mobile/features/home/home_dashboard_page.dart';
-import 'package:craftr_mobile/features/notes/shared_notes_page.dart';
-import 'package:craftr_mobile/features/recipes/recipes_page.dart';
-import 'package:craftr_mobile/features/stock/stock_list_page.dart';
-import 'package:craftr_mobile/l10n/l10n.dart';
+import 'package:oga/core/flavor.dart';
+import 'package:oga/core/entitlements_scope.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/expenses/expenses_page.dart';
+import 'package:oga/features/assistant/family_assistant_page.dart';
+import 'package:oga/features/home/home_dashboard_page.dart';
+import 'package:oga/features/notes/shared_notes_page.dart';
+import 'package:oga/features/recipes/recipes_page.dart';
+import 'package:oga/features/stock/stock_list_page.dart';
+import 'package:oga/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 
 /// Navegación principal tipo “cozy” M3: barra inferior + asistente vía FAB

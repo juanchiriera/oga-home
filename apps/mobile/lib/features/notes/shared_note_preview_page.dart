@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/notes/shared_note_editor_page.dart';
-import 'package:craftr_mobile/features/notes/widgets/note_markdown_content.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/notes/shared_note_editor_page.dart';
+import 'package:oga/features/notes/widgets/note_markdown_content.dart';
 import 'package:flutter/material.dart';
 
 /// Pantalla completa de solo lectura para una nota compartida.

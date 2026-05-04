@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:craftr_mobile/design_system/design_system.dart';
-import 'package:craftr_mobile/features/invite/family_invite_flow.dart';
-import 'package:craftr_mobile/l10n/l10n.dart';
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/invite/family_invite_flow.dart';
+import 'package:oga/l10n/l10n.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

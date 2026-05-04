@@ -1,6 +1,6 @@
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:craftr_mobile/l10n/l10n.dart';
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/l10n/l10n.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';

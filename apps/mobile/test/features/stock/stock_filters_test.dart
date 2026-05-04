@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/stock/stock_list_page.dart';
+import 'package:oga/features/stock/stock_list_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/notes/family_links_page.dart';
+import 'package:oga/features/notes/family_links_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -1,5 +1,5 @@
-import 'package:craftr_mobile/features/auth/sign_in_page.dart';
-import 'package:craftr_mobile/l10n/app_localizations.dart';
+import 'package:oga/features/auth/sign_in_page.dart';
+import 'package:oga/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';

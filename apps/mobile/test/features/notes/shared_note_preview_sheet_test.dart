@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/notes/widgets/shared_note_preview_sheet.dart';
+import 'package:oga/features/notes/widgets/shared_note_preview_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

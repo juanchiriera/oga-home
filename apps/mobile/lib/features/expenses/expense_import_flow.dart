@@ -5,7 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/services/functions_region.dart';
 
 const _categoryChoices = <MapEntry<String, String>>[
   MapEntry('housing', 'Vivienda'),

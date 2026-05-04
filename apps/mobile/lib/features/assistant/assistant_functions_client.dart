@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:craftr_mobile/services/functions_region.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:http/http.dart' as http;
 
 /// Cliente de invocaciones a Firebase Functions para el asistente.

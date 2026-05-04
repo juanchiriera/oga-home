@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/recipes/recipe_draft.dart';
+import 'package:oga/features/recipes/recipe_draft.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

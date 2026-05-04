@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:craftr_mobile/core/monetization.dart';
-import 'package:craftr_mobile/services/purchases_service.dart';
+import 'package:oga/core/monetization.dart';
+import 'package:oga/services/purchases_service.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 

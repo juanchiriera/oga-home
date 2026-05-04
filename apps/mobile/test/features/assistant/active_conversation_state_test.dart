@@ -1,4 +1,4 @@
-import 'package:craftr_mobile/features/assistant/active_conversation_state.dart';
+import 'package:oga/features/assistant/active_conversation_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeLocalStore implements LocalActiveConversationStore {
