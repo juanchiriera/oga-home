@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:oga/services/purchases_service.dart';
 
 class AuthService {
@@ -43,7 +44,7 @@ class AuthService {
     await _upsertUserDocument(cred.user);
     final uid = cred.user?.uid;
     if (uid != null) {
-      await _purchasesService.logIn(uid);
+      await syncPurchasesAppUserWithActiveFamily(uid);
     }
     return cred;
   }

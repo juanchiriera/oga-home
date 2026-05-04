@@ -59,7 +59,7 @@ service cloud.firestore {
       }
 
       match /invites/{inviteId} {
-        allow read: if isFamilyOwner(familyId);
+        allow read: if isFamilyMember(familyId);
         allow write: if false;
       }
 

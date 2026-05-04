@@ -48,7 +48,7 @@ afterAll(async () => {
 });
 
 describe("firestore.rules · invitaciones", () => {
-  it("permite leer invites solo a owner de la familia", async () => {
+  it("permite leer invites a cualquier miembro de la familia", async () => {
     await testEnv.withSecurityRulesDisabled(async (ctx) => {
       const db = ctx.firestore();
       await setDoc(doc(db, memberPath("famA", "ownerA")), { role: "owner" });
@@ -64,7 +64,7 @@ describe("firestore.rules · invitaciones", () => {
     const outsiderDb = testEnv.authenticatedContext("outsiderA").firestore();
 
     await assertSucceeds(getDoc(doc(ownerDb, invitePath("famA", "inv1"))));
-    await assertFails(getDoc(doc(memberDb, invitePath("famA", "inv1"))));
+    await assertSucceeds(getDoc(doc(memberDb, invitePath("famA", "inv1"))));
     await assertFails(getDoc(doc(outsiderDb, invitePath("famA", "inv1"))));
   });
 });

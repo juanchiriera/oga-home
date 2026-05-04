@@ -358,7 +358,7 @@ abstract class AppLocalizations {
   /// No description provided for @inviteCreateErrorPermissionDenied.
   ///
   /// In es, this message translates to:
-  /// **'No tenés permiso para crear invitaciones en este hogar (solo administradores) o falta habilitar invitaciones en la suscripción.'**
+  /// **'No podés crear invitaciones: revisá que tu suscripción incluya invitaciones a hogares.'**
   String get inviteCreateErrorPermissionDenied;
 
   /// No description provided for @inviteCreateErrorGeneric.

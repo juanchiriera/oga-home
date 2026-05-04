@@ -5,7 +5,7 @@ import 'package:oga/core/monetization.dart';
 import 'package:oga/core/firebase_options.dart';
 import 'package:oga/core/firestore_bootstrap.dart';
 import 'package:oga/core/purchases_bootstrap.dart';
-import 'package:oga/services/purchases_service.dart';
+import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +19,7 @@ Future<void> main() async {
   await bootstrapPurchases();
   final currentUid = FirebaseAuth.instance.currentUser?.uid;
   if (currentUid != null) {
-    await PurchasesService().logIn(currentUid);
+    await syncPurchasesAppUserWithActiveFamily(currentUid);
   }
   final entitlementsRemoteConfig = EntitlementsRemoteConfig();
   await entitlementsRemoteConfig.initialize();

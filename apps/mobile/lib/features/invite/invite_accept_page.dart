@@ -1,6 +1,7 @@
 import 'package:oga/design_system/design_system.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:oga/services/functions_region.dart';
+import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,7 +33,13 @@ class _InviteAcceptPageState extends State<InviteAcceptPage> {
     });
     try {
       final callable = craftrFunctions().httpsCallable('acceptFamilyInvite');
-      await callable.call<Map<String, dynamic>>({'token': widget.token});
+      final result = await callable.call<Map<String, dynamic>>({
+        'token': widget.token,
+      });
+      final familyId = result.data['familyId'];
+      if (familyId is String && familyId.isNotEmpty) {
+        await bindPurchasesToFamilyId(familyId);
+      }
       if (mounted) {
         context.go('/app');
       }

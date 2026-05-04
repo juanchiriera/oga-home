@@ -1,5 +1,6 @@
 import 'package:oga/design_system/design_system.dart';
 import 'package:oga/services/functions_region.dart';
+import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -30,10 +31,14 @@ class _CreateFamilyPageState extends State<CreateFamilyPage> {
     });
     try {
       final callable = craftrFunctions().httpsCallable('createFamily');
-      await callable.call<Map<String, dynamic>>({
+      final result = await callable.call<Map<String, dynamic>>({
         'name': _name.text.trim(),
         'baseCurrency': _currency,
       });
+      final familyId = result.data['familyId'];
+      if (familyId is String && familyId.isNotEmpty) {
+        await bindPurchasesToFamilyId(familyId);
+      }
       if (mounted) {
         context.go('/app');
       }
