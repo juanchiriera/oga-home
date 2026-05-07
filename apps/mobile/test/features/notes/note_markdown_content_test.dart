@@ -20,17 +20,6 @@ void main() {
     });
   });
 
-  group('looksLikeNoteMarkdown', () {
-    test('detects headings and links', () {
-      expect(looksLikeNoteMarkdown('# Titulo'), isTrue);
-      expect(looksLikeNoteMarkdown('[docs](https://example.com)'), isTrue);
-    });
-
-    test('returns false for plain text', () {
-      expect(looksLikeNoteMarkdown('Mensaje simple sin formato'), isFalse);
-    });
-  });
-
   group('safeNoteLinkUri', () {
     test('allows safe schemes', () {
       expect(
@@ -72,7 +61,7 @@ void main() {
   });
 
   group('NoteMarkdownContent', () {
-    testWidgets('renders plain text without markdown widget', (tester) async {
+    testWidgets('renders plain text through MarkdownBody', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -85,8 +74,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Texto plano sin formato'), findsOneWidget);
-      expect(find.byType(MarkdownBody), findsNothing);
+      expect(find.byType(MarkdownBody), findsOneWidget);
     });
 
     testWidgets('renders markdown content using markdown widget', (

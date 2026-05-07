@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:oga/design_system/design_system.dart';
+import 'package:oga/features/notes/widgets/note_markdown_editor_toolbar.dart';
 import 'package:flutter/material.dart';
 
 /// Full-screen editor for a shared family note (aligned with recipe detail flow).
@@ -26,6 +27,10 @@ class SharedNoteEditorPage extends StatefulWidget {
 class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
   late final TextEditingController _titleController;
   late final TextEditingController _contentController;
+  late final FocusNode _contentFocusNode;
+  TextSelection _lastContentSelection = const TextSelection.collapsed(
+    offset: 0,
+  );
   bool _saving = false;
 
   /// Bordes casi rectos: el tema global usa pastillas (radius 999) poco aptas
@@ -66,17 +71,42 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
     );
   }
 
+  void _syncContentSelection() {
+    final s = _contentController.selection;
+    final len = _contentController.text.length;
+    if (s.isValid && s.start <= len && s.end <= len) {
+      _lastContentSelection = s;
+    }
+  }
+
+  TextSelection _resolveContentSelection() {
+    final len = _contentController.text.length;
+    var s = _contentController.selection;
+    if (!s.isValid || s.start > len || s.end > len) {
+      s = _lastContentSelection;
+    }
+    if (!s.isValid || s.start > len || s.end > len) {
+      return TextSelection.collapsed(offset: len);
+    }
+    return s;
+  }
+
   @override
   void initState() {
     super.initState();
     _titleController = TextEditingController(text: widget.initialTitle);
     _contentController = TextEditingController(text: widget.initialContent);
+    _contentFocusNode = FocusNode();
+    _contentController.addListener(_syncContentSelection);
+    _syncContentSelection();
   }
 
   @override
   void dispose() {
+    _contentController.removeListener(_syncContentSelection);
     _titleController.dispose();
     _contentController.dispose();
+    _contentFocusNode.dispose();
     super.dispose();
   }
 
@@ -176,15 +206,23 @@ class _SharedNoteEditorPageState extends State<SharedNoteEditorPage> {
             ),
           ),
           const SizedBox(height: 8),
+          NoteMarkdownEditorToolbar(
+            controller: _contentController,
+            focusNode: _contentFocusNode,
+            resolveSelection: _resolveContentSelection,
+          ),
+          const SizedBox(height: 10),
           TextField(
             controller: _contentController,
+            focusNode: _contentFocusNode,
             minLines: 14,
             maxLines: 24,
             keyboardType: TextInputType.multiline,
             textCapitalization: TextCapitalization.sentences,
             decoration: _noteEditorFieldDecoration(
               context,
-              hintText: 'Markdown soportado: listas, negritas, links…',
+              hintText:
+                  'Podés escribir Markdown o usar la barra de arriba (negrita, listas, enlaces…)',
               alignLabelWithHint: true,
             ),
             style: theme.textTheme.bodyLarge?.copyWith(height: 1.45),

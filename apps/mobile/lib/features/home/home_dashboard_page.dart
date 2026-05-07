@@ -7,6 +7,7 @@ import 'package:oga/features/expenses/expense_lifecycle.dart';
 import 'package:oga/features/expenses/expense_money.dart';
 import 'package:oga/features/expenses/expenses_page.dart';
 import 'package:oga/l10n/l10n.dart';
+import 'package:oga/features/notes/widgets/note_markdown_content.dart';
 import 'package:oga/features/invite/family_invite_flow.dart';
 import 'package:oga/features/recipes/recipe_draft.dart';
 import 'package:oga/features/shell/main_shell.dart';
@@ -825,18 +826,39 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                   ),
                                             ),
                                             const SizedBox(height: 8),
-                                            Text(
-                                              noteDoc.data()['content']
-                                                      as String? ??
-                                                  '',
-                                              maxLines: 4,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: theme.textTheme.bodySmall
-                                                  ?.copyWith(
-                                                    color:
-                                                        scheme.onSurfaceVariant,
-                                                    height: 1.45,
+                                            Builder(
+                                              builder: (ctx) {
+                                                final noteStyle = theme
+                                                    .textTheme
+                                                    .bodySmall
+                                                    ?.copyWith(
+                                                      color: scheme
+                                                          .onSurfaceVariant,
+                                                      height: 1.45,
+                                                    );
+                                                final fs =
+                                                    noteStyle?.fontSize ?? 12;
+                                                final lh =
+                                                    noteStyle?.height ?? 1.45;
+                                                return SizedBox(
+                                                  height: fs * lh * 4,
+                                                  child: ClipRect(
+                                                    child: Align(
+                                                      alignment:
+                                                          Alignment.topLeft,
+                                                      child: NoteMarkdownContent(
+                                                        text:
+                                                            noteDoc.data()['content']
+                                                                as String? ??
+                                                            '',
+                                                        textStyle: noteStyle,
+                                                        linkColor:
+                                                            scheme.primary,
+                                                      ),
+                                                    ),
                                                   ),
+                                                );
+                                              },
                                             ),
                                           ],
                                         ),
