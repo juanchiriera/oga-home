@@ -56,8 +56,26 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
+class MainShellController extends InheritedWidget {
+  const MainShellController({
+    super.key,
+    required this.selectTab,
+    required super.child,
+  });
+
+  final void Function(int index) selectTab;
+
+  static MainShellController? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<MainShellController>();
+  }
+
+  @override
+  bool updateShouldNotify(MainShellController oldWidget) => false;
+}
+
 class _MainShellState extends State<MainShell> {
   late int _index;
+  final List<int> _tabHistory = <int>[];
 
   @override
   void initState() {
@@ -122,6 +140,26 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  void _selectTab(int nextIndex) {
+    if (nextIndex == _index) {
+      return;
+    }
+    setState(() {
+      _tabHistory.add(_index);
+      _index = nextIndex;
+    });
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_tabHistory.isNotEmpty) {
+      setState(() {
+        _index = _tabHistory.removeLast();
+      });
+      return false;
+    }
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -137,51 +175,57 @@ class _MainShellState extends State<MainShell> {
     ];
     final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
-    return Scaffold(
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          IndexedStack(index: selectedIndex, children: pages),
-          const SanctuaryNavBarScrollFade(),
-        ],
-      ),
-      floatingActionButton: iaEnabled
-          ? FloatingActionButton(
-              onPressed: () => _openAssistantPanel(context),
-              tooltip: l10n.assistantTooltip,
-              child: const Icon(Icons.auto_awesome),
-            )
-          : null,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: l10n.navHome,
+    return MainShellController(
+      selectTab: _selectTab,
+      child: WillPopScope(
+        onWillPop: _onWillPop,
+        child: Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: [
+              IndexedStack(index: selectedIndex, children: pages),
+              const SanctuaryNavBarScrollFade(),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
-            label: l10n.navStock,
+          floatingActionButton: iaEnabled
+              ? FloatingActionButton(
+                  onPressed: () => _openAssistantPanel(context),
+                  tooltip: l10n.assistantTooltip,
+                  child: const Icon(Icons.auto_awesome),
+                )
+              : null,
+          bottomNavigationBar: NavigationBar(
+            selectedIndex: selectedIndex,
+            onDestinationSelected: _selectTab,
+            destinations: [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: l10n.navHome,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.inventory_2_outlined),
+                selectedIcon: Icon(Icons.inventory_2),
+                label: l10n.navStock,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.payments_outlined),
+                selectedIcon: Icon(Icons.payments),
+                label: l10n.navExpenses,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.restaurant_menu_outlined),
+                selectedIcon: Icon(Icons.restaurant_menu),
+                label: l10n.navRecipes,
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.note_alt_outlined),
+                selectedIcon: Icon(Icons.note_alt),
+                label: l10n.navNotes,
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.payments_outlined),
-            selectedIcon: Icon(Icons.payments),
-            label: l10n.navExpenses,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu),
-            label: l10n.navRecipes,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.note_alt_outlined),
-            selectedIcon: Icon(Icons.note_alt),
-            label: l10n.navNotes,
-          ),
-        ],
+        ),
       ),
     );
   }
