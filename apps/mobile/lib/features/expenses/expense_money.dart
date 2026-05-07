@@ -1,3 +1,6 @@
+import 'package:flutter/widgets.dart' show Locale;
+import 'package:intl/intl.dart';
+
 const kSupportedCurrencies = <String>['ARS', 'USD', 'EUR'];
 
 String normalizeCurrency(String? raw, {required String fallback}) {
@@ -36,6 +39,17 @@ void addToCurrencyTotals(
   totals[currency] = (totals[currency] ?? 0) + amount;
 }
 
+/// ICU locale tag for numeric patterns (separators), aligned with app locales.
+String moneyLocaleTag(Locale locale) {
+  switch (locale.languageCode) {
+    case 'en':
+      return 'en_US';
+    case 'es':
+    default:
+      return 'es_AR';
+  }
+}
+
 String currencySymbol(String currency) {
   switch (currency) {
     case 'USD':
@@ -48,15 +62,45 @@ String currencySymbol(String currency) {
   }
 }
 
-String formatMoney(double amount, String currency) {
-  final fixed = amount.toStringAsFixed(2);
-  return '${currencySymbol(currency)}$fixed';
+/// Amount only (no currency), with grouping and fraction per locale.
+String formatLocalizedAmount(double amount, Locale locale) {
+  return NumberFormat.decimalPatternDigits(
+    locale: moneyLocaleTag(locale),
+    decimalDigits: 2,
+  ).format(amount);
 }
 
-List<String> formatTotalsByCurrency(Map<String, double> totals) {
+String formatMoney(double amount, String currency, Locale locale) {
+  return '${currencySymbol(currency)} ${formatLocalizedAmount(amount, locale)}';
+}
+
+List<String> formatTotalsByCurrency(
+  Map<String, double> totals,
+  Locale locale,
+) {
   final keys = totals.keys.toList()..sort();
   return keys
       .where((currency) => (totals[currency] ?? 0) > 0)
-      .map((currency) => formatMoney(totals[currency] ?? 0, currency))
+      .map((currency) => formatMoney(totals[currency] ?? 0, currency, locale))
       .toList();
+}
+
+/// Parses user-entered money strings for the active UI locale.
+///
+/// Spanish (LatAm): `.` thousands, `,` decimal. English: `,` thousands, `.` decimal.
+double? parseMoneyInput(String raw, Locale locale) {
+  var s = raw.trim();
+  if (s.isEmpty) {
+    return null;
+  }
+  s = s.replaceAll(RegExp(r'US\$', caseSensitive: false), '');
+  s = s.replaceAll('€', '');
+  s = s.replaceAll('\$', '');
+  s = s.trim();
+  if (locale.languageCode == 'en') {
+    s = s.replaceAll(',', '');
+  } else {
+    s = s.replaceAll('.', '').replaceAll(',', '.');
+  }
+  return double.tryParse(s);
 }

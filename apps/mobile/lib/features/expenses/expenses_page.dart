@@ -521,8 +521,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
     }
     final n = nRaw;
 
-    final rawAmount = double.tryParse(
-      amountController.text.replaceAll(',', '.'),
+    final rawAmount = parseMoneyInput(
+      amountController.text,
+      Localizations.localeOf(context),
     );
     if (rawAmount == null || rawAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -665,7 +666,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
     }
 
     final amountController = TextEditingController(
-      text: initialData?['amount']?.toString() ?? '',
+      text: () {
+        final initialAmt = (initialData?['amount'] as num?)?.toDouble();
+        if (initialAmt == null || initialAmt <= 0) {
+          return '';
+        }
+        return formatLocalizedAmount(
+          initialAmt,
+          Localizations.localeOf(context),
+        );
+      }(),
     );
     final merchantController = TextEditingController(
       text: initialData?['merchant'] as String? ?? '',
@@ -761,8 +771,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               final messenger = ScaffoldMessenger.of(context);
                               setLocal(() => isSuggestingCategory = true);
                               try {
-                                final amount = double.tryParse(
-                                  amountController.text.replaceAll(',', '.'),
+                                final amount = parseMoneyInput(
+                                  amountController.text,
+                                  Localizations.localeOf(context),
                                 );
                                 final callable = craftrFunctions()
                                     .httpsCallable(
@@ -977,7 +988,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
       return;
     }
 
-    final amount = double.tryParse(amountController.text.replaceAll(',', '.'));
+    final amount = parseMoneyInput(
+      amountController.text,
+      Localizations.localeOf(context),
+    );
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ingresa un monto valido mayor a 0.')),
@@ -1624,6 +1638,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                           else
                             ...formatTotalsByCurrency(
                               monthlyEffectiveByCurrency,
+                              Localizations.localeOf(context),
                             ).map(
                               (line) => Text(
                                 line,
@@ -1643,6 +1658,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                             ),
                             ...formatTotalsByCurrency(
                               monthlyPendingByCurrency,
+                              Localizations.localeOf(context),
                             ).map(
                               (line) => Text(
                                 line,
@@ -1706,6 +1722,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                           formatTotalsByCurrency(
                                             byCategoryCurrency[c.key] ??
                                                 const <String, double>{},
+                                            Localizations.localeOf(context),
                                           ).join(' · '),
                                           style: Theme.of(context)
                                               .textTheme
@@ -1962,7 +1979,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                       subtitle: Text(
                                         [
                                           if (progress.isNotEmpty) progress,
-                                          '${formatMoney(amount, baseCurrency)} · $cargo',
+                                          '${formatMoney(amount, baseCurrency, Localizations.localeOf(context))} · $cargo',
                                           if (!active) 'Inactivo',
                                         ].join('\n'),
                                       ),
@@ -2133,7 +2150,9 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                               ..write(
                                 '${category.label} • ${_formatDate(occurredAt ?? DateTime.now())}',
                               )
-                              ..write(' • ${formatMoney(amount, currency)}');
+                              ..write(
+                                ' • ${formatMoney(amount, currency, Localizations.localeOf(context))}',
+                              );
                             final iIdx = data['installmentIndex'] as int?;
                             final iTot = data['installmentTotal'] as int?;
                             if (iIdx != null && iTot != null) {

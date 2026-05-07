@@ -22,8 +22,24 @@ class CraftrApp extends StatelessWidget {
           theme: craftrLightTheme(),
           darkTheme: craftrDarkTheme(),
           themeMode: ThemeMode.system,
-          locale: const Locale('es', 'AR'),
           supportedLocales: AppLocalizations.supportedLocales,
+          localeListResolutionCallback: (locales, supported) {
+            if (locales == null || locales.isEmpty) {
+              return const Locale('es', 'AR');
+            }
+            for (final device in locales) {
+              if (device.languageCode == 'en') {
+                return const Locale('en', 'US');
+              }
+              if (device.languageCode == 'es') {
+                return device.countryCode != null &&
+                        device.countryCode!.isNotEmpty
+                    ? device
+                    : const Locale('es', 'AR');
+              }
+            }
+            return const Locale('es', 'AR');
+          },
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
