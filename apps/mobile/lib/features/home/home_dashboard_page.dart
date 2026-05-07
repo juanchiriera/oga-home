@@ -9,6 +9,7 @@ import 'package:oga/features/expenses/expenses_page.dart';
 import 'package:oga/l10n/l10n.dart';
 import 'package:oga/features/invite/family_invite_flow.dart';
 import 'package:oga/features/recipes/recipe_draft.dart';
+import 'package:oga/features/shell/main_shell.dart';
 import 'package:oga/features/stock/stock_list_page.dart';
 import 'package:oga/services/auth_service.dart';
 import 'package:oga/services/purchases_service.dart';
@@ -98,6 +99,19 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     if (h < 13) return l10n.homeGreetingMorning;
     if (h < 20) return l10n.homeGreetingAfternoon;
     return l10n.homeGreetingEvening;
+  }
+
+  void _selectMainTabOrFallback({
+    required BuildContext context,
+    required int tabIndex,
+    required String fallbackRoute,
+  }) {
+    final shellController = MainShellController.maybeOf(context);
+    if (shellController != null) {
+      shellController.selectTab(tabIndex);
+      return;
+    }
+    context.go(fallbackRoute);
   }
 
   @override
@@ -290,10 +304,26 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                 ] else
                   _HomeFamilyOverview(
                     familyId: familyId,
-                    onOpenStock: () => context.go('/app?tab=stock'),
-                    onOpenExpenses: () => context.go('/app?tab=gastos'),
-                    onOpenNotes: () => context.go('/app?tab=notas'),
-                    onOpenRecipes: () => context.go('/app?tab=recetas'),
+                    onOpenStock: () => _selectMainTabOrFallback(
+                      context: context,
+                      tabIndex: 1,
+                      fallbackRoute: '/app?tab=stock',
+                    ),
+                    onOpenExpenses: () => _selectMainTabOrFallback(
+                      context: context,
+                      tabIndex: 2,
+                      fallbackRoute: '/app?tab=gastos',
+                    ),
+                    onOpenNotes: () => _selectMainTabOrFallback(
+                      context: context,
+                      tabIndex: 4,
+                      fallbackRoute: '/app?tab=notas',
+                    ),
+                    onOpenRecipes: () => _selectMainTabOrFallback(
+                      context: context,
+                      tabIndex: 3,
+                      fallbackRoute: '/app?tab=recetas',
+                    ),
                     onInvites: () => context.push('/invites'),
                   ),
               ],
