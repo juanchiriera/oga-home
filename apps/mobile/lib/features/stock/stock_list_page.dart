@@ -22,6 +22,13 @@ enum StockLevel {
     );
   }
 
+  /// Ciclo rápido desde Inicio (tarjeta despensa): hay → queda poco → no hay → hay.
+  StockLevel get nextInQuickCycle => switch (this) {
+    StockLevel.hay => StockLevel.low,
+    StockLevel.low => StockLevel.out,
+    StockLevel.out => StockLevel.hay,
+  };
+
   /// Punto de estado en listas: rojo (no hay), amarillo (queda poco), verde (hay).
   Color indicatorDotColor(ColorScheme scheme) => switch (this) {
     StockLevel.out => scheme.error,
@@ -294,6 +301,30 @@ class StockListPage extends StatefulWidget {
           'conflictPolicy': 'lww-v1',
         });
   }
+
+  static Future<void> cycleItemState({
+    required String familyId,
+    required String itemId,
+    required StockLevel current,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      return;
+    }
+    final next = current.nextInQuickCycle;
+    await FirebaseFirestore.instance
+        .collection('families')
+        .doc(familyId)
+        .collection('stockItems')
+        .doc(itemId)
+        .update({
+          'state': next.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+          'updatedBy': uid,
+          'clientUpdatedAt': Timestamp.now(),
+          'conflictPolicy': 'lww-v1',
+        });
+  }
 }
 
 class _StockListPageState extends State<StockListPage> {
@@ -402,7 +433,9 @@ class _StockListPageState extends State<StockListPage> {
                     return ListView(
                       padding: EdgeInsets.fromLTRB(
                         24,
-                        MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
+                        MediaQuery.paddingOf(context).top +
+                            kSanctuaryAppBarToolbarHeight +
+                            8,
                         24,
                         sanctuaryScrollBottomPadding(context),
                       ),

@@ -749,9 +749,27 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                     ],
                                                   ),
                                                 ),
-                                                Icon(
-                                                  Icons.add_circle_outline,
-                                                  color: scheme.primary,
+                                                IconButton(
+                                                  tooltip:
+                                                      '${level.label} → ${level.nextInQuickCycle.label}',
+                                                  style: IconButton.styleFrom(
+                                                    tapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    minimumSize: Size.zero,
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                  ),
+                                                  onPressed: () =>
+                                                      StockListPage.cycleItemState(
+                                                        familyId: familyId,
+                                                        itemId: d.id,
+                                                        current: level,
+                                                      ),
+                                                  icon: Icon(
+                                                    Icons.add_circle_outline,
+                                                    color: scheme.primary,
+                                                  ),
                                                 ),
                                               ],
                                             ),

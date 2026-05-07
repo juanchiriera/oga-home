@@ -2,6 +2,14 @@ import 'package:oga/features/stock/stock_list_page.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('StockLevel quick cycle (Inicio / despensa)', () {
+    test('avanza hay → low → out → hay', () {
+      expect(StockLevel.hay.nextInQuickCycle, StockLevel.low);
+      expect(StockLevel.low.nextInQuickCycle, StockLevel.out);
+      expect(StockLevel.out.nextInQuickCycle, StockLevel.hay);
+    });
+  });
+
   group('StockListPage filter logic', () {
     test('default filter incluye items en stock y faltantes', () {
       expect(
