@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Llama a `createFamilyInvite` y muestra un bottom sheet para copiar/compartir el enlace.
+/// Llama a `createFamilyInvite` y muestra un bottom sheet para copiar/compartir el token.
 Future<void> createAndShowFamilyInviteLink(
   BuildContext context,
   String familyId,
@@ -45,9 +45,15 @@ Future<void> createAndShowFamilyInviteLink(
       throw StateError('Respuesta inválida del servidor');
     }
     final map = Map<Object?, Object?>.from(raw);
-    final deepLink = map['deepLink'] as String?;
-    if (deepLink == null || deepLink.isEmpty) {
-      throw StateError('Sin enlace en la respuesta');
+    final token = (map['token'] as String?)?.trim();
+    final fallbackToken = _extractTokenFromDeepLink(
+      (map['deepLink'] as String?)?.trim(),
+    );
+    final inviteToken = (token != null && token.isNotEmpty)
+        ? token
+        : fallbackToken;
+    if (inviteToken == null || inviteToken.isEmpty) {
+      throw StateError('Sin token en la respuesta');
     }
     final expiresMs = (map['expiresAt'] as num?)?.toInt();
 
@@ -107,7 +113,7 @@ Future<void> createAndShowFamilyInviteLink(
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: SelectableText(
-                      deepLink,
+                      inviteToken,
                       style: theme.textTheme.bodyLarge?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -120,10 +126,14 @@ Future<void> createAndShowFamilyInviteLink(
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          await Clipboard.setData(ClipboardData(text: deepLink));
+                          await Clipboard.setData(
+                            ClipboardData(text: inviteToken),
+                          );
                           if (sheetContext.mounted) {
                             ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              SnackBar(content: Text(l10n.inviteCopiedToClipboard)),
+                              SnackBar(
+                                content: Text(l10n.inviteCopiedToClipboard),
+                              ),
                             );
                           }
                         },
@@ -136,7 +146,7 @@ Future<void> createAndShowFamilyInviteLink(
                       child: FilledButton.icon(
                         onPressed: () async {
                           await Share.share(
-                            deepLink,
+                            inviteToken,
                             subject: l10n.inviteCreatedSheetTitle,
                           );
                         },
@@ -158,8 +168,8 @@ Future<void> createAndShowFamilyInviteLink(
     }
     final msg = e.code == 'permission-denied'
         ? ((e.message != null && e.message!.trim().isNotEmpty)
-            ? l10n.inviteCreateErrorGeneric(e.message!.trim())
-            : l10n.inviteCreateErrorPermissionDenied)
+              ? l10n.inviteCreateErrorGeneric(e.message!.trim())
+              : l10n.inviteCreateErrorPermissionDenied)
         : l10n.inviteCreateErrorGeneric(e.message ?? e.code);
     messenger?.showSnackBar(SnackBar(content: Text(msg)));
   } catch (e) {
@@ -176,4 +186,21 @@ String _formatInviteExpiry(BuildContext context, int millis) {
   final localeTag = Localizations.localeOf(context).toLanguageTag();
   final d = DateTime.fromMillisecondsSinceEpoch(millis);
   return DateFormat.yMMMd(localeTag).add_Hm().format(d);
+}
+
+String? _extractTokenFromDeepLink(String? deepLink) {
+  if (deepLink == null || deepLink.isEmpty) {
+    return null;
+  }
+  final marker = '/invite/';
+  final idx = deepLink.indexOf(marker);
+  if (idx < 0) {
+    return null;
+  }
+  final rawToken = deepLink
+      .substring(idx + marker.length)
+      .split('?')
+      .first
+      .trim();
+  return rawToken.isEmpty ? null : rawToken;
 }

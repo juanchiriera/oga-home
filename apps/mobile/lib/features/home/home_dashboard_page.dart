@@ -72,6 +72,26 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     }
   }
 
+  Future<void> _openInviteRedeem(BuildContext context) async {
+    final token = await showDialog<String?>(
+      context: context,
+      builder: (ctx) => const _InviteTokenDialog(),
+    );
+    if (!context.mounted || token == null || token.isEmpty) {
+      return;
+    }
+    var path = token;
+    if (path.contains('/invite/')) {
+      final i = path.indexOf('/invite/');
+      path = path.substring(i + '/invite/'.length);
+    }
+    path = path.split('?').first.trim();
+    if (path.isEmpty) {
+      return;
+    }
+    context.push('/invite/$path');
+  }
+
   String _greetingPrefix(BuildContext context) {
     final l10n = context.l10n;
     final h = DateTime.now().hour;
@@ -154,7 +174,9 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             return ListView(
               padding: EdgeInsets.fromLTRB(
                 24,
-                MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
+                MediaQuery.paddingOf(context).top +
+                    kSanctuaryAppBarToolbarHeight +
+                    8,
                 24,
                 sanctuaryScrollBottomPadding(context),
               ),
@@ -259,7 +281,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         ),
                         const SizedBox(height: 10),
                         OutlinedButton(
-                          onPressed: null,
+                          onPressed: () => _openInviteRedeem(context),
                           child: Text(l10n.homeInvitations),
                         ),
                       ],
@@ -1092,4 +1114,47 @@ class _BillingUiState {
 
   final _BillingUiStateType type;
   final int? packageCount;
+}
+
+class _InviteTokenDialog extends StatefulWidget {
+  const _InviteTokenDialog();
+
+  @override
+  State<_InviteTokenDialog> createState() => _InviteTokenDialogState();
+}
+
+class _InviteTokenDialogState extends State<_InviteTokenDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.inviteDialogTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: l10n.inviteDialogHint),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final t = _controller.text.trim();
+            Navigator.pop(context, t.isEmpty ? null : t);
+          },
+          child: Text(l10n.commonContinue),
+        ),
+      ],
+    );
+  }
 }
