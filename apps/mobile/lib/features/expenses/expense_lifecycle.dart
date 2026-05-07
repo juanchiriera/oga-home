@@ -45,4 +45,60 @@ abstract final class PaymentMethodTypes {
         return type;
     }
   }
+
+  /// Display rank used to order payment methods in the UI (Trello #98):
+  /// efectivo/débito/banco aparecen primero y la tarjeta de crédito al final.
+  /// Tipos desconocidos quedan justo encima de las tarjetas, junto a "otro".
+  static int sortRank(String type) {
+    switch (type) {
+      case cash:
+        return 0;
+      case debit:
+        return 1;
+      case bank:
+        return 2;
+      case other:
+        return 3;
+      case creditCard:
+        return 4;
+      default:
+        return 3;
+    }
+  }
+}
+
+/// Ordena dos métodos de pago aplicando primero el rank por tipo
+/// (`PaymentMethodTypes.sortRank`) y desempatando alfabéticamente por nombre.
+int comparePaymentMethods({
+  required String typeA,
+  required String nameA,
+  required String typeB,
+  required String nameB,
+}) {
+  final rankA = PaymentMethodTypes.sortRank(typeA);
+  final rankB = PaymentMethodTypes.sortRank(typeB);
+  if (rankA != rankB) {
+    return rankA.compareTo(rankB);
+  }
+  return nameA.toLowerCase().compareTo(nameB.toLowerCase());
+}
+
+/// Devuelve una nueva lista con los métodos de pago ordenados según
+/// [comparePaymentMethods]. Permite usar la misma regla con cualquier
+/// representación (snapshots de Firestore, mapas en memoria, etc.).
+List<T> sortPaymentMethods<T>(
+  Iterable<T> items, {
+  required String Function(T item) typeOf,
+  required String Function(T item) nameOf,
+}) {
+  final sorted = items.toList(growable: false);
+  sorted.sort(
+    (a, b) => comparePaymentMethods(
+      typeA: typeOf(a),
+      nameA: nameOf(a),
+      typeB: typeOf(b),
+      nameB: nameOf(b),
+    ),
+  );
+  return sorted;
 }

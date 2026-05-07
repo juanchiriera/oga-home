@@ -235,6 +235,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
     if (familyId.isEmpty || !context.mounted) {
       return;
     }
+    final lastUsedPaymentMethodId =
+        userDoc.data()?['lastUsedPaymentMethodId'] as String?;
 
     final pmCol = FirebaseFirestore.instance
         .collection('families')
@@ -248,8 +250,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
       familyDoc.data()?['baseCurrency'] as String?,
       fallback: 'ARS',
     );
-    var methodsSnap = await pmCol.orderBy('name').get();
-    while (methodsSnap.docs.isEmpty) {
+    var methodDocs = _orderedPaymentMethodDocs(await pmCol.get());
+    while (methodDocs.isEmpty) {
       if (!context.mounted) {
         return;
       }
@@ -286,7 +288,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       if (!context.mounted) {
         return;
       }
-      methodsSnap = await pmCol.orderBy('name').get();
+      methodDocs = _orderedPaymentMethodDocs(await pmCol.get());
     }
 
     if (!context.mounted) {
@@ -301,8 +303,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
     var selectedCategory = kExpenseCategories.first.key;
     var generationDay = 'month_start';
     var firstMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
-    final pmIds = methodsSnap.docs.map((d) => d.id).toSet();
-    var selectedPaymentMethodId = _defaultPaymentMethodId(methodsSnap.docs)!;
+    final pmIds = methodDocs.map((d) => d.id).toSet();
+    var selectedPaymentMethodId = _defaultPaymentMethodId(
+      methodDocs,
+      preferredId: lastUsedPaymentMethodId,
+    )!;
 
     double round2(double x) => (x * 100).round() / 100;
 
@@ -418,7 +423,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     decoration: const InputDecoration(
                       labelText: 'Método de pago *',
                     ),
-                    items: methodsSnap.docs.map((d) {
+                    items: methodDocs.map((d) {
                       final m = d.data();
                       final t =
                           m['type'] as String? ?? PaymentMethodTypes.other;
@@ -573,6 +578,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
         .doc(familyId)
         .collection('recurringTemplates')
         .add(payload);
+    await _rememberLastUsedPaymentMethod(uid, selectedPaymentMethodId);
 
     if (!context.mounted) {
       return;
@@ -597,16 +603,19 @@ class _ExpensesPageState extends State<ExpensesPage> {
       return;
     }
 
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
+    final userData = userDoc.data();
     if (familyId == null || familyId.isEmpty) {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .get();
-      familyId = userDoc.data()?['activeFamilyId'] as String?;
+      familyId = userData?['activeFamilyId'] as String?;
       if (familyId == null || familyId.isEmpty || !context.mounted) {
         return;
       }
     }
+    final lastUsedPaymentMethodId =
+        userData?['lastUsedPaymentMethodId'] as String?;
 
     final pmCol = FirebaseFirestore.instance
         .collection('families')
@@ -620,8 +629,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
       familyDoc.data()?['baseCurrency'] as String?,
       fallback: 'ARS',
     );
-    var methodsSnap = await pmCol.orderBy('name').get();
-    while (methodsSnap.docs.isEmpty) {
+    var methodDocs = _orderedPaymentMethodDocs(await pmCol.get());
+    while (methodDocs.isEmpty) {
       if (!context.mounted) {
         return;
       }
@@ -658,7 +667,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       if (!context.mounted) {
         return;
       }
-      methodsSnap = await pmCol.orderBy('name').get();
+      methodDocs = _orderedPaymentMethodDocs(await pmCol.get());
     }
 
     if (!context.mounted) {
@@ -693,12 +702,15 @@ class _ExpensesPageState extends State<ExpensesPage> {
       fallback: baseCurrency,
     );
 
-    final pmIds = methodsSnap.docs.map((d) => d.id).toSet();
+    final pmIds = methodDocs.map((d) => d.id).toSet();
     var selectedPaymentMethodId =
         (initialData?['paymentMethodId'] as String?) ?? '';
     if (selectedPaymentMethodId.isEmpty ||
         !pmIds.contains(selectedPaymentMethodId)) {
-      selectedPaymentMethodId = _defaultPaymentMethodId(methodsSnap.docs)!;
+      selectedPaymentMethodId = _defaultPaymentMethodId(
+        methodDocs,
+        preferredId: lastUsedPaymentMethodId,
+      )!;
     }
     var isSuggestingCategory = false;
 
@@ -922,7 +934,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     decoration: const InputDecoration(
                       labelText: 'Método de pago *',
                     ),
-                    items: methodsSnap.docs.map((d) {
+                    items: methodDocs.map((d) {
                       final m = d.data();
                       final t =
                           m['type'] as String? ?? PaymentMethodTypes.other;
@@ -998,7 +1010,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       );
       return;
     }
-    final methodDoc = methodsSnap.docs.firstWhere(
+    final methodDoc = methodDocs.firstWhere(
       (d) => d.id == selectedPaymentMethodId,
     );
     final mType =
@@ -1039,6 +1051,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       payload['amountInBase'] = FieldValue.delete();
       await collection.doc(expenseId).update(payload);
     }
+    await _rememberLastUsedPaymentMethod(uid, selectedPaymentMethodId);
   }
 
   Future<void> _deleteExpense(
@@ -1074,11 +1087,24 @@ class _ExpensesPageState extends State<ExpensesPage> {
         .delete();
   }
 
+  /// Devuelve el id del método de pago a usar por defecto.
+  ///
+  /// Trello #98: priorizamos el último método usado por el usuario si sigue
+  /// disponible. Si no, mantenemos el comportamiento previo: preferimos el
+  /// primer "efectivo" y, en último caso, el primero de la lista ordenada.
   String? _defaultPaymentMethodId(
-    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-  ) {
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs, {
+    String? preferredId,
+  }) {
     if (docs.isEmpty) {
       return null;
+    }
+    if (preferredId != null && preferredId.isNotEmpty) {
+      for (final d in docs) {
+        if (d.id == preferredId) {
+          return d.id;
+        }
+      }
     }
     for (final d in docs) {
       if ((d.data()['type'] as String?) == PaymentMethodTypes.cash) {
@@ -1086,6 +1112,33 @@ class _ExpensesPageState extends State<ExpensesPage> {
       }
     }
     return docs.first.id;
+  }
+
+  /// Aplica el orden de presentación de Trello #98: efectivo/débito/banco
+  /// arriba, tarjetas de crédito al final, desempate alfabético por nombre.
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _orderedPaymentMethodDocs(
+    QuerySnapshot<Map<String, dynamic>> snap,
+  ) {
+    return sortPaymentMethods<QueryDocumentSnapshot<Map<String, dynamic>>>(
+      snap.docs,
+      typeOf: (d) => d.data()['type'] as String? ?? PaymentMethodTypes.other,
+      nameOf: (d) => d.data()['name'] as String? ?? '',
+    );
+  }
+
+  /// Persiste el último método de pago usado en `users/{uid}` para que la
+  /// próxima carga lo proponga por defecto (Trello #98).
+  Future<void> _rememberLastUsedPaymentMethod(
+    String uid,
+    String paymentMethodId,
+  ) async {
+    if (paymentMethodId.isEmpty) {
+      return;
+    }
+    await FirebaseFirestore.instance.collection('users').doc(uid).set(
+      <String, dynamic>{'lastUsedPaymentMethodId': paymentMethodId},
+      SetOptions(merge: true),
+    );
   }
 
   Future<void> _upsertPaymentMethod({
@@ -1500,7 +1553,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
     final familyRef = FirebaseFirestore.instance
         .collection('families')
         .doc(familyId);
-    final pmQuery = familyRef.collection('paymentMethods').orderBy('name');
+    final pmQuery = familyRef.collection('paymentMethods');
     final expensesQuery = familyRef
         .collection('expenses')
         .where('occurredAt', isGreaterThanOrEqualTo: monthStartTs)
@@ -1527,9 +1580,15 @@ class _ExpensesContentState extends State<_ExpensesContent> {
               );
             }
 
-            final pmDocs =
-                pmSnap.data?.docs ??
-                const <QueryDocumentSnapshot<Map<String, dynamic>>>[];
+            final pmDocs = sortPaymentMethods<
+              QueryDocumentSnapshot<Map<String, dynamic>>
+            >(
+              pmSnap.data?.docs ??
+                  const <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+              typeOf: (d) =>
+                  d.data()['type'] as String? ?? PaymentMethodTypes.other,
+              nameOf: (d) => d.data()['name'] as String? ?? '',
+            );
             final pmById = <String, Map<String, dynamic>>{
               for (final d in pmDocs) d.id: d.data(),
             };
