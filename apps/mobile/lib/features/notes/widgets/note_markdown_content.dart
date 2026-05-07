@@ -5,13 +5,6 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:url_launcher/url_launcher.dart';
 
-final RegExp _markdownHints = RegExp(
-  r'(^|\s)([#>*`~\-\+]|(\d+\.))\s|(\*\*|__|`|\[.+?\]\(.+?\)|\|)',
-  multiLine: true,
-);
-
-bool looksLikeNoteMarkdown(String text) => _markdownHints.hasMatch(text);
-
 String sanitizeNoteMarkdownInput(String input) {
   return input
       .replaceAll('\u0000', '')
@@ -62,9 +55,6 @@ class NoteMarkdownContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = text.trimRight();
     if (normalized.isEmpty) return const SizedBox.shrink();
-    if (!looksLikeNoteMarkdown(normalized)) {
-      return Text(normalized, style: textStyle);
-    }
 
     return MarkdownBody(
       data: sanitizeNoteMarkdownInput(normalized),
