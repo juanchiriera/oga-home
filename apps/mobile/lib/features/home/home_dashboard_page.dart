@@ -518,6 +518,9 @@ class _HomeFamilyOverview extends StatelessWidget {
                                               else
                                                 ...formatTotalsByCurrency(
                                                   monthlyTotalByCurrency,
+                                                  Localizations.localeOf(
+                                                    context,
+                                                  ),
                                                 ).map(
                                                   (line) => Text(
                                                     line,
@@ -574,7 +577,7 @@ class _HomeFamilyOverview extends StatelessWidget {
                                                       ),
                                                 ),
                                                 child: Text(
-                                                  '${c.label}: ${formatTotalsByCurrency(byCategory[c.key] ?? const <String, double>{}).join(' · ')}',
+                                                  '${c.label}: ${formatTotalsByCurrency(byCategory[c.key] ?? const <String, double>{}, Localizations.localeOf(context)).join(' · ')}',
                                                   style: theme
                                                       .textTheme
                                                       .labelSmall

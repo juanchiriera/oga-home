@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:oga/features/expenses/expense_money.dart';
 import 'package:oga/services/functions_region.dart';
 
 const _categoryChoices = <MapEntry<String, String>>[
@@ -329,14 +330,18 @@ class _ImportLineCard extends StatelessWidget {
               ],
             ),
             TextFormField(
-              initialValue: (line['amount'] as num).toStringAsFixed(2),
+              initialValue: formatLocalizedAmount(
+                (line['amount'] as num).toDouble(),
+                Localizations.localeOf(context),
+              ),
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(labelText: 'Monto'),
               onChanged: (value) {
                 line['amount'] =
-                    double.tryParse(value.replaceAll(',', '.')) ?? 0;
+                    parseMoneyInput(value, Localizations.localeOf(context)) ??
+                        0;
                 onChanged();
               },
             ),
