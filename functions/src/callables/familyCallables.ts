@@ -131,6 +131,15 @@ export const acceptFamilyInvite = onCall({ region }, async (request) => {
   }
 
   const db = admin.firestore();
+  const userSnap = await db.collection("users").doc(uid).get();
+  const activeFamilyId = String(userSnap.get("activeFamilyId") ?? "").trim();
+  if (activeFamilyId) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Ya tenés un hogar asociado. Salí o cambiá de hogar para usar una invitación.",
+    );
+  }
+
   const qs = await db
     .collectionGroup("invites")
     .where("token", "==", token)
