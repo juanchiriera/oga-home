@@ -5,6 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import 'package:oga/features/expenses/expense_lifecycle.dart';
 import 'package:oga/features/expenses/expense_money.dart';
 import 'package:oga/services/functions_region.dart';
 
@@ -117,6 +118,12 @@ Future<void> _openConfirmationEditor(
   required String familyId,
   required String importJobId,
 }) async {
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  final userDoc = uid == null
+      ? null
+      : await FirebaseFirestore.instance.collection('users').doc(uid).get();
+  final lastUsedPaymentMethodId =
+      userDoc?.data()?['lastUsedPaymentMethodId'] as String?;
   final importDoc = await FirebaseFirestore.instance
       .collection('families')
       .doc(familyId)
@@ -139,14 +146,26 @@ Future<void> _openConfirmationEditor(
       .collection('families')
       .doc(familyId)
       .collection('paymentMethods')
-      .orderBy('name')
       .get();
-  final paymentMethods = paymentMethodsSnap.docs
+  final orderedPaymentMethodDocs = sortPaymentMethods<
+    QueryDocumentSnapshot<Map<String, dynamic>>
+  >(
+    paymentMethodsSnap.docs,
+    typeOf: (d) => d.data()['type'] as String? ?? PaymentMethodTypes.other,
+    nameOf: (d) => d.data()['name'] as String? ?? '',
+  );
+  final paymentMethods = orderedPaymentMethodDocs
       .map((d) => {'id': d.id, 'name': (d.data()['name'] as String? ?? '—')})
       .toList();
   if (paymentMethods.isEmpty || !context.mounted) {
     return;
   }
+
+  final paymentMethodIdSet = paymentMethods.map((pm) => pm['id']).toSet();
+  final fallbackPaymentMethodId =
+      paymentMethodIdSet.contains(lastUsedPaymentMethodId)
+      ? lastUsedPaymentMethodId
+      : paymentMethods.first['id'];
 
   final editableLines = rawLines.map((line) {
     final paymentMethodId = (line['paymentMethodId'] as String?)?.trim();
@@ -160,7 +179,7 @@ Future<void> _openConfirmationEditor(
       'note': (line['note'] as String?) ?? '',
       'paymentMethodId': paymentMethodId?.isNotEmpty == true
           ? paymentMethodId
-          : paymentMethods.first['id'],
+          : fallbackPaymentMethodId,
     };
   }).toList();
 
@@ -224,6 +243,16 @@ Future<void> _openConfirmationEditor(
       'importJobId': importJobId,
       'lines': editableLines,
     });
+    if (uid != null) {
+      final lastLinePmId =
+          (editableLines.last['paymentMethodId'] as String?) ?? '';
+      if (lastLinePmId.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set(
+          <String, dynamic>{'lastUsedPaymentMethodId': lastLinePmId},
+          SetOptions(merge: true),
+        );
+      }
+    }
     if (!context.mounted) {
       return;
     }
