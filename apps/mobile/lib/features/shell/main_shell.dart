@@ -150,16 +150,6 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
-  Future<bool> _onWillPop() async {
-    if (_tabHistory.isNotEmpty) {
-      setState(() {
-        _index = _tabHistory.removeLast();
-      });
-      return false;
-    }
-    return true;
-  }
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -177,8 +167,19 @@ class _MainShellState extends State<MainShell> {
 
     return MainShellController(
       selectTab: _selectTab,
-      child: WillPopScope(
-        onWillPop: _onWillPop,
+      child: PopScope(
+        canPop: _tabHistory.isEmpty,
+        onPopInvokedWithResult: (bool didPop, Object? result) {
+          if (didPop) {
+            return;
+          }
+          if (_tabHistory.isEmpty) {
+            return;
+          }
+          setState(() {
+            _index = _tabHistory.removeLast();
+          });
+        },
         child: Scaffold(
           body: Stack(
             fit: StackFit.expand,
