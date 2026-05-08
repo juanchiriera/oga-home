@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:oga/core/ads/admob_config.dart';
+import 'package:oga/core/ads/inline_native_ad_card.dart';
 import 'package:oga/design_system/design_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -486,6 +488,11 @@ class _StockListPageState extends State<StockListPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        const InlineNativeAdCard(
+                          placement: InlineAdPlacement.stockBelowSearch,
+                          height: 112,
+                          margin: EdgeInsets.only(bottom: 12),
+                        ),
                         _StockSyncBanner(snapshot: q.data!),
                         const SizedBox(height: 16),
                         Row(

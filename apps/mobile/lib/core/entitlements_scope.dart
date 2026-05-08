@@ -16,7 +16,11 @@ class MainShellEntitlementsScope extends InheritedWidget {
     final scope = context
         .dependOnInheritedWidgetOfExactType<MainShellEntitlementsScope>();
     return scope?.entitlements ??
-        const EntitlementsState(allOn: false, iaAssistantEnabled: false);
+        const EntitlementsState(
+          allOn: false,
+          iaAssistantEnabled: false,
+          noAds: false,
+        );
   }
 
   static Future<void> refresh(BuildContext context) async {
@@ -33,6 +37,7 @@ class MainShellEntitlementsScope extends InheritedWidget {
     return oldWidget.entitlements.allOn != entitlements.allOn ||
         oldWidget.entitlements.iaAssistantEnabled !=
             entitlements.iaAssistantEnabled ||
+        oldWidget.entitlements.noAds != entitlements.noAds ||
         oldWidget.refreshEntitlements != refreshEntitlements;
   }
 }

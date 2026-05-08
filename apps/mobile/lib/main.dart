@@ -9,6 +9,7 @@ import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +18,7 @@ Future<void> main() async {
   await bootstrapAppCheck();
   await bootstrapFirestore();
   await bootstrapPurchases();
+  await MobileAds.instance.initialize();
   final currentUid = FirebaseAuth.instance.currentUser?.uid;
   if (currentUid != null) {
     await syncPurchasesAppUserWithActiveFamily(currentUid);

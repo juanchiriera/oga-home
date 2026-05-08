@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:oga/core/ads/admob_config.dart';
+import 'package:oga/core/ads/inline_native_ad_card.dart';
 import 'package:oga/design_system/design_system.dart';
 import 'package:oga/features/recipes/recipe_draft.dart';
 import 'package:oga/services/functions_region.dart';
@@ -114,6 +116,11 @@ class _RecipesPageState extends State<RecipesPage> {
                         onPressed: () =>
                             _importRecipeFromUrlFlow(context, familyId),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    const InlineNativeAdCard(
+                      placement: InlineAdPlacement.recipesBelowImportUrl,
+                      height: 92,
                     ),
                     _RecipesStatusBanner(snapshot: snap.data!),
                     CozyCard(
