@@ -106,6 +106,10 @@ function normalizeEntitlements(event: RevenueCatEvent): string[] {
   return entitlements.filter((value) => value.trim().length > 0);
 }
 
+function hasNoAdsEntitlement(entitlements: string[]): boolean {
+  return entitlements.includes("no_ads") || entitlements.includes("no-ads");
+}
+
 function isAlreadyExistsError(error: unknown): boolean {
   const maybeCode = (error as { code?: number | string }).code;
   return maybeCode === 6 || maybeCode === "already-exists";
@@ -214,6 +218,7 @@ export async function revenueCatWebhook(
       source: "revenuecat",
       entitlements: {
         invites: invitesEntitlementEnabled(billingStatus),
+        no_ads: hasNoAdsEntitlement(entitlements),
       },
       lastEventId: eventId,
       lastEventType: eventType,
@@ -236,5 +241,6 @@ export const __internal = {
   isSignatureValid,
   mapBillingStatus,
   invitesEntitlementEnabled,
+  hasNoAdsEntitlement,
   isAlreadyExistsError,
 };

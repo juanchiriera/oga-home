@@ -51,6 +51,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   purchases_flutter: ^10.0.1
   purchases_ui_flutter: ^10.0.1
+  google_mobile_ads: ^5.3.1
   firebase_app_check: ^0.3.2+10
   url_launcher: ^6.3.2
   flutter_markdown_plus: ^1.0.7

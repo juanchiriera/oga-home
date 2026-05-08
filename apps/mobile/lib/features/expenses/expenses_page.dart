@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:oga/core/ads/admob_config.dart';
+import 'package:oga/core/ads/inline_list_inserter.dart';
+import 'package:oga/core/ads/inline_native_ad_card.dart';
 import 'package:oga/design_system/design_system.dart';
 import 'package:oga/features/expenses/expense_import_flow.dart';
 import 'package:oga/features/expenses/expense_lifecycle.dart';
@@ -1728,6 +1731,14 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                 final scheme = Theme.of(context).colorScheme;
                 final state = context
                     .findAncestorStateOfType<_ExpensesPageState>();
+                final visibleMovements = monthlyDocs
+                    .where(
+                      (d) =>
+                          (d.data()['status'] as String?) !=
+                          ExpenseLifecycle.cancelled,
+                    )
+                    .take(20)
+                    .toList();
 
                 return ListView(
                   padding: EdgeInsets.fromLTRB(
@@ -1855,6 +1866,10 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                       ),
                     ),
                     const SizedBox(height: 14),
+                    const InlineNativeAdCard(
+                      placement: InlineAdPlacement.expensesBelowRecognizedMonth,
+                      height: 156,
+                    ),
                     CozyCard(
                       color: scheme.surfaceContainer,
                       padding: const EdgeInsets.all(22),
@@ -2256,7 +2271,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    if (monthlyDocs.isEmpty) ...[
+                    if (visibleMovements.isEmpty) ...[
                       Icon(
                         Icons.payments_outlined,
                         size: 40,
@@ -2275,14 +2290,8 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                         ),
                       ),
                     ] else
-                      ...monthlyDocs
-                          .where(
-                            (d) =>
-                                (d.data()['status'] as String?) !=
-                                ExpenseLifecycle.cancelled,
-                          )
-                          .take(20)
-                          .map((doc) {
+                      ...withInlineInsertions<Widget>(
+                        items: visibleMovements.map((doc) {
                             final data = doc.data();
                             final amount =
                                 (data['amount'] as num?)?.toDouble() ?? 0;
@@ -2431,7 +2440,14 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                                 ),
                               ),
                             );
-                          }),
+                          }).toList(),
+                        insertionsAfterIndex: {
+                          3: () => const InlineNativeAdCard(
+                            placement: InlineAdPlacement.expensesInMovements,
+                            height: 120,
+                          ),
+                        },
+                      ),
                   ],
                 );
               },

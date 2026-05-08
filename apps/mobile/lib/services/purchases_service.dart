@@ -5,6 +5,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 class PurchasesService {
   static const premiumEntitlementId = 'premium';
+  static const noAdsEntitlementIds = ['no_ads', 'no-ads'];
 
   bool get isConfigured =>
       MonetizationConfig.billingLive && RevenueCatConfig.isConfigured;
@@ -70,6 +71,15 @@ class PurchasesService {
 
   Future<bool> isPremiumActive() =>
       isEntitlementActive(PurchasesService.premiumEntitlementId);
+
+  Future<bool> hasNoAdsEntitlement() async {
+    for (final entitlementId in noAdsEntitlementIds) {
+      if (await isEntitlementActive(entitlementId)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   void addCustomerInfoUpdateListener(CustomerInfoUpdateListener listener) {
     if (!isConfigured) {

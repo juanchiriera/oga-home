@@ -10,6 +10,7 @@ class EntitlementsState {
   const EntitlementsState({
     required this.allOn,
     required this.iaAssistantEnabled,
+    required this.noAds,
   });
 
   /// Fuerza capacidades premium / entitlements vía Remote Config.
@@ -17,6 +18,9 @@ class EntitlementsState {
 
   /// Activa la pestaña de asistente (IA) sin necesidad de `allOn`.
   final bool iaAssistantEnabled;
+
+  /// Oculta anuncios inline cuando el usuario tiene el entitlement activo.
+  final bool noAds;
 }
 
 class EntitlementsRemoteConfig {
@@ -31,7 +35,7 @@ class EntitlementsRemoteConfig {
   final FirebaseRemoteConfig _remoteConfig;
   final PurchasesService _purchasesService;
   final ValueNotifier<EntitlementsState> state = ValueNotifier(
-    const EntitlementsState(allOn: false, iaAssistantEnabled: false),
+    const EntitlementsState(allOn: false, iaAssistantEnabled: false, noAds: false),
   );
   StreamSubscription<RemoteConfigUpdate>? _updatesSubscription;
   bool _customerInfoListenerRegistered = false;
@@ -71,21 +75,26 @@ class EntitlementsRemoteConfig {
       const nextState = EntitlementsState(
         allOn: true,
         iaAssistantEnabled: true,
+        noAds: true,
       );
       if (state.value.allOn != nextState.allOn ||
-          state.value.iaAssistantEnabled != nextState.iaAssistantEnabled) {
+          state.value.iaAssistantEnabled != nextState.iaAssistantEnabled ||
+          state.value.noAds != nextState.noAds) {
         state.value = nextState;
       }
       return;
     }
     final remoteAllOn = _remoteConfig.getBool(_allOnKey);
     final premiumActive = await _purchasesService.isPremiumActive();
+    final noAds = await _purchasesService.hasNoAdsEntitlement();
     final nextState = EntitlementsState(
       allOn: remoteAllOn || premiumActive,
       iaAssistantEnabled: _remoteConfig.getBool(_iaAssistantKey),
+      noAds: noAds,
     );
     if (state.value.allOn != nextState.allOn ||
-        state.value.iaAssistantEnabled != nextState.iaAssistantEnabled) {
+        state.value.iaAssistantEnabled != nextState.iaAssistantEnabled ||
+        state.value.noAds != nextState.noAds) {
       state.value = nextState;
     }
   }

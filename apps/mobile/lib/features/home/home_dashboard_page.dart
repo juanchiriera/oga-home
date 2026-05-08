@@ -1,4 +1,6 @@
 import 'package:oga/core/flavor.dart';
+import 'package:oga/core/ads/admob_config.dart';
+import 'package:oga/core/ads/inline_native_ad_card.dart';
 import 'package:oga/core/entitlements_scope.dart';
 import 'package:oga/core/monetization.dart';
 import 'package:oga/core/revenuecat_config.dart';
@@ -206,6 +208,11 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       : l10n.homeHeroSubtitleWithoutFamily,
                 ),
                 const SizedBox(height: 12),
+                const InlineNativeAdCard(
+                  placement: InlineAdPlacement.homeAfterGreeting,
+                  height: 96,
+                  margin: EdgeInsets.only(bottom: 12),
+                ),
                 Text(
                   widget.flavor.displayName,
                   style: theme.textTheme.labelMedium?.copyWith(

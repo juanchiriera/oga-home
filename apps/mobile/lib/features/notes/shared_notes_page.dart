@@ -1,4 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:oga/core/ads/admob_config.dart';
+import 'package:oga/core/ads/inline_list_inserter.dart';
+import 'package:oga/core/ads/inline_native_ad_card.dart';
 import 'package:oga/design_system/design_system.dart';
 import 'package:oga/features/notes/family_links_page.dart';
 import 'package:oga/features/notes/shared_note_editor_page.dart';
@@ -174,21 +177,32 @@ class _SharedNotesPageState extends State<SharedNotesPage> {
                         ),
                       )
                     else
-                      ...filtered.map(
-                        (doc) => Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: _NoteCard(
-                            doc: doc,
-                            onOpen: () => _openNotePreview(
-                              context,
-                              familyId: familyId,
-                              noteDoc: doc,
-                            ),
-                            onEdit: () =>
-                                _openNoteEditor(context, noteDoc: doc),
-                            onDelete: () => _deleteNote(context, doc.reference),
+                      ...withInlineInsertions<Widget>(
+                        items: filtered
+                            .map(
+                              (doc) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _NoteCard(
+                                  doc: doc,
+                                  onOpen: () => _openNotePreview(
+                                    context,
+                                    familyId: familyId,
+                                    noteDoc: doc,
+                                  ),
+                                  onEdit: () =>
+                                      _openNoteEditor(context, noteDoc: doc),
+                                  onDelete: () =>
+                                      _deleteNote(context, doc.reference),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        insertionsAfterIndex: {
+                          0: () => const InlineNativeAdCard(
+                            placement: InlineAdPlacement.notesAsItem,
+                            height: 116,
                           ),
-                        ),
+                        },
                       ),
                   ],
                 );

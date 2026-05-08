@@ -37,16 +37,19 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "Oga, the housekeeper (dev)")
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         }
         create("stg") {
             dimension = "environment"
             applicationIdSuffix = ".stg"
             versionNameSuffix = "-stg"
             resValue("string", "app_name", "Oga, the housekeeper (stg)")
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         }
         create("prod") {
             dimension = "environment"
             resValue("string", "app_name", "Oga, the housekeeper")
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         }
     }
 
