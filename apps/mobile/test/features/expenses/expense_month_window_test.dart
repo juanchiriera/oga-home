@@ -18,6 +18,15 @@ void main() {
     });
   });
 
+  group('expenseMonthWindowForMonth', () {
+    test('permite calcular ventana para un mes elegido por usuario', () {
+      final window = expenseMonthWindowForMonth(2025, 2);
+
+      expect(window.startInclusive, DateTime(2025, 2, 1));
+      expect(window.endExclusive, DateTime(2025, 3, 1));
+    });
+  });
+
   group('ExpenseMonthWindow.contains', () {
     final window = ExpenseMonthWindow(
       startInclusive: DateTime(2026, 4, 1),

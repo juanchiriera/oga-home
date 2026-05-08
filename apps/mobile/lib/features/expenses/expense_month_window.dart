@@ -16,7 +16,11 @@ class ExpenseMonthWindow {
 }
 
 ExpenseMonthWindow expenseMonthWindowForLocal(DateTime now) {
-  final start = DateTime(now.year, now.month, 1);
-  final end = DateTime(now.year, now.month + 1, 1);
+  return expenseMonthWindowForMonth(now.year, now.month);
+}
+
+ExpenseMonthWindow expenseMonthWindowForMonth(int year, int month) {
+  final start = DateTime(year, month, 1);
+  final end = DateTime(year, month + 1, 1);
   return ExpenseMonthWindow(startInclusive: start, endExclusive: end);
 }

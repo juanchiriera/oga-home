@@ -1521,6 +1521,7 @@ class _ExpensesContent extends StatefulWidget {
 
 class _ExpensesContentState extends State<_ExpensesContent> {
   late DateTime _now;
+  DateTime? _selectedMonthStart;
   Timer? _ticker;
 
   @override
@@ -1544,10 +1545,72 @@ class _ExpensesContentState extends State<_ExpensesContent> {
     super.dispose();
   }
 
+  DateTime get _currentMonthStart => DateTime(_now.year, _now.month, 1);
+
+  DateTime get _viewedMonthStart => _selectedMonthStart ?? _currentMonthStart;
+
+  bool get _isViewingCurrentMonth =>
+      _viewedMonthStart.year == _currentMonthStart.year &&
+      _viewedMonthStart.month == _currentMonthStart.month;
+
+  void _shiftViewedMonth(int delta) {
+    setState(() {
+      final base = _viewedMonthStart;
+      final moved = DateTime(base.year, base.month + delta, 1);
+      _selectedMonthStart = _sameMonth(moved, _currentMonthStart)
+          ? null
+          : moved;
+    });
+  }
+
+  Future<void> _pickViewedMonth(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _viewedMonthStart,
+      firstDate: DateTime(2020, 1, 1),
+      lastDate: DateTime(2100, 12, 31),
+      helpText: 'Elegí el mes a consultar',
+    );
+    if (picked == null || !mounted) {
+      return;
+    }
+    final normalized = DateTime(picked.year, picked.month, 1);
+    setState(() {
+      _selectedMonthStart = _sameMonth(normalized, _currentMonthStart)
+          ? null
+          : normalized;
+    });
+  }
+
+  bool _sameMonth(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month;
+
+  String _monthLabel(DateTime monthStart) {
+    const names = <String>[
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
+    return '${names[monthStart.month - 1]} ${monthStart.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final familyId = widget.familyId;
-    final monthWindow = expenseMonthWindowForLocal(_now);
+    final viewedMonthStart = _viewedMonthStart;
+    final monthWindow = expenseMonthWindowForMonth(
+      viewedMonthStart.year,
+      viewedMonthStart.month,
+    );
     final monthStartTs = Timestamp.fromDate(monthWindow.startInclusive);
     final monthEndTs = Timestamp.fromDate(monthWindow.endExclusive);
     final familyRef = FirebaseFirestore.instance
@@ -1580,15 +1643,14 @@ class _ExpensesContentState extends State<_ExpensesContent> {
               );
             }
 
-            final pmDocs = sortPaymentMethods<
-              QueryDocumentSnapshot<Map<String, dynamic>>
-            >(
-              pmSnap.data?.docs ??
-                  const <QueryDocumentSnapshot<Map<String, dynamic>>>[],
-              typeOf: (d) =>
-                  d.data()['type'] as String? ?? PaymentMethodTypes.other,
-              nameOf: (d) => d.data()['name'] as String? ?? '',
-            );
+            final pmDocs =
+                sortPaymentMethods<QueryDocumentSnapshot<Map<String, dynamic>>>(
+                  pmSnap.data?.docs ??
+                      const <QueryDocumentSnapshot<Map<String, dynamic>>>[],
+                  typeOf: (d) =>
+                      d.data()['type'] as String? ?? PaymentMethodTypes.other,
+                  nameOf: (d) => d.data()['name'] as String? ?? '',
+                );
             final pmById = <String, Map<String, dynamic>>{
               for (final d in pmDocs) d.id: d.data(),
             };
@@ -1651,7 +1713,9 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                 return ListView(
                   padding: EdgeInsets.fromLTRB(
                     24,
-                    MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
+                    MediaQuery.paddingOf(context).top +
+                        kSanctuaryAppBarToolbarHeight +
+                        8,
                     24,
                     sanctuaryScrollBottomPadding(context),
                   ),
@@ -1672,6 +1736,39 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                         height: 1.45,
                       ),
                     ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        IconButton(
+                          tooltip: 'Mes anterior',
+                          onPressed: () => _shiftViewedMonth(-1),
+                          icon: const Icon(Icons.chevron_left_rounded),
+                        ),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _pickViewedMonth(context),
+                            icon: const Icon(Icons.calendar_month_outlined),
+                            label: Text(_monthLabel(viewedMonthStart)),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Mes siguiente',
+                          onPressed: _isViewingCurrentMonth
+                              ? null
+                              : () => _shiftViewedMonth(1),
+                          icon: const Icon(Icons.chevron_right_rounded),
+                        ),
+                      ],
+                    ),
+                    if (!_isViewingCurrentMonth)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: TextButton(
+                          onPressed: () =>
+                              setState(() => _selectedMonthStart = null),
+                          child: const Text('Volver al mes actual'),
+                        ),
+                      ),
                     const SizedBox(height: 20),
                     CozyCard(
                       color: scheme.surfaceContainerLow,
@@ -1680,7 +1777,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Gasto reconocido del mes',
+                            'Gasto reconocido de ${_monthLabel(viewedMonthStart)}',
                             style: Theme.of(context).textTheme.labelLarge
                                 ?.copyWith(
                                   color: scheme.secondary,
@@ -1690,7 +1787,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                           const SizedBox(height: 8),
                           if (monthlyEffectiveByCurrency.isEmpty)
                             Text(
-                              'Sin movimientos del mes',
+                              'Sin movimientos en ${_monthLabel(viewedMonthStart)}',
                               style: Theme.of(context).textTheme.titleMedium
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             )
@@ -1731,7 +1828,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                           ],
                           const SizedBox(height: 8),
                           Text(
-                            'Suma movimientos del mes que ya impactan como débito/efectivo.',
+                            'Suma movimientos del mes elegido que ya impactan como débito/efectivo.',
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: scheme.onSurfaceVariant),
                           ),
@@ -2134,7 +2231,7 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                     ),
                     const SizedBox(height: 20),
                     Text(
-                      'Movimientos recientes',
+                      'Movimientos de ${_monthLabel(viewedMonthStart)}',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -2148,12 +2245,12 @@ class _ExpensesContentState extends State<_ExpensesContent> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Aún no hay gastos este mes',
+                        'Aún no hay gastos en ${_monthLabel(viewedMonthStart)}',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Usá «Agregar gasto» para registrar el primero del mes.',
+                        'Usá «Agregar gasto» para registrar el primero del período.',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: scheme.onSurfaceVariant,
                         ),
@@ -2339,7 +2436,9 @@ class _ErrorState extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           24,
-          MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 24,
+          MediaQuery.paddingOf(context).top +
+              kSanctuaryAppBarToolbarHeight +
+              24,
           24,
           24,
         ),
