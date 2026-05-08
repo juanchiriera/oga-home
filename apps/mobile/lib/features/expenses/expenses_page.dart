@@ -692,6 +692,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final noteController = TextEditingController(
       text: initialData?['note'] as String? ?? '',
     );
+    final amountFocusNode = FocusNode();
+    final merchantFocusNode = FocusNode();
+    final noteFocusNode = FocusNode();
     var selectedCategory =
         (initialData?['categoryKey'] as String?) ??
         kExpenseCategories.first.key;
@@ -733,6 +736,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       560.0,
                     ),
                     amountController: amountController,
+                    amountFocusNode: amountFocusNode,
+                    amountTextInputAction: TextInputAction.next,
+                    onAmountSubmitted: (_) =>
+                        FocusScope.of(ctx).requestFocus(merchantFocusNode),
                     selectedCurrency: selectedCurrency,
                     baseCurrency: baseCurrency,
                     onCurrencyChanged: (value) {
@@ -742,6 +749,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: merchantController,
+                    focusNode: merchantFocusNode,
+                    textInputAction: TextInputAction.next,
+                    onSubmitted: (_) =>
+                        FocusScope.of(ctx).requestFocus(noteFocusNode),
+                    onTapOutside: (_) => FocusScope.of(ctx).unfocus(),
                     decoration: const InputDecoration(
                       labelText: 'Comercio (opcional)',
                     ),
@@ -749,6 +761,10 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: noteController,
+                    focusNode: noteFocusNode,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => FocusScope.of(ctx).unfocus(),
+                    onTapOutside: (_) => FocusScope.of(ctx).unfocus(),
                     maxLines: 2,
                     decoration: const InputDecoration(
                       labelText: 'Nota (opcional)',
@@ -991,6 +1007,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
         },
       ),
     );
+    amountFocusNode.dispose();
+    merchantFocusNode.dispose();
+    noteFocusNode.dispose();
 
     if (ok != true || !context.mounted) {
       return;
@@ -2469,6 +2488,9 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
     super.key,
     this.availableWidth,
     required this.amountController,
+    this.amountFocusNode,
+    this.amountTextInputAction,
+    this.onAmountSubmitted,
     required this.selectedCurrency,
     required this.baseCurrency,
     required this.onCurrencyChanged,
@@ -2480,6 +2502,9 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
   final double? availableWidth;
 
   final TextEditingController amountController;
+  final FocusNode? amountFocusNode;
+  final TextInputAction? amountTextInputAction;
+  final ValueChanged<String>? onAmountSubmitted;
   final String selectedCurrency;
   final String baseCurrency;
   final ValueChanged<String> onCurrencyChanged;
@@ -2498,7 +2523,11 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
           flex: amountFlex,
           child: TextField(
             controller: amountController,
+            focusNode: amountFocusNode,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: amountTextInputAction,
+            onSubmitted: onAmountSubmitted,
+            onTapOutside: (_) => FocusScope.of(context).unfocus(),
             decoration: const InputDecoration(labelText: 'Monto *'),
           ),
         ),
