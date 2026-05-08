@@ -301,6 +301,41 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get billingRefreshPlans => 'Actualizar planes';
+
+  @override
+  String get profileDeleteAccountSectionTitle => 'Zona de peligro';
+
+  @override
+  String get profileDeleteAccountDescription =>
+      'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.';
+
+  @override
+  String get profileDeleteAccountWebLink => 'Pedir eliminación desde la web';
+
+  @override
+  String get profileDeleteAccountButton => 'Eliminar cuenta';
+
+  @override
+  String get profileDeleteAccountConfirmTitle => '¿Eliminar cuenta?';
+
+  @override
+  String get profileDeleteAccountConfirmBody =>
+      'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.';
+
+  @override
+  String get profileDeleteAccountConfirmAction => 'Eliminar definitivamente';
+
+  @override
+  String get profileDeleteAccountInProgress => 'Eliminando cuenta...';
+
+  @override
+  String get profileDeleteAccountCancelled =>
+      'Cancelaste el inicio de sesión con Google.';
+
+  @override
+  String profileDeleteAccountError(String message) {
+    return 'No se pudo eliminar la cuenta: $message';
+  }
 }
 
 /// The translations for Spanish Castilian, as used in Argentina (`es_AR`).
@@ -600,4 +635,39 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get billingRefreshPlans => 'Actualizar planes';
+
+  @override
+  String get profileDeleteAccountSectionTitle => 'Zona de peligro';
+
+  @override
+  String get profileDeleteAccountDescription =>
+      'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.';
+
+  @override
+  String get profileDeleteAccountWebLink => 'Pedir eliminación desde la web';
+
+  @override
+  String get profileDeleteAccountButton => 'Eliminar cuenta';
+
+  @override
+  String get profileDeleteAccountConfirmTitle => '¿Eliminar cuenta?';
+
+  @override
+  String get profileDeleteAccountConfirmBody =>
+      'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.';
+
+  @override
+  String get profileDeleteAccountConfirmAction => 'Eliminar definitivamente';
+
+  @override
+  String get profileDeleteAccountInProgress => 'Eliminando cuenta...';
+
+  @override
+  String get profileDeleteAccountCancelled =>
+      'Cancelaste el inicio de sesión con Google.';
+
+  @override
+  String profileDeleteAccountError(String message) {
+    return 'No se pudo eliminar la cuenta: $message';
+  }
 }

@@ -95,8 +95,6 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('es', 'AR'),
     Locale('es'),
-    Locale('en', 'US'),
-    Locale('en'),
   ];
 
   /// No description provided for @appTitle.
@@ -614,6 +612,66 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Actualizar planes'**
   String get billingRefreshPlans;
+
+  /// No description provided for @profileDeleteAccountSectionTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Zona de peligro'**
+  String get profileDeleteAccountSectionTitle;
+
+  /// No description provided for @profileDeleteAccountDescription.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.'**
+  String get profileDeleteAccountDescription;
+
+  /// No description provided for @profileDeleteAccountWebLink.
+  ///
+  /// In es, this message translates to:
+  /// **'Pedir eliminación desde la web'**
+  String get profileDeleteAccountWebLink;
+
+  /// No description provided for @profileDeleteAccountButton.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar cuenta'**
+  String get profileDeleteAccountButton;
+
+  /// No description provided for @profileDeleteAccountConfirmTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'¿Eliminar cuenta?'**
+  String get profileDeleteAccountConfirmTitle;
+
+  /// No description provided for @profileDeleteAccountConfirmBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.'**
+  String get profileDeleteAccountConfirmBody;
+
+  /// No description provided for @profileDeleteAccountConfirmAction.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar definitivamente'**
+  String get profileDeleteAccountConfirmAction;
+
+  /// No description provided for @profileDeleteAccountInProgress.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminando cuenta...'**
+  String get profileDeleteAccountInProgress;
+
+  /// No description provided for @profileDeleteAccountCancelled.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelaste el inicio de sesión con Google.'**
+  String get profileDeleteAccountCancelled;
+
+  /// No description provided for @profileDeleteAccountError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo eliminar la cuenta: {message}'**
+  String profileDeleteAccountError(String message);
 }
 
 class _AppLocalizationsDelegate
@@ -627,19 +685,13 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      locale.languageCode == 'es' || locale.languageCode == 'en';
+      <String>['es'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
-  // English UI copy is not duplicated yet; use Spanish strings so the app
-  // resolves while number formatting follows [Localizations.localeOf] (en_US).
-  if (locale.languageCode == 'en') {
-    return AppLocalizationsEsAr();
-  }
-
   // Lookup logic when language+country codes are specified.
   switch (locale.languageCode) {
     case 'es':
