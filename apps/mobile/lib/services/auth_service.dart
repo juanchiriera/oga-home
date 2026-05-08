@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:oga/services/functions_region.dart';
 import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:oga/services/purchases_service.dart';
 
@@ -52,6 +53,34 @@ class AuthService {
   Future<void> signOut() async {
     await _purchasesService.logOut();
     await Future.wait([_googleSignIn.signOut(), _auth.signOut()]);
+  }
+
+  /// Purges Firestore data via [purgeAccountData], deletes the Firebase Auth user (Google re-auth),
+  /// and clears RevenueCat / Google session state.
+  Future<void> deleteAccountWithGoogleReauthentication() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw StateError('No authenticated user');
+    }
+
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      throw StateError('Google sign-in cancelled');
+    }
+
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+    await user.reauthenticateWithCredential(credential);
+
+    final purge = craftrFunctions().httpsCallable('purgeAccountData');
+    await purge.call<Map<String, dynamic>>({});
+
+    await _purchasesService.logOut();
+    await user.delete();
+    await _googleSignIn.signOut();
   }
 
   Future<void> updateProfile({

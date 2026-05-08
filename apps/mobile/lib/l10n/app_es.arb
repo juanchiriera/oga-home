@@ -161,5 +161,22 @@
   "billingErrorTitle": "No pudimos cargar los planes",
   "billingErrorMessage": "Revisá tu conexión e intentá de nuevo. Mientras tanto, podés seguir gestionando tu hogar con normalidad.",
   "billingRetry": "Reintentar",
-  "billingRefreshPlans": "Actualizar planes"
+  "billingRefreshPlans": "Actualizar planes",
+  "profileDeleteAccountSectionTitle": "Zona de peligro",
+  "profileDeleteAccountDescription": "Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.",
+  "profileDeleteAccountWebLink": "Pedir eliminación desde la web",
+  "profileDeleteAccountButton": "Eliminar cuenta",
+  "profileDeleteAccountConfirmTitle": "¿Eliminar cuenta?",
+  "profileDeleteAccountConfirmBody": "Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.",
+  "profileDeleteAccountConfirmAction": "Eliminar definitivamente",
+  "profileDeleteAccountInProgress": "Eliminando cuenta...",
+  "profileDeleteAccountCancelled": "Cancelaste el inicio de sesión con Google.",
+  "profileDeleteAccountError": "No se pudo eliminar la cuenta: {message}",
+  "@profileDeleteAccountError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Oga — Eliminación de cuenta y datos</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      line-height: 1.5;
+      background: #fbfbe2;
+      color: #1c1b16;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 40rem;
+      padding: 1.5rem;
+    }
+    h1 { font-size: 1.35rem; margin-top: 0; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+      margin-bottom: 1rem;
+    }
+    label { display: block; font-weight: 600; margin-bottom: 0.35rem; }
+    input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.55rem 0.65rem;
+      border-radius: 8px;
+      border: 1px solid #c9c4b8;
+      font: inherit;
+      margin-bottom: 0.85rem;
+    }
+    textarea { min-height: 5rem; resize: vertical; }
+    button {
+      background: #5c6f2e;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0.65rem 1.25rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    #status { margin-top: 0.75rem; min-height: 1.5rem; font-size: 0.95rem; }
+    .ok { color: #355c24; }
+    .err { color: #8c1d18; }
+    small { color: #555048; }
+  </style>
+</head>
+<body>
+  <h1>Eliminación de cuenta y datos personales (Oga)</h1>
+
+  <div class="card">
+    <p>
+      Si usás la app <strong>Oga</strong> con tu cuenta de Google, podés eliminar tu cuenta y los datos
+      asociados desde el menú <strong>Perfil</strong> («Eliminar cuenta») (se te pedirá volver a iniciar sesión con Google).
+    </p>
+    <p>
+      Si no podés usar la app, completá el formulario siguiente. Registramos tu pedido para procesar la baja y la eliminación de datos según corresponda.
+    </p>
+  </div>
+
+  <div class="card">
+    <form id="form">
+      <label for="email">Correo de tu cuenta</label>
+      <input id="email" name="email" type="email" autocomplete="email" required maxlength="320" placeholder="nombre@ejemplo.com" />
+
+      <label for="note">Detalle opcional</label>
+      <textarea id="note" name="note" maxlength="2000" placeholder="Motivo o contexto (opcional)"></textarea>
+
+      <button type="submit" id="submit">Enviar solicitud</button>
+      <div id="status" role="status"></div>
+      <small>No uses este formulario para soporte general; solo para solicitudes de eliminación de cuenta o datos.</small>
+    </form>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDm51N37XtmunBgYBLNDKK1o6kNAbARW44",
+      authDomain: "oga-home.firebaseapp.com",
+      projectId: "oga-home",
+      storageBucket: "oga-home.firebasestorage.app",
+      messagingSenderId: "662650052724",
+      appId: "1:662650052724:web:652fda09be517eaad03121",
+    };
+    firebase.initializeApp(firebaseConfig);
+    const fns = firebase.app().functions("southamerica-east1");
+
+    const form = document.getElementById("form");
+    const statusEl = document.getElementById("status");
+    const submitBtn = document.getElementById("submit");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusEl.textContent = "";
+      statusEl.className = "";
+      submitBtn.disabled = true;
+      const email = document.getElementById("email").value.trim();
+      const note = document.getElementById("note").value.trim();
+      try {
+        const callable = fns.httpsCallable("submitAccountDeletionRequest");
+        await callable({ email, note });
+        statusEl.textContent = "Recibimos tu solicitud. Te contactaremos si hace falta confirmar datos.";
+        statusEl.className = "ok";
+        form.reset();
+      } catch (err) {
+        statusEl.textContent = err && err.message ? err.message : "No se pudo enviar. Intentá más tarde.";
+        statusEl.className = "err";
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

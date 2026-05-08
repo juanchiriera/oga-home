@@ -52,3 +52,8 @@ export {
   renameAssistantThreadTitle,
 } from "./callables/assistantCallables.js";
 export { familyAssistantChatStream } from "./callables/assistantStream.js";
+
+export {
+  purgeAccountData,
+  submitAccountDeletionRequest,
+} from "./callables/accountDeletionCallables.js";

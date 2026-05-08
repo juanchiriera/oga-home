@@ -368,6 +368,11 @@ service cloud.firestore {
       }
     }
 
+    // Solicitudes de baja vía web (solo Cloud Functions / Admin SDK).
+    match /accountDeletionRequests/{requestId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
