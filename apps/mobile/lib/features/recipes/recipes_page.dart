@@ -84,7 +84,9 @@ class _RecipesPageState extends State<RecipesPage> {
                   key: const PageStorageKey<String>('recipes-list'),
                   padding: EdgeInsets.fromLTRB(
                     24,
-                    MediaQuery.paddingOf(context).top + kSanctuaryAppBarToolbarHeight + 8,
+                    MediaQuery.paddingOf(context).top +
+                        kSanctuaryAppBarToolbarHeight +
+                        8,
                     24,
                     sanctuaryScrollBottomPadding(context),
                   ),
@@ -221,10 +223,19 @@ class _RecipesPageState extends State<RecipesPage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setLocal) {
+          final screenSize = MediaQuery.sizeOf(ctx);
           return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 16,
+            ),
             title: Text(recipeId == null ? 'Nueva receta' : 'Editar receta'),
             content: SizedBox(
-              width: 520,
+              width: screenSize.width * 0.95,
+              height: screenSize.height * 0.8,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
