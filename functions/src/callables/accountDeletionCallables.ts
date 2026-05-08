@@ -1,5 +1,5 @@
 import * as admin from "firebase-admin";
-import { FieldPath, FieldValue } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 
@@ -23,12 +23,30 @@ export const purgeAccountData = onCall({ region }, async (request) => {
   const uid = requireAuth(request);
   const db = admin.firestore();
 
-  const memberSnaps = await db
-    .collectionGroup("members")
-    .where(FieldPath.documentId(), "==", uid)
-    .get();
+  /**
+   * Firestore rejects deploying collection-group single-field overrides on `__name__`
+   * (reserved). This product allows at most one active family per user (`activeFamilyId`
+   * on `users/{uid}`), so we resolve memberships via that path instead of a
+   * collectionGroup(documentId) query.
+   */
+  const userRef = db.collection("users").doc(uid);
+  const userSnap = await userRef.get();
+  const activeFamilyId = String(userSnap.get("activeFamilyId") ?? "").trim();
 
-  for (const memberDoc of memberSnaps.docs) {
+  const memberDocs = [];
+  if (activeFamilyId) {
+    const memberSnap = await db
+      .collection("families")
+      .doc(activeFamilyId)
+      .collection("members")
+      .doc(uid)
+      .get();
+    if (memberSnap.exists) {
+      memberDocs.push(memberSnap);
+    }
+  }
+
+  for (const memberDoc of memberDocs) {
     const familyRef = memberDoc.ref.parent.parent;
     if (!familyRef) {
       logger.warn("purgeAccountData: missing family ref", {
@@ -38,7 +56,7 @@ export const purgeAccountData = onCall({ region }, async (request) => {
     }
 
     const membersSnap = await familyRef.collection("members").get();
-    const memberRole = String(memberDoc.data().role ?? "");
+    const memberRole = String(memberDoc.data()?.role ?? "");
 
     if (membersSnap.size <= 1) {
       await db.recursiveDelete(familyRef);
@@ -63,7 +81,7 @@ export const purgeAccountData = onCall({ region }, async (request) => {
         });
         continue;
       }
-      const successor = others[0];
+      const successor = others[0]!;
       batch.update(successor.ref, { role: "owner" });
       batch.update(familyRef, { createdBy: successor.id });
     }
@@ -76,11 +94,7 @@ export const purgeAccountData = onCall({ region }, async (request) => {
     });
   }
 
-  await db
-    .collection("users")
-    .doc(uid)
-    .delete()
-    .catch(() => undefined);
+  await userRef.delete().catch(() => undefined);
 
   return { ok: true };
 });
