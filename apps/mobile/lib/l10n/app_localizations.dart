@@ -95,6 +95,8 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('es', 'AR'),
     Locale('es'),
+    Locale('en', 'US'),
+    Locale('en'),
   ];
 
   /// No description provided for @appTitle.
@@ -625,13 +627,19 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['es'].contains(locale.languageCode);
+      locale.languageCode == 'es' || locale.languageCode == 'en';
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
 }
 
 AppLocalizations lookupAppLocalizations(Locale locale) {
+  // English UI copy is not duplicated yet; use Spanish strings so the app
+  // resolves while number formatting follows [Localizations.localeOf] (en_US).
+  if (locale.languageCode == 'en') {
+    return AppLocalizationsEsAr();
+  }
+
   // Lookup logic when language+country codes are specified.
   switch (locale.languageCode) {
     case 'es':
