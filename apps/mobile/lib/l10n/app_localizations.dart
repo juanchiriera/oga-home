@@ -624,7 +624,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDeleteAccountDescription.
   ///
   /// In es, this message translates to:
-  /// **'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.'**
+  /// **'Eliminar tu cuenta borra tus datos de usuario y te saca de los hogares. Si eras la única persona en un hogar, ese hogar y sus datos se eliminan. Esta acción no se puede deshacer.'**
   String get profileDeleteAccountDescription;
 
   /// No description provided for @profileDeleteAccountWebLink.

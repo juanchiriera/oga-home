@@ -20,6 +20,21 @@ Future<void> _deferUntilAfterRouteTransitionFrames() async {
   await WidgetsBinding.instance.endOfFrame;
 }
 
+List<String> accountExpenseCurrenciesFromUserData(
+  Map<String, dynamic>? userData,
+  Locale locale, {
+  String? includeCurrency,
+}) {
+  final rawCurrencyCodes = userData?['currencyCodes'];
+  final configuredCurrencies = rawCurrencyCodes is Iterable
+      ? rawCurrencyCodes
+      : defaultCurrenciesForLocale(locale);
+  return normalizeAccountCurrencies([
+    ...configuredCurrencies,
+    ?includeCurrency,
+  ], fallbackLocale: locale);
+}
+
 class ExpenseCategory {
   const ExpenseCategory({
     required this.key,
@@ -238,6 +253,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     }
     final lastUsedPaymentMethodId =
         userDoc.data()?['lastUsedPaymentMethodId'] as String?;
+    final userData = userDoc.data();
 
     final pmCol = FirebaseFirestore.instance
         .collection('families')
@@ -304,6 +320,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
     var selectedCategory = kExpenseCategories.first.key;
     var generationDay = 'month_start';
     var firstMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    final availableCurrencies = accountExpenseCurrenciesFromUserData(
+      userData,
+      Localizations.localeOf(context),
+    );
+    var selectedCurrency = availableCurrencies.first;
     final pmIds = methodDocs.map((d) => d.id).toSet();
     var selectedPaymentMethodId = _defaultPaymentMethodId(
       methodDocs,
@@ -370,6 +391,25 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           : 'Monto por cuota *',
                       helperText: 'Moneda del hogar: $baseCurrency',
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('inst-currency-$selectedCurrency'),
+                    initialValue: selectedCurrency,
+                    decoration: const InputDecoration(labelText: 'Moneda *'),
+                    items: availableCurrencies
+                        .map(
+                          (currency) => DropdownMenuItem<String>(
+                            value: currency,
+                            child: Text(currency),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setLocal(() => selectedCurrency = value);
+                      }
+                    },
                   ),
                   if (useTotalAmount)
                     Padding(
@@ -554,6 +594,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final payload = <String, dynamic>{
       'active': true,
       'amount': perCuota,
+      'currency': selectedCurrency,
       'categoryKey': selectedCategory,
       'type': 'installment',
       'generationDay': generationDay,
@@ -701,20 +742,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
         kExpenseCategories.first.key;
     var selectedDate =
         (initialData?['occurredAt'] as Timestamp?)?.toDate() ?? DateTime.now();
-    var selectedCurrency = normalizeCurrency(
-      initialData?['currency'] as String?,
-      fallback: baseCurrency,
+    final initialCurrency = initialData?['currency'] as String?;
+    final availableCurrencies = accountExpenseCurrenciesFromUserData(
+      userData,
+      Localizations.localeOf(context),
+      includeCurrency: initialCurrency,
     );
-    final rawCurrencyCodes = userData?['currencyCodes'];
-    final locale = Localizations.localeOf(context);
-    final currencyInput = rawCurrencyCodes is Iterable
-        ? rawCurrencyCodes
-        : defaultCurrenciesForLocale(locale);
-    final availableCurrencies = normalizeAccountCurrencies([
-      ...currencyInput,
-      baseCurrency,
-      selectedCurrency,
-    ], fallbackLocale: locale);
+    var selectedCurrency = normalizeCurrency(
+      initialCurrency,
+      fallback: availableCurrencies.first,
+    );
 
     final pmIds = methodDocs.map((d) => d.id).toSet();
     var selectedPaymentMethodId =

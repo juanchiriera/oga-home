@@ -307,7 +307,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get profileDeleteAccountDescription =>
-      'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.';
+      'Eliminar tu cuenta borra tus datos de usuario y te saca de los hogares. Si eras la única persona en un hogar, ese hogar y sus datos se eliminan. Esta acción no se puede deshacer.';
 
   @override
   String get profileDeleteAccountWebLink => 'Pedir eliminación desde la web';
@@ -641,7 +641,7 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
 
   @override
   String get profileDeleteAccountDescription =>
-      'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.';
+      'Eliminar tu cuenta borra tus datos de usuario y te saca de los hogares. Si eras la única persona en un hogar, ese hogar y sus datos se eliminan. Esta acción no se puede deshacer.';
 
   @override
   String get profileDeleteAccountWebLink => 'Pedir eliminación desde la web';

@@ -306,7 +306,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileDeleteAccountDescription =>
-      'Deleting your account removes your Firestore profile and takes you out of households (if you were the only person in a household, that household and its data are deleted). This action cannot be undone.';
+      'Deleting your account removes your user data and takes you out of households. If you were the only person in a household, that household and its data are deleted. This action cannot be undone.';
 
   @override
   String get profileDeleteAccountWebLink => 'Request deletion from the web';

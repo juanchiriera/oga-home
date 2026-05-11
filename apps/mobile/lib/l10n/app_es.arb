@@ -163,7 +163,7 @@
   "billingRetry": "Reintentar",
   "billingRefreshPlans": "Actualizar planes",
   "profileDeleteAccountSectionTitle": "Zona de peligro",
-  "profileDeleteAccountDescription": "Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.",
+  "profileDeleteAccountDescription": "Eliminar tu cuenta borra tus datos de usuario y te saca de los hogares. Si eras la única persona en un hogar, ese hogar y sus datos se eliminan. Esta acción no se puede deshacer.",
   "profileDeleteAccountWebLink": "Pedir eliminación desde la web",
   "profileDeleteAccountButton": "Eliminar cuenta",
   "profileDeleteAccountConfirmTitle": "¿Eliminar cuenta?",

@@ -212,6 +212,8 @@ service cloud.firestore {
           && request.resource.data.createdBy == request.auth.uid
           && (!('paymentMethodId' in request.resource.data)
             || request.resource.data.paymentMethodId is string)
+          && (!('currency' in request.resource.data)
+            || request.resource.data.currency in ['ARS', 'USD', 'EUR'])
           && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
           && (!('note' in request.resource.data) || request.resource.data.note is string)
           && (request.resource.data.type != 'installment'
@@ -241,6 +243,8 @@ service cloud.firestore {
           && request.resource.data.createdBy is string
           && (!('paymentMethodId' in request.resource.data)
             || request.resource.data.paymentMethodId is string)
+          && (!('currency' in request.resource.data)
+            || request.resource.data.currency in ['ARS', 'USD', 'EUR'])
           && (!('merchant' in request.resource.data) || request.resource.data.merchant is string)
           && (!('note' in request.resource.data) || request.resource.data.note is string)
           && (request.resource.data.type != 'installment'

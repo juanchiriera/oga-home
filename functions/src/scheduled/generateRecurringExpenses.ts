@@ -13,6 +13,7 @@ export interface RecurringTemplateData {
   active: boolean;
   amount: number;
   categoryKey: string;
+  currency?: string | null;
   paymentMethodId?: string;
   type: RecurringType;
   generationDay: GenerationDay;
@@ -191,6 +192,9 @@ async function processTemplate(
       recurringTemplateId: templateId,
       recurringPeriodKey: key,
     };
+    if (t.currency) {
+      expensePayload.currency = t.currency;
+    }
     if (t.paymentMethodId) {
       expensePayload.paymentMethodId = t.paymentMethodId;
     }

@@ -78,4 +78,23 @@ void main() {
 
     expect(selectedCurrency, 'USD');
   });
+
+  test('usa solo las divisas seleccionadas por el usuario', () {
+    expect(
+      accountExpenseCurrenciesFromUserData({
+        'currencyCodes': ['USD'],
+      }, const Locale('es', 'AR')),
+      const ['USD'],
+    );
+    expect(
+      accountExpenseCurrenciesFromUserData(
+        {
+          'currencyCodes': ['USD'],
+        },
+        const Locale('es', 'AR'),
+        includeCurrency: 'EUR',
+      ),
+      const ['USD', 'EUR'],
+    );
+  });
 }
