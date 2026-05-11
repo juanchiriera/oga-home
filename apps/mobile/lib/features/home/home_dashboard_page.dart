@@ -166,14 +166,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       ? l10n.homeHeroSubtitleWithFamily
                       : l10n.homeHeroSubtitleWithoutFamily,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.flavor.displayName,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.secondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
                 const SizedBox(height: 20),
                 if (MonetizationConfig.billingLive && _billingState != null)
                   FutureBuilder<_BillingUiState>(
