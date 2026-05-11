@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
+import 'app_localizations_en.dart';
 import 'app_localizations_es.dart';
 
 // ignore_for_file: type=lint
@@ -94,6 +95,7 @@ abstract class AppLocalizations {
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('es', 'AR'),
+    Locale('en'),
     Locale('es'),
   ];
 
@@ -622,7 +624,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDeleteAccountDescription.
   ///
   /// In es, this message translates to:
-  /// **'Eliminar tu cuenta borra tu perfil en Firestore y te saca de los hogares (si eras la única persona en un hogar, ese hogar y sus datos se eliminan). Esta acción no se puede deshacer.'**
+  /// **'Eliminar tu cuenta borra tus datos de usuario y te saca de los hogares. Si eras la única persona en un hogar, ese hogar y sus datos se eliminan. Esta acción no se puede deshacer.'**
   String get profileDeleteAccountDescription;
 
   /// No description provided for @profileDeleteAccountWebLink.
@@ -685,7 +687,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['es'].contains(locale.languageCode);
+      <String>['en', 'es'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -706,6 +708,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
 
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
+    case 'en':
+      return AppLocalizationsEn();
     case 'es':
       return AppLocalizationsEs();
   }

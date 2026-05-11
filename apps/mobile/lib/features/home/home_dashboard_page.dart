@@ -12,7 +12,6 @@ import 'package:oga/features/invite/family_invite_flow.dart';
 import 'package:oga/features/recipes/recipe_draft.dart';
 import 'package:oga/features/shell/main_shell.dart';
 import 'package:oga/features/stock/stock_list_page.dart';
-import 'package:oga/services/auth_service.dart';
 import 'package:oga/services/purchases_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -72,26 +71,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
     if (mounted) {
       setState(() => _billingState = Future.value(next));
     }
-  }
-
-  Future<void> _openInviteRedeem(BuildContext context) async {
-    final token = await showDialog<String?>(
-      context: context,
-      builder: (ctx) => const _InviteTokenDialog(),
-    );
-    if (!context.mounted || token == null || token.isEmpty) {
-      return;
-    }
-    var path = token;
-    if (path.contains('/invite/')) {
-      final i = path.indexOf('/invite/');
-      path = path.substring(i + '/invite/'.length);
-    }
-    path = path.split('?').first.trim();
-    if (path.isEmpty) {
-      return;
-    }
-    context.push('/invite/$path');
   }
 
   String _greetingPrefix(BuildContext context) {
@@ -155,24 +134,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
             ),
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              await AuthService().signOut();
-              if (context.mounted) {
-                context.go('/sign-in');
-              }
-            },
-            child: Text(
-              l10n.homeSignOut,
-              style: TextStyle(
-                color: scheme.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: SanctuaryScrollUnderAppBarFade(
         child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -204,14 +165,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                   subtitle: familyId != null && familyId.isNotEmpty
                       ? l10n.homeHeroSubtitleWithFamily
                       : l10n.homeHeroSubtitleWithoutFamily,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  widget.flavor.displayName,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: scheme.secondary,
-                    fontWeight: FontWeight.w600,
-                  ),
                 ),
                 const SizedBox(height: 20),
                 if (MonetizationConfig.billingLive && _billingState != null)
@@ -296,7 +249,7 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                         ),
                         const SizedBox(height: 10),
                         OutlinedButton(
-                          onPressed: () => _openInviteRedeem(context),
+                          onPressed: () => promptAndOpenFamilyInvite(context),
                           child: Text(l10n.homeInvitations),
                         ),
                       ],
@@ -325,7 +278,6 @@ class _HomeDashboardPageState extends State<HomeDashboardPage> {
                       tabIndex: 3,
                       fallbackRoute: '/app?tab=recetas',
                     ),
-                    onInvites: () => context.push('/invites'),
                   ),
               ],
             );
@@ -355,7 +307,6 @@ class _HomeFamilyOverview extends StatelessWidget {
     required this.onOpenExpenses,
     required this.onOpenNotes,
     required this.onOpenRecipes,
-    required this.onInvites,
   });
 
   final String familyId;
@@ -363,7 +314,6 @@ class _HomeFamilyOverview extends StatelessWidget {
   final VoidCallback onOpenExpenses;
   final VoidCallback onOpenNotes;
   final VoidCallback onOpenRecipes;
-  final VoidCallback onInvites;
 
   @override
   Widget build(BuildContext context) {
@@ -488,19 +438,6 @@ class _HomeFamilyOverview extends StatelessWidget {
                               style: theme.textTheme.titleSmall?.copyWith(
                                 fontWeight: FontWeight.w700,
                               ),
-                            ),
-                            const SizedBox(height: 16),
-                            FilledButton(
-                              onPressed: () => createAndShowFamilyInviteLink(
-                                context,
-                                familyId,
-                              ),
-                              child: Text(l10n.homeGenerateInvite),
-                            ),
-                            const SizedBox(height: 10),
-                            OutlinedButton(
-                              onPressed: onInvites,
-                              child: Text(l10n.homeInvitations),
                             ),
                             const SizedBox(height: 24),
                             InkWell(
@@ -1187,47 +1124,4 @@ class _BillingUiState {
 
   final _BillingUiStateType type;
   final int? packageCount;
-}
-
-class _InviteTokenDialog extends StatefulWidget {
-  const _InviteTokenDialog();
-
-  @override
-  State<_InviteTokenDialog> createState() => _InviteTokenDialogState();
-}
-
-class _InviteTokenDialogState extends State<_InviteTokenDialog> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    return AlertDialog(
-      title: Text(l10n.inviteDialogTitle),
-      content: TextField(
-        controller: _controller,
-        autofocus: true,
-        decoration: InputDecoration(hintText: l10n.inviteDialogHint),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l10n.commonCancel),
-        ),
-        FilledButton(
-          onPressed: () {
-            final t = _controller.text.trim();
-            Navigator.pop(context, t.isEmpty ? null : t);
-          },
-          child: Text(l10n.commonContinue),
-        ),
-      ],
-    );
-  }
 }

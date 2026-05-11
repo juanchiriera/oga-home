@@ -23,6 +23,7 @@ void main() {
                       amountController: amountController,
                       selectedCurrency: selectedCurrency,
                       baseCurrency: 'ARS',
+                      availableCurrencies: const ['ARS', 'USD'],
                       onCurrencyChanged: (value) {
                         setState(() => selectedCurrency = value);
                       },
@@ -59,6 +60,7 @@ void main() {
                 amountController: amountController,
                 selectedCurrency: selectedCurrency,
                 baseCurrency: 'ARS',
+                availableCurrencies: const ['ARS', 'USD'],
                 onCurrencyChanged: (value) {
                   setState(() => selectedCurrency = value);
                 },
@@ -75,5 +77,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedCurrency, 'USD');
+  });
+
+  test('usa solo las divisas seleccionadas por el usuario', () {
+    expect(
+      accountExpenseCurrenciesFromUserData({
+        'currencyCodes': ['USD'],
+      }, const Locale('es', 'AR')),
+      const ['USD'],
+    );
+    expect(
+      accountExpenseCurrenciesFromUserData(
+        {
+          'currencyCodes': ['USD'],
+        },
+        const Locale('es', 'AR'),
+        includeCurrency: 'EUR',
+      ),
+      const ['USD', 'EUR'],
+    );
   });
 }

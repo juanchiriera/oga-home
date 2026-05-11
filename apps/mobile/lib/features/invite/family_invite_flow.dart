@@ -3,8 +3,29 @@ import 'package:oga/l10n/l10n.dart';
 import 'package:oga/services/functions_region.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
+
+Future<void> promptAndOpenFamilyInvite(BuildContext context) async {
+  final token = await showDialog<String?>(
+    context: context,
+    builder: (ctx) => const _InviteTokenDialog(),
+  );
+  if (!context.mounted || token == null || token.isEmpty) {
+    return;
+  }
+  var path = token;
+  if (path.contains('/invite/')) {
+    final i = path.indexOf('/invite/');
+    path = path.substring(i + '/invite/'.length);
+  }
+  path = path.split('?').first.trim();
+  if (path.isEmpty) {
+    return;
+  }
+  context.push('/invite/$path');
+}
 
 /// Llama a `createFamilyInvite` y muestra un bottom sheet para copiar/compartir el token.
 Future<void> createAndShowFamilyInviteLink(
@@ -203,4 +224,47 @@ String? _extractTokenFromDeepLink(String? deepLink) {
       .first
       .trim();
   return rawToken.isEmpty ? null : rawToken;
+}
+
+class _InviteTokenDialog extends StatefulWidget {
+  const _InviteTokenDialog();
+
+  @override
+  State<_InviteTokenDialog> createState() => _InviteTokenDialogState();
+}
+
+class _InviteTokenDialogState extends State<_InviteTokenDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.inviteDialogTitle),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(hintText: l10n.inviteDialogHint),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final t = _controller.text.trim();
+            Navigator.pop(context, t.isEmpty ? null : t);
+          },
+          child: Text(l10n.commonContinue),
+        ),
+      ],
+    );
+  }
 }

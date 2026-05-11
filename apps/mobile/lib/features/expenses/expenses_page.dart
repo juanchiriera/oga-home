@@ -7,6 +7,7 @@ import 'package:oga/features/expenses/expense_import_flow.dart';
 import 'package:oga/features/expenses/expense_lifecycle.dart';
 import 'package:oga/features/expenses/expense_month_window.dart';
 import 'package:oga/features/expenses/expense_money.dart';
+import 'package:oga/features/profile/account_preferences.dart';
 import 'package:oga/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,21 @@ import 'package:flutter/material.dart';
 /// update the tree in the same frame (e.g. gasto puntual → Guardar).
 Future<void> _deferUntilAfterRouteTransitionFrames() async {
   await WidgetsBinding.instance.endOfFrame;
+}
+
+List<String> accountExpenseCurrenciesFromUserData(
+  Map<String, dynamic>? userData,
+  Locale locale, {
+  String? includeCurrency,
+}) {
+  final rawCurrencyCodes = userData?['currencyCodes'];
+  final configuredCurrencies = rawCurrencyCodes is Iterable
+      ? rawCurrencyCodes
+      : defaultCurrenciesForLocale(locale);
+  return normalizeAccountCurrencies([
+    ...configuredCurrencies,
+    ?includeCurrency,
+  ], fallbackLocale: locale);
 }
 
 class ExpenseCategory {
@@ -237,6 +253,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     }
     final lastUsedPaymentMethodId =
         userDoc.data()?['lastUsedPaymentMethodId'] as String?;
+    final userData = userDoc.data();
 
     final pmCol = FirebaseFirestore.instance
         .collection('families')
@@ -303,6 +320,11 @@ class _ExpensesPageState extends State<ExpensesPage> {
     var selectedCategory = kExpenseCategories.first.key;
     var generationDay = 'month_start';
     var firstMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+    final availableCurrencies = accountExpenseCurrenciesFromUserData(
+      userData,
+      Localizations.localeOf(context),
+    );
+    var selectedCurrency = availableCurrencies.first;
     final pmIds = methodDocs.map((d) => d.id).toSet();
     var selectedPaymentMethodId = _defaultPaymentMethodId(
       methodDocs,
@@ -369,6 +391,25 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           : 'Monto por cuota *',
                       helperText: 'Moneda del hogar: $baseCurrency',
                     ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    key: ValueKey<String>('inst-currency-$selectedCurrency'),
+                    initialValue: selectedCurrency,
+                    decoration: const InputDecoration(labelText: 'Moneda *'),
+                    items: availableCurrencies
+                        .map(
+                          (currency) => DropdownMenuItem<String>(
+                            value: currency,
+                            child: Text(currency),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setLocal(() => selectedCurrency = value);
+                      }
+                    },
                   ),
                   if (useTotalAmount)
                     Padding(
@@ -553,6 +594,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final payload = <String, dynamic>{
       'active': true,
       'amount': perCuota,
+      'currency': selectedCurrency,
       'categoryKey': selectedCategory,
       'type': 'installment',
       'generationDay': generationDay,
@@ -700,9 +742,15 @@ class _ExpensesPageState extends State<ExpensesPage> {
         kExpenseCategories.first.key;
     var selectedDate =
         (initialData?['occurredAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final initialCurrency = initialData?['currency'] as String?;
+    final availableCurrencies = accountExpenseCurrenciesFromUserData(
+      userData,
+      Localizations.localeOf(context),
+      includeCurrency: initialCurrency,
+    );
     var selectedCurrency = normalizeCurrency(
-      initialData?['currency'] as String?,
-      fallback: baseCurrency,
+      initialCurrency,
+      fallback: availableCurrencies.first,
     );
 
     final pmIds = methodDocs.map((d) => d.id).toSet();
@@ -742,6 +790,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         FocusScope.of(ctx).requestFocus(merchantFocusNode),
                     selectedCurrency: selectedCurrency,
                     baseCurrency: baseCurrency,
+                    availableCurrencies: availableCurrencies,
                     onCurrencyChanged: (value) {
                       setLocal(() => selectedCurrency = value);
                     },
@@ -2493,6 +2542,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
     this.onAmountSubmitted,
     required this.selectedCurrency,
     required this.baseCurrency,
+    required this.availableCurrencies,
     required this.onCurrencyChanged,
   });
 
@@ -2507,6 +2557,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
   final ValueChanged<String>? onAmountSubmitted;
   final String selectedCurrency;
   final String baseCurrency;
+  final List<String> availableCurrencies;
   final ValueChanged<String> onCurrencyChanged;
 
   @override
@@ -2542,7 +2593,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
               labelText: 'Moneda *',
               helperText: 'Base: $baseCurrency',
             ),
-            items: kSupportedCurrencies
+            items: availableCurrencies
                 .map(
                   (currency) => DropdownMenuItem<String>(
                     value: currency,
