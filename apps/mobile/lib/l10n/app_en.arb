@@ -1,0 +1,182 @@
+{
+  "@@locale": "en",
+  "appTitle": "Oga - housekeeper",
+  "assistantTooltip": "Assistant",
+  "navHome": "Home",
+  "navStock": "Stock",
+  "navExpenses": "Expenses",
+  "navRecipes": "Recipes",
+  "navNotes": "Notes",
+  "commonCancel": "Cancel",
+  "commonContinue": "Continue",
+  "signInBrand": "Hearth & Habitat",
+  "signInWelcomeTitle": "Welcome home",
+  "signInWelcomeSubtitle": "Sign in with your account to coordinate your household.",
+  "signInAccessCardTitle": "Household access",
+  "signInAccessCardDescription": "Sync pantry, expenses, and notes with the people who share your home.",
+  "signInContinueWithGoogle": "Continue with Google",
+  "signInJoinExistingHomeTitle": "Join an existing home",
+  "signInJoinExistingHomeDescription": "Have an invitation code? Redeem it here.",
+  "signInRedeemCode": "Redeem code",
+  "signInFooterTagline": "Sustainable living · Thoughtful design",
+  "inviteDialogTitle": "Invitation code",
+  "inviteDialogHint": "Paste the code or link",
+  "homeNoSession": "No active session",
+  "homeProfileTooltip": "Profile",
+  "homeSignOut": "Sign out",
+  "homeGreetingMorning": "Good morning",
+  "homeGreetingAfternoon": "Good afternoon",
+  "homeGreetingEvening": "Good evening",
+  "homeGreetingLine": "{greeting}, {firstName}",
+  "@homeGreetingLine": {
+    "placeholders": {
+      "greeting": {
+        "type": "String"
+      },
+      "firstName": {
+        "type": "String"
+      }
+    }
+  },
+  "homeHeroSubtitleWithFamily": "Here is a snapshot of your household: pantry, expenses, notes, and recipes in one place.",
+  "homeHeroSubtitleWithoutFamily": "Create your household to coordinate pantry, expenses, and notes with the people you live with.",
+  "homeFamilyFallbackName": "family",
+  "homeLoadingSandboxPlans": "Loading sandbox plans...",
+  "homeFamilySpaceTitle": "Your family space",
+  "homeFamilySpaceDescription": "Create a household to share pantry, expenses, and notes.",
+  "homeCreateFamily": "Create household",
+  "homeInvitations": "Invitations",
+  "homeGenerateInvite": "Generate invitation",
+  "inviteCreatedSheetTitle": "Invitation ready",
+  "inviteCreatedSheetSubtitle": "Share this link with the person you want to add to the household. You can also copy it or use the system share menu.",
+  "inviteCreatedExpires": "Expires on {date}",
+  "@inviteCreatedExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "inviteLinkCopy": "Copy link",
+  "inviteLinkShare": "Share",
+  "inviteCopiedToClipboard": "Link copied",
+  "inviteCreateErrorPermissionDenied": "You cannot create invitations: check that your subscription includes household invitations.",
+  "inviteCreateErrorGeneric": "Could not create the invitation: {message}",
+  "@inviteCreateErrorGeneric": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "invitesListTitle": "Invitations",
+  "invitesEmptyTitle": "No pending invitations",
+  "invitesEmptyDescription": "Generate a link to invite someone to join this household.",
+  "invitesPendingIntro": "Pending invitations to add members to the household.",
+  "invitesExpiresLabel": "Expires: {date}",
+  "@invitesExpiresLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "invitesNoSession": "No active session",
+  "invitesNeedFamily": "Create or join a household first.",
+  "homeActiveHousehold": "Active household",
+  "homeMonthlyRecognizedExpense": "Recognized expense this month",
+  "homeNoMonthlyMovements": "No movements this month",
+  "homeScan": "Scan",
+  "homeCategoriesWithMovement": "Categories with movement",
+  "homeStockAlerts": "Pantry alerts",
+  "homeNoStockAlerts": "No items are marked as out or running low.",
+  "homeStockAlertsToReview": "{count} item{suffix} to review.",
+  "@homeStockAlertsToReview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "suffix": {
+        "type": "String"
+      }
+    }
+  },
+  "homeAllGoodForNow": "Everything looks good for now.",
+  "homeUnnamedItem": "(unnamed)",
+  "homeViewFullPantry": "View full pantry",
+  "homeRecentNote": "Recent note",
+  "homeNoSharedNotesYet": "There are no shared notes yet.",
+  "homeUntitledNote": "(untitled)",
+  "homeFeaturedRecipe": "Featured recipe",
+  "homeMinutes": "{minutes} min",
+  "@homeMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "homeServings": "{servings} servings",
+  "@homeServings": {
+    "placeholders": {
+      "servings": {
+        "type": "int"
+      }
+    }
+  },
+  "revenueCatTitle": "RevenueCat UI",
+  "revenueCatDescription": "Paywall and customer center configured in RevenueCat.",
+  "revenueCatPaywall": "Paywall",
+  "revenueCatOpenPaywallPayment": "Pay subscription (sandbox)",
+  "revenueCatCustomerCenter": "Customer center",
+  "revenueCatPaywallError": "Paywall: {error}",
+  "@revenueCatPaywallError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "revenueCatCustomerCenterError": "Customer center: {error}",
+  "@revenueCatCustomerCenterError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "billingAvailableTitle": "Premium plans available",
+  "billingAvailableMessage": "Found {packageCount} package(s) in sandbox. You can validate purchases in the test environment.",
+  "@billingAvailableMessage": {
+    "placeholders": {
+      "packageCount": {
+        "type": "int"
+      }
+    }
+  },
+  "billingNotConfiguredTitle": "Premium benefits are not available in this environment",
+  "billingNotConfiguredMessage": "We are finishing subscription setup. You can keep using all base household features.",
+  "billingEmptyTitle": "No plans available right now",
+  "billingEmptyMessage": "There are no active offerings at the moment. Your current experience does not change, and you can try again in a few minutes.",
+  "billingErrorTitle": "We could not load plans",
+  "billingErrorMessage": "Check your connection and try again. In the meantime, you can keep managing your household normally.",
+  "billingRetry": "Retry",
+  "billingRefreshPlans": "Refresh plans",
+  "profileDeleteAccountSectionTitle": "Danger zone",
+  "profileDeleteAccountDescription": "Deleting your account removes your Firestore profile and takes you out of households (if you were the only person in a household, that household and its data are deleted). This action cannot be undone.",
+  "profileDeleteAccountWebLink": "Request deletion from the web",
+  "profileDeleteAccountButton": "Delete account",
+  "profileDeleteAccountConfirmTitle": "Delete account?",
+  "profileDeleteAccountConfirmBody": "Your cloud data and Firebase user will be deleted. You will need to sign in with Google again to confirm.",
+  "profileDeleteAccountConfirmAction": "Delete permanently",
+  "profileDeleteAccountInProgress": "Deleting account...",
+  "profileDeleteAccountCancelled": "You cancelled Google sign-in.",
+  "profileDeleteAccountError": "Could not delete the account: {message}",
+  "@profileDeleteAccountError": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  }
+}

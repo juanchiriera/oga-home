@@ -7,6 +7,7 @@ import 'package:oga/features/expenses/expense_import_flow.dart';
 import 'package:oga/features/expenses/expense_lifecycle.dart';
 import 'package:oga/features/expenses/expense_month_window.dart';
 import 'package:oga/features/expenses/expense_money.dart';
+import 'package:oga/features/profile/account_preferences.dart';
 import 'package:oga/services/functions_region.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -704,6 +705,16 @@ class _ExpensesPageState extends State<ExpensesPage> {
       initialData?['currency'] as String?,
       fallback: baseCurrency,
     );
+    final rawCurrencyCodes = userData?['currencyCodes'];
+    final locale = Localizations.localeOf(context);
+    final currencyInput = rawCurrencyCodes is Iterable
+        ? rawCurrencyCodes
+        : defaultCurrenciesForLocale(locale);
+    final availableCurrencies = normalizeAccountCurrencies([
+      ...currencyInput,
+      baseCurrency,
+      selectedCurrency,
+    ], fallbackLocale: locale);
 
     final pmIds = methodDocs.map((d) => d.id).toSet();
     var selectedPaymentMethodId =
@@ -742,6 +753,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         FocusScope.of(ctx).requestFocus(merchantFocusNode),
                     selectedCurrency: selectedCurrency,
                     baseCurrency: baseCurrency,
+                    availableCurrencies: availableCurrencies,
                     onCurrencyChanged: (value) {
                       setLocal(() => selectedCurrency = value);
                     },
@@ -2493,6 +2505,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
     this.onAmountSubmitted,
     required this.selectedCurrency,
     required this.baseCurrency,
+    required this.availableCurrencies,
     required this.onCurrencyChanged,
   });
 
@@ -2507,6 +2520,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
   final ValueChanged<String>? onAmountSubmitted;
   final String selectedCurrency;
   final String baseCurrency;
+  final List<String> availableCurrencies;
   final ValueChanged<String> onCurrencyChanged;
 
   @override
@@ -2542,7 +2556,7 @@ class ExpenseAmountCurrencyRow extends StatelessWidget {
               labelText: 'Moneda *',
               helperText: 'Base: $baseCurrency',
             ),
-            items: kSupportedCurrencies
+            items: availableCurrencies
                 .map(
                   (currency) => DropdownMenuItem<String>(
                     value: currency,

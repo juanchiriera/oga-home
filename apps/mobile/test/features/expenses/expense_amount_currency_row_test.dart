@@ -23,6 +23,7 @@ void main() {
                       amountController: amountController,
                       selectedCurrency: selectedCurrency,
                       baseCurrency: 'ARS',
+                      availableCurrencies: const ['ARS', 'USD'],
                       onCurrencyChanged: (value) {
                         setState(() => selectedCurrency = value);
                       },
@@ -59,6 +60,7 @@ void main() {
                 amountController: amountController,
                 selectedCurrency: selectedCurrency,
                 baseCurrency: 'ARS',
+                availableCurrencies: const ['ARS', 'USD'],
                 onCurrencyChanged: (value) {
                   setState(() => selectedCurrency = value);
                 },

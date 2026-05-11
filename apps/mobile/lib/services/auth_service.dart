@@ -83,10 +83,7 @@ class AuthService {
     await _googleSignIn.signOut();
   }
 
-  Future<void> updateProfile({
-    required String displayName,
-    String? photoUrl,
-  }) async {
+  Future<void> updateProfile({required String displayName}) async {
     final user = _auth.currentUser;
     if (user == null) {
       throw StateError('No authenticated user');
@@ -97,19 +94,12 @@ class AuthService {
       throw ArgumentError('Display name cannot be empty');
     }
 
-    final normalizedPhotoUrl = (photoUrl ?? '').trim();
-    final finalPhotoUrl = normalizedPhotoUrl.isEmpty
-        ? null
-        : normalizedPhotoUrl;
-
     await user.updateDisplayName(trimmedName);
-    await user.updatePhotoURL(finalPhotoUrl);
     await user.reload();
 
     final ref = _firestore.collection('users').doc(user.uid);
     await ref.set({
       'displayName': trimmedName,
-      'photoUrl': finalPhotoUrl,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
