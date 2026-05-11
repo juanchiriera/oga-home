@@ -1014,6 +1014,11 @@ class _PreferencesSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final saveButtonTextColor =
+        FilledButtonTheme.of(
+          context,
+        ).style?.foregroundColor?.resolve(<WidgetState>{}) ??
+        scheme.onPrimary;
     return CozyCard(
       color: scheme.surfaceContainerLowest,
       padding: const EdgeInsets.all(20),
@@ -1072,6 +1077,9 @@ class _PreferencesSection extends StatelessWidget {
                 FilterChip(
                   label: Text(currency),
                   selected: selectedCurrencyCodes.contains(currency),
+                  labelStyle: selectedCurrencyCodes.contains(currency)
+                      ? TextStyle(color: saveButtonTextColor)
+                      : null,
                   onSelected: isSaving
                       ? null
                       : (selected) => onCurrencyToggled(currency, selected),
