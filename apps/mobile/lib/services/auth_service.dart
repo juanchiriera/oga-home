@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:oga/services/auth_session_store.dart';
 import 'package:oga/services/functions_region.dart';
 import 'package:oga/services/purchases_family_billing_sync.dart';
 import 'package:oga/services/purchases_service.dart';
@@ -11,15 +12,18 @@ class AuthService {
     GoogleSignIn? googleSignIn,
     FirebaseFirestore? firestore,
     PurchasesService? purchasesService,
+    AuthSessionStore? sessionStore,
   }) : _authOverride = firebaseAuth,
        _googleSignInOverride = googleSignIn,
        _firestoreOverride = firestore,
-       _purchasesServiceOverride = purchasesService;
+       _purchasesServiceOverride = purchasesService,
+       _sessionStoreOverride = sessionStore;
 
   final FirebaseAuth? _authOverride;
   final GoogleSignIn? _googleSignInOverride;
   final FirebaseFirestore? _firestoreOverride;
   final PurchasesService? _purchasesServiceOverride;
+  final AuthSessionStore? _sessionStoreOverride;
 
   FirebaseAuth get _auth => _authOverride ?? FirebaseAuth.instance;
   GoogleSignIn get _googleSignIn => _googleSignInOverride ?? GoogleSignIn();
@@ -27,6 +31,8 @@ class AuthService {
       _firestoreOverride ?? FirebaseFirestore.instance;
   PurchasesService get _purchasesService =>
       _purchasesServiceOverride ?? PurchasesService();
+  AuthSessionStore get _sessionStore =>
+      _sessionStoreOverride ?? SecureAuthSessionStore();
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
   User? get currentUser => _auth.currentUser;
@@ -45,6 +51,7 @@ class AuthService {
     await _upsertUserDocument(cred.user);
     final uid = cred.user?.uid;
     if (uid != null) {
+      await _sessionStore.saveUid(uid);
       await syncPurchasesAppUserWithActiveFamily(uid);
     }
     return cred;
@@ -52,7 +59,11 @@ class AuthService {
 
   Future<void> signOut() async {
     await _purchasesService.logOut();
-    await Future.wait([_googleSignIn.signOut(), _auth.signOut()]);
+    await Future.wait([
+      _googleSignIn.signOut(),
+      _auth.signOut(),
+      _sessionStore.clear(),
+    ]);
   }
 
   /// Purges Firestore data via [purgeAccountData], deletes the Firebase Auth user (Google re-auth),
@@ -81,6 +92,7 @@ class AuthService {
     await _purchasesService.logOut();
     await user.delete();
     await _googleSignIn.signOut();
+    await _sessionStore.clear();
   }
 
   Future<void> updateProfile({required String displayName}) async {

@@ -1,3 +1,4 @@
+import 'package:oga/core/auth_session_gate.dart';
 import 'package:oga/features/auth/sign_in_page.dart';
 import 'package:oga/features/family/create_family_page.dart';
 import 'package:oga/features/invite/invite_accept_page.dart';
@@ -5,6 +6,7 @@ import 'package:oga/features/invite/invites_list_page.dart';
 import 'package:oga/features/profile/profile_page.dart';
 import 'package:oga/features/recipes/recipes_page.dart';
 import 'package:oga/features/shell/main_shell.dart';
+import 'package:oga/router/auth_redirect.dart';
 import 'package:oga/router/deep_link_contract.dart';
 import 'package:oga/router/go_router_refresh.dart';
 import 'package:flutter/material.dart';
@@ -25,27 +27,37 @@ class _PendingDestinationStore {
   }
 }
 
-GoRouter buildAppRouter() {
-  final auth = FirebaseAuth.instance;
+GoRouter buildAppRouter({
+  FirebaseAuth? auth,
+  AuthSessionGate? sessionGate,
+}) {
+  final firebaseAuth = auth ?? FirebaseAuth.instance;
+  final gate = sessionGate;
   final pendingDestination = _PendingDestinationStore();
+  final refreshSources = <Listenable>[
+    GoRouterRefreshStream(firebaseAuth.authStateChanges()),
+    ...?[gate],
+  ];
   return GoRouter(
     initialLocation: '/app',
-    refreshListenable: GoRouterRefreshStream(auth.authStateChanges()),
+    refreshListenable: Listenable.merge(refreshSources),
     redirect: (context, state) {
-      final loggedIn = auth.currentUser != null;
-      final loc = state.matchedLocation;
-
-      if (!loggedIn && loc != '/sign-in') {
+      final isReady = gate?.isAuthReady ?? true;
+      final loggedIn =
+          gate?.isLoggedIn ?? firebaseAuth.currentUser != null;
+      final destination = resolveAuthRedirect(
+        AuthRedirectInput(
+          matchedLocation: state.matchedLocation,
+          uri: state.uri,
+          isAuthReady: isReady,
+          isLoggedIn: loggedIn,
+          takePendingDestination: pendingDestination.take,
+        ),
+      );
+      if (destination == signInPath) {
         pendingDestination.save(state.uri.toString());
-        return '/sign-in';
       }
-      if (loggedIn && loc == '/sign-in') {
-        return pendingDestination.take() ?? '/app';
-      }
-      if (loggedIn && isFamilyEntityDeepLink(state.uri)) {
-        return resolveFamilyEntityDestination(state.uri);
-      }
-      return null;
+      return destination;
     },
     routes: [
       GoRoute(

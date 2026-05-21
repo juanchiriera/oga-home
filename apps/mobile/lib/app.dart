@@ -1,4 +1,5 @@
 import 'package:oga/design_system/design_system.dart';
+import 'package:oga/core/auth_session_gate.dart';
 import 'package:oga/core/entitlements_remote_config.dart';
 import 'package:oga/core/entitlements_scope.dart';
 import 'package:oga/features/profile/account_preferences.dart';
@@ -8,17 +9,31 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:go_router/go_router.dart';
 
-class CraftrApp extends StatelessWidget {
-  const CraftrApp({required this.entitlementsRemoteConfig, super.key});
+class CraftrApp extends StatefulWidget {
+  const CraftrApp({
+    required this.entitlementsRemoteConfig,
+    required this.authSessionGate,
+    super.key,
+  });
 
   final EntitlementsRemoteConfig entitlementsRemoteConfig;
+  final AuthSessionGate authSessionGate;
+
+  @override
+  State<CraftrApp> createState() => _CraftrAppState();
+}
+
+class _CraftrAppState extends State<CraftrApp> {
+  late final GoRouter _router = buildAppRouter(
+    sessionGate: widget.authSessionGate,
+  );
 
   @override
   Widget build(BuildContext context) {
-    final router = buildAppRouter();
     return ValueListenableBuilder<EntitlementsState>(
-      valueListenable: entitlementsRemoteConfig.state,
+      valueListenable: widget.entitlementsRemoteConfig.state,
       builder: (context, entitlements, child) {
         return StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
@@ -27,9 +42,9 @@ class CraftrApp extends StatelessWidget {
             final user = authSnapshot.data;
             if (user == null) {
               return _LocalizedMaterialApp(
-                router: router,
+                router: _router,
                 entitlements: entitlements,
-                refreshEntitlements: entitlementsRemoteConfig.refresh,
+                refreshEntitlements: widget.entitlementsRemoteConfig.refresh,
               );
             }
             return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
@@ -41,12 +56,12 @@ class CraftrApp extends StatelessWidget {
                 final preferredLocale =
                     userSnapshot.data?.data()?['preferredLocale'] as String?;
                 return _LocalizedMaterialApp(
-                  router: router,
+                  router: _router,
                   locale: preferredLocale == null
                       ? null
                       : accountLocaleFromCode(preferredLocale),
                   entitlements: entitlements,
-                  refreshEntitlements: entitlementsRemoteConfig.refresh,
+                  refreshEntitlements: widget.entitlementsRemoteConfig.refresh,
                 );
               },
             );

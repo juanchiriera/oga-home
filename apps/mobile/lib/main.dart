@@ -1,5 +1,6 @@
 import 'package:oga/app.dart';
 import 'package:oga/core/app_check_bootstrap.dart';
+import 'package:oga/core/auth_session_gate.dart';
 import 'package:oga/core/entitlements_remote_config.dart';
 import 'package:oga/core/monetization.dart';
 import 'package:oga/core/firebase_options.dart';
@@ -16,6 +17,8 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await bootstrapAppCheck();
   await bootstrapFirestore();
+  final authSessionGate = AuthSessionGate();
+  await authSessionGate.bootstrap();
   await bootstrapPurchases();
   final currentUid = FirebaseAuth.instance.currentUser?.uid;
   if (currentUid != null) {
@@ -23,5 +26,10 @@ Future<void> main() async {
   }
   final entitlementsRemoteConfig = EntitlementsRemoteConfig();
   await entitlementsRemoteConfig.initialize();
-  runApp(CraftrApp(entitlementsRemoteConfig: entitlementsRemoteConfig));
+  runApp(
+    CraftrApp(
+      entitlementsRemoteConfig: entitlementsRemoteConfig,
+      authSessionGate: authSessionGate,
+    ),
+  );
 }

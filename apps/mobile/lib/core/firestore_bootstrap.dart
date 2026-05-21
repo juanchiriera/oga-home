@@ -5,7 +5,10 @@ import 'package:flutter/foundation.dart';
 Future<void> bootstrapFirestore() async {
   final firestore = FirebaseFirestore.instance;
   try {
-    firestore.settings = const Settings(persistenceEnabled: true);
+    firestore.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
   } catch (error, stackTrace) {
     // No bloqueamos arranque si la plataforma/sesión no permite persistence.
     debugPrint('Firestore persistence unavailable: $error');
