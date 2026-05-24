@@ -21,7 +21,7 @@ class _FakeFirebaseAuth implements FirebaseAuth {
       _authStateChanges = (authStateChanges ?? Stream<User?>.value(currentUser))
           .asBroadcastStream();
 
-  User? _currentUser;
+  final User? _currentUser;
   final Stream<User?> _authStateChanges;
 
   @override

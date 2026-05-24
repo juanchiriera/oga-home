@@ -210,7 +210,7 @@ class ExpenseMonthListTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (trailing case final t?) t,
+              ?trailing,
             ],
           ),
         ),

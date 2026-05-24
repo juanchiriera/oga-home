@@ -36,7 +36,7 @@ GoRouter buildAppRouter({
   final pendingDestination = _PendingDestinationStore();
   final refreshSources = <Listenable>[
     GoRouterRefreshStream(firebaseAuth.authStateChanges()),
-    ...?[gate],
+    ?gate,
   ];
   return GoRouter(
     initialLocation: '/app',
