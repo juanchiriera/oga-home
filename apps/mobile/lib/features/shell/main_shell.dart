@@ -156,14 +156,14 @@ class _MainShellState extends State<MainShell> {
     final entitlements = MainShellEntitlementsScope.of(context);
     final iaEnabled = entitlements.allOn || entitlements.iaAssistantEnabled;
     final flavor = AppFlavor.fromEnvironment();
+    final selectedIndex = _index < 0 || _index >= 5 ? 0 : _index;
     final pages = <Widget>[
       HomeDashboardPage(flavor: flavor),
       const StockListPage(),
-      const ExpensesPage(),
+      ExpensesPage(isActive: selectedIndex == 2),
       const RecipesPage(),
       const SharedNotesPage(),
     ];
-    final selectedIndex = _index < 0 || _index >= pages.length ? 0 : _index;
 
     return MainShellController(
       selectTab: _selectTab,
