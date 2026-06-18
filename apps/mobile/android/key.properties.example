@@ -1,0 +1,4 @@
+storePassword=tu_password_de_almacen
+keyPassword=tu_password_de_clave
+keyAlias=tu_alias
+storeFile=ruta/al/archivo/keystore.jks
