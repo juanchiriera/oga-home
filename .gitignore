@@ -9,6 +9,8 @@ functions/.env.smoke
 
 # Dart tooling (workspace root)
 .dart_tool/
+.idea/
+*.iml
 
 # Flutter / Dart (apps/mobile)
 apps/mobile/.dart_tool/
