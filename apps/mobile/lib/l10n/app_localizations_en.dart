@@ -56,6 +56,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signInContinueWithGoogle => 'Continue with Google';
 
   @override
+  String get signInTabSignIn => 'Sign in';
+
+  @override
+  String get signInTabRegister => 'Create account';
+
+  @override
+  String get signInEmailLabel => 'Email';
+
+  @override
+  String get signInPasswordLabel => 'Password';
+
+  @override
+  String get signInCreateAccount => 'Create account';
+
+  @override
+  String get signInOrDivider => 'or';
+
+  @override
+  String get signInCheckEmailTitle => 'Check your email';
+
+  @override
+  String signInCheckEmailBody(String email) {
+    return 'We sent a verification link to $email. Open it on this device to activate your account.';
+  }
+
+  @override
+  String get signInResendVerification => 'Resend verification email';
+
+  @override
+  String get signInUseAnotherAccount => 'Use another account';
+
+  @override
+  String get signInEmailVerifiedSuccess =>
+      'Email verified. You can sign in now.';
+
+  @override
+  String get signInEmailVerificationLinkError =>
+      'Could not verify the link. Try resending the email.';
+
+  @override
+  String get signInEmailNotVerified =>
+      'You need to verify your email before signing in.';
+
+  @override
+  String get signInInvalidEmail => 'Enter a valid email address.';
+
+  @override
+  String get signInUserDisabled => 'This account has been disabled.';
+
+  @override
+  String get signInInvalidCredentials => 'Incorrect email or password.';
+
+  @override
+  String get signInEmailAlreadyInUse => 'That email is already registered.';
+
+  @override
+  String get signInWeakPassword => 'Password must be at least 6 characters.';
+
+  @override
+  String get signInTooManyRequests => 'Too many attempts. Try again later.';
+
+  @override
+  String get signInVerificationEmailResent => 'Verification email resent.';
+
+  @override
   String get signInJoinExistingHomeTitle => 'Join an existing home';
 
   @override
@@ -320,6 +385,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileDeleteAccountConfirmBody =>
       'Your cloud data and Firebase user will be deleted. You will need to sign in with Google again to confirm.';
+
+  @override
+  String get profileDeleteAccountConfirmBodyEmail =>
+      'Your cloud data and Firebase user will be deleted. You will need to enter your password to confirm.';
+
+  @override
+  String get profileDeleteAccountPasswordTitle => 'Confirm your password';
 
   @override
   String get profileDeleteAccountConfirmAction => 'Delete permanently';

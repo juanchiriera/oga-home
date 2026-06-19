@@ -46,6 +46,38 @@ void main() {
       );
     });
 
+    test('bloquea app para email sin verificar', () {
+      expect(
+        resolveAuthRedirect(
+          AuthRedirectInput(
+            matchedLocation: '/app',
+            uri: Uri.parse('/app'),
+            isAuthReady: true,
+            isLoggedIn: true,
+            isEmailVerified: false,
+            requiresEmailVerification: true,
+          ),
+        ),
+        '$signInPath?pendingVerification=1',
+      );
+    });
+
+    test('mantiene sign-in con verificación pendiente', () {
+      expect(
+        resolveAuthRedirect(
+          AuthRedirectInput(
+            matchedLocation: signInPath,
+            uri: Uri.parse('$signInPath?pendingVerification=1'),
+            isAuthReady: true,
+            isLoggedIn: true,
+            isEmailVerified: false,
+            requiresEmailVerification: true,
+          ),
+        ),
+        isNull,
+      );
+    });
+
     test('restaura destino pendiente tras login', () {
       expect(
         resolveAuthRedirect(

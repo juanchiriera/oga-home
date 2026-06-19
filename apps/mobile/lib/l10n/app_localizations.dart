@@ -189,6 +189,126 @@ abstract class AppLocalizations {
   /// **'Continuar con Google'**
   String get signInContinueWithGoogle;
 
+  /// No description provided for @signInTabSignIn.
+  ///
+  /// In es, this message translates to:
+  /// **'Iniciar sesión'**
+  String get signInTabSignIn;
+
+  /// No description provided for @signInTabRegister.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear cuenta'**
+  String get signInTabRegister;
+
+  /// No description provided for @signInEmailLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo electrónico'**
+  String get signInEmailLabel;
+
+  /// No description provided for @signInPasswordLabel.
+  ///
+  /// In es, this message translates to:
+  /// **'Contraseña'**
+  String get signInPasswordLabel;
+
+  /// No description provided for @signInCreateAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear cuenta'**
+  String get signInCreateAccount;
+
+  /// No description provided for @signInOrDivider.
+  ///
+  /// In es, this message translates to:
+  /// **'o'**
+  String get signInOrDivider;
+
+  /// No description provided for @signInCheckEmailTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Revisá tu correo'**
+  String get signInCheckEmailTitle;
+
+  /// No description provided for @signInCheckEmailBody.
+  ///
+  /// In es, this message translates to:
+  /// **'Te enviamos un enlace de verificación a {email}. Abrilo desde este dispositivo para activar tu cuenta.'**
+  String signInCheckEmailBody(String email);
+
+  /// No description provided for @signInResendVerification.
+  ///
+  /// In es, this message translates to:
+  /// **'Reenviar correo de verificación'**
+  String get signInResendVerification;
+
+  /// No description provided for @signInUseAnotherAccount.
+  ///
+  /// In es, this message translates to:
+  /// **'Usar otra cuenta'**
+  String get signInUseAnotherAccount;
+
+  /// No description provided for @signInEmailVerifiedSuccess.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo verificado. Ya podés iniciar sesión.'**
+  String get signInEmailVerifiedSuccess;
+
+  /// No description provided for @signInEmailVerificationLinkError.
+  ///
+  /// In es, this message translates to:
+  /// **'No se pudo verificar el enlace. Probá reenviar el correo.'**
+  String get signInEmailVerificationLinkError;
+
+  /// No description provided for @signInEmailNotVerified.
+  ///
+  /// In es, this message translates to:
+  /// **'Tenés que verificar tu correo antes de entrar.'**
+  String get signInEmailNotVerified;
+
+  /// No description provided for @signInInvalidEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Ingresá un correo válido.'**
+  String get signInInvalidEmail;
+
+  /// No description provided for @signInUserDisabled.
+  ///
+  /// In es, this message translates to:
+  /// **'Esta cuenta fue deshabilitada.'**
+  String get signInUserDisabled;
+
+  /// No description provided for @signInInvalidCredentials.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo o contraseña incorrectos.'**
+  String get signInInvalidCredentials;
+
+  /// No description provided for @signInEmailAlreadyInUse.
+  ///
+  /// In es, this message translates to:
+  /// **'Ese correo ya está registrado.'**
+  String get signInEmailAlreadyInUse;
+
+  /// No description provided for @signInWeakPassword.
+  ///
+  /// In es, this message translates to:
+  /// **'La contraseña debe tener al menos 6 caracteres.'**
+  String get signInWeakPassword;
+
+  /// No description provided for @signInTooManyRequests.
+  ///
+  /// In es, this message translates to:
+  /// **'Demasiados intentos. Probá más tarde.'**
+  String get signInTooManyRequests;
+
+  /// No description provided for @signInVerificationEmailResent.
+  ///
+  /// In es, this message translates to:
+  /// **'Correo de verificación reenviado.'**
+  String get signInVerificationEmailResent;
+
   /// No description provided for @signInJoinExistingHomeTitle.
   ///
   /// In es, this message translates to:
@@ -650,6 +770,18 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.'**
   String get profileDeleteAccountConfirmBody;
+
+  /// No description provided for @profileDeleteAccountConfirmBodyEmail.
+  ///
+  /// In es, this message translates to:
+  /// **'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que ingresar tu contraseña para confirmar.'**
+  String get profileDeleteAccountConfirmBodyEmail;
+
+  /// No description provided for @profileDeleteAccountPasswordTitle.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmá tu contraseña'**
+  String get profileDeleteAccountPasswordTitle;
 
   /// No description provided for @profileDeleteAccountConfirmAction.
   ///

@@ -20,5 +20,7 @@ void main() {
       ),
     );
     expect(find.textContaining('Continuar con Google'), findsOneWidget);
+    expect(find.text('Correo electrónico'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsWidgets);
   });
 }
