@@ -15,6 +15,33 @@
   "signInAccessCardTitle": "Household access",
   "signInAccessCardDescription": "Sync pantry, expenses, and notes with the people who share your home.",
   "signInContinueWithGoogle": "Continue with Google",
+  "signInTabSignIn": "Sign in",
+  "signInTabRegister": "Create account",
+  "signInEmailLabel": "Email",
+  "signInPasswordLabel": "Password",
+  "signInCreateAccount": "Create account",
+  "signInOrDivider": "or",
+  "signInCheckEmailTitle": "Check your email",
+  "signInCheckEmailBody": "We sent a verification link to {email}. Open it on this device to activate your account.",
+  "@signInCheckEmailBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "signInResendVerification": "Resend verification email",
+  "signInUseAnotherAccount": "Use another account",
+  "signInEmailVerifiedSuccess": "Email verified. You can sign in now.",
+  "signInEmailVerificationLinkError": "Could not verify the link. Try resending the email.",
+  "signInEmailNotVerified": "You need to verify your email before signing in.",
+  "signInInvalidEmail": "Enter a valid email address.",
+  "signInUserDisabled": "This account has been disabled.",
+  "signInInvalidCredentials": "Incorrect email or password.",
+  "signInEmailAlreadyInUse": "That email is already registered.",
+  "signInWeakPassword": "Password must be at least 6 characters.",
+  "signInTooManyRequests": "Too many attempts. Try again later.",
+  "signInVerificationEmailResent": "Verification email resent.",
   "signInJoinExistingHomeTitle": "Join an existing home",
   "signInJoinExistingHomeDescription": "Have an invitation code? Redeem it here.",
   "signInRedeemCode": "Redeem code",
@@ -168,6 +195,8 @@
   "profileDeleteAccountButton": "Delete account",
   "profileDeleteAccountConfirmTitle": "Delete account?",
   "profileDeleteAccountConfirmBody": "Your cloud data and Firebase user will be deleted. You will need to sign in with Google again to confirm.",
+  "profileDeleteAccountConfirmBodyEmail": "Your cloud data and Firebase user will be deleted. You will need to enter your password to confirm.",
+  "profileDeleteAccountPasswordTitle": "Confirm your password",
   "profileDeleteAccountConfirmAction": "Delete permanently",
   "profileDeleteAccountInProgress": "Deleting account...",
   "profileDeleteAccountCancelled": "You cancelled Google sign-in.",

@@ -9,6 +9,7 @@ import 'package:oga/features/shell/main_shell.dart';
 import 'package:oga/router/auth_redirect.dart';
 import 'package:oga/router/deep_link_contract.dart';
 import 'package:oga/router/go_router_refresh.dart';
+import 'package:oga/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
@@ -30,9 +31,11 @@ class _PendingDestinationStore {
 GoRouter buildAppRouter({
   FirebaseAuth? auth,
   AuthSessionGate? sessionGate,
+  AuthService? authService,
 }) {
   final firebaseAuth = auth ?? FirebaseAuth.instance;
   final gate = sessionGate;
+  final emailAuth = authService ?? AuthService();
   final pendingDestination = _PendingDestinationStore();
   final refreshSources = <Listenable>[
     GoRouterRefreshStream(firebaseAuth.authStateChanges()),
@@ -41,16 +44,34 @@ GoRouter buildAppRouter({
   return GoRouter(
     initialLocation: '/app',
     refreshListenable: Listenable.merge(refreshSources),
-    redirect: (context, state) {
+    redirect: (context, state) async {
+      if (isFirebaseAuthActionLink(state.uri)) {
+        try {
+          final result = await emailAuth.handleEmailActionLink(state.uri);
+          if (result == EmailActionLinkResult.emailVerified) {
+            return '$signInPath?emailVerified=1';
+          }
+        } catch (_) {
+          return '$signInPath?emailVerificationError=1';
+        }
+        return signInPath;
+      }
+
+      final user = firebaseAuth.currentUser;
+      final requiresEmailVerification =
+          user != null && userRequiresEmailVerification(user);
+      final isEmailVerified = !requiresEmailVerification || user!.emailVerified;
+
       final isReady = gate?.isAuthReady ?? true;
-      final loggedIn =
-          gate?.isLoggedIn ?? firebaseAuth.currentUser != null;
+      final loggedIn = gate?.isLoggedIn ?? user != null;
       final destination = resolveAuthRedirect(
         AuthRedirectInput(
           matchedLocation: state.matchedLocation,
           uri: state.uri,
           isAuthReady: isReady,
           isLoggedIn: loggedIn,
+          isEmailVerified: isEmailVerified,
+          requiresEmailVerification: requiresEmailVerification,
           takePendingDestination: pendingDestination.take,
         ),
       );
@@ -62,7 +83,19 @@ GoRouter buildAppRouter({
     routes: [
       GoRoute(
         path: '/sign-in',
-        builder: (context, state) => const SignInPage(),
+        builder: (context, state) {
+          final emailVerified =
+              state.uri.queryParameters['emailVerified'] == '1';
+          final verificationError =
+              state.uri.queryParameters['emailVerificationError'] == '1';
+          final pendingVerification =
+              state.uri.queryParameters['pendingVerification'] == '1';
+          return SignInPage(
+            emailJustVerified: emailVerified,
+            emailVerificationFailed: verificationError,
+            pendingEmailVerification: pendingVerification,
+          );
+        },
       ),
       GoRoute(
         path: '/app',

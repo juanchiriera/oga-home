@@ -3,6 +3,15 @@
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Oga",
+        "supportEmail": "support@craftr.ar"
+      }
+    }
+  },
   "hosting": {
     "public": "hosting/public",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]

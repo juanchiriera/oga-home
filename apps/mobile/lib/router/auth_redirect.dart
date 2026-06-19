@@ -7,6 +7,8 @@ class AuthRedirectInput {
     required this.uri,
     required this.isAuthReady,
     required this.isLoggedIn,
+    this.isEmailVerified = true,
+    this.requiresEmailVerification = false,
     this.takePendingDestination,
   });
 
@@ -14,6 +16,8 @@ class AuthRedirectInput {
   final Uri uri;
   final bool isAuthReady;
   final bool isLoggedIn;
+  final bool isEmailVerified;
+  final bool requiresEmailVerification;
   final String? Function()? takePendingDestination;
 }
 
@@ -24,11 +28,21 @@ String? resolveAuthRedirect(AuthRedirectInput input) {
   }
 
   final loc = input.matchedLocation;
+  final pendingVerification = input.uri.queryParameters['pendingVerification'];
+
+  if (input.isLoggedIn &&
+      input.requiresEmailVerification &&
+      !input.isEmailVerified) {
+    if (loc != signInPath || pendingVerification != '1') {
+      return '$signInPath?pendingVerification=1';
+    }
+    return null;
+  }
 
   if (!input.isLoggedIn && loc != signInPath) {
     return signInPath;
   }
-  if (input.isLoggedIn && loc == signInPath) {
+  if (input.isLoggedIn && loc == signInPath && input.isEmailVerified) {
     return input.takePendingDestination?.call() ?? '/app';
   }
   if (input.isLoggedIn && isFamilyEntityDeepLink(input.uri)) {

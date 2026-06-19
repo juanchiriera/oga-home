@@ -56,6 +56,73 @@ class AppLocalizationsEs extends AppLocalizations {
   String get signInContinueWithGoogle => 'Continuar con Google';
 
   @override
+  String get signInTabSignIn => 'Iniciar sesión';
+
+  @override
+  String get signInTabRegister => 'Crear cuenta';
+
+  @override
+  String get signInEmailLabel => 'Correo electrónico';
+
+  @override
+  String get signInPasswordLabel => 'Contraseña';
+
+  @override
+  String get signInCreateAccount => 'Crear cuenta';
+
+  @override
+  String get signInOrDivider => 'o';
+
+  @override
+  String get signInCheckEmailTitle => 'Revisá tu correo';
+
+  @override
+  String signInCheckEmailBody(String email) {
+    return 'Te enviamos un enlace de verificación a $email. Abrilo desde este dispositivo para activar tu cuenta.';
+  }
+
+  @override
+  String get signInResendVerification => 'Reenviar correo de verificación';
+
+  @override
+  String get signInUseAnotherAccount => 'Usar otra cuenta';
+
+  @override
+  String get signInEmailVerifiedSuccess =>
+      'Correo verificado. Ya podés iniciar sesión.';
+
+  @override
+  String get signInEmailVerificationLinkError =>
+      'No se pudo verificar el enlace. Probá reenviar el correo.';
+
+  @override
+  String get signInEmailNotVerified =>
+      'Tenés que verificar tu correo antes de entrar.';
+
+  @override
+  String get signInInvalidEmail => 'Ingresá un correo válido.';
+
+  @override
+  String get signInUserDisabled => 'Esta cuenta fue deshabilitada.';
+
+  @override
+  String get signInInvalidCredentials => 'Correo o contraseña incorrectos.';
+
+  @override
+  String get signInEmailAlreadyInUse => 'Ese correo ya está registrado.';
+
+  @override
+  String get signInWeakPassword =>
+      'La contraseña debe tener al menos 6 caracteres.';
+
+  @override
+  String get signInTooManyRequests => 'Demasiados intentos. Probá más tarde.';
+
+  @override
+  String get signInVerificationEmailResent =>
+      'Correo de verificación reenviado.';
+
+  @override
   String get signInJoinExistingHomeTitle => 'Unite a un hogar existente';
 
   @override
@@ -321,6 +388,13 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String get profileDeleteAccountConfirmBody =>
       'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.';
+
+  @override
+  String get profileDeleteAccountConfirmBodyEmail =>
+      'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que ingresar tu contraseña para confirmar.';
+
+  @override
+  String get profileDeleteAccountPasswordTitle => 'Confirmá tu contraseña';
 
   @override
   String get profileDeleteAccountConfirmAction => 'Eliminar definitivamente';
@@ -390,6 +464,73 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   String get signInContinueWithGoogle => 'Continuar con Google';
 
   @override
+  String get signInTabSignIn => 'Iniciar sesión';
+
+  @override
+  String get signInTabRegister => 'Crear cuenta';
+
+  @override
+  String get signInEmailLabel => 'Correo electrónico';
+
+  @override
+  String get signInPasswordLabel => 'Contraseña';
+
+  @override
+  String get signInCreateAccount => 'Crear cuenta';
+
+  @override
+  String get signInOrDivider => 'o';
+
+  @override
+  String get signInCheckEmailTitle => 'Revisá tu correo';
+
+  @override
+  String signInCheckEmailBody(String email) {
+    return 'Te enviamos un enlace de verificación a $email. Abrilo desde este dispositivo para activar tu cuenta.';
+  }
+
+  @override
+  String get signInResendVerification => 'Reenviar correo de verificación';
+
+  @override
+  String get signInUseAnotherAccount => 'Usar otra cuenta';
+
+  @override
+  String get signInEmailVerifiedSuccess =>
+      'Correo verificado. Ya podés iniciar sesión.';
+
+  @override
+  String get signInEmailVerificationLinkError =>
+      'No se pudo verificar el enlace. Probá reenviar el correo.';
+
+  @override
+  String get signInEmailNotVerified =>
+      'Tenés que verificar tu correo antes de entrar.';
+
+  @override
+  String get signInInvalidEmail => 'Ingresá un correo válido.';
+
+  @override
+  String get signInUserDisabled => 'Esta cuenta fue deshabilitada.';
+
+  @override
+  String get signInInvalidCredentials => 'Correo o contraseña incorrectos.';
+
+  @override
+  String get signInEmailAlreadyInUse => 'Ese correo ya está registrado.';
+
+  @override
+  String get signInWeakPassword =>
+      'La contraseña debe tener al menos 6 caracteres.';
+
+  @override
+  String get signInTooManyRequests => 'Demasiados intentos. Probá más tarde.';
+
+  @override
+  String get signInVerificationEmailResent =>
+      'Correo de verificación reenviado.';
+
+  @override
   String get signInJoinExistingHomeTitle => 'Unite a un hogar existente';
 
   @override
@@ -655,6 +796,13 @@ class AppLocalizationsEsAr extends AppLocalizationsEs {
   @override
   String get profileDeleteAccountConfirmBody =>
       'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.';
+
+  @override
+  String get profileDeleteAccountConfirmBodyEmail =>
+      'Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que ingresar tu contraseña para confirmar.';
+
+  @override
+  String get profileDeleteAccountPasswordTitle => 'Confirmá tu contraseña';
 
   @override
   String get profileDeleteAccountConfirmAction => 'Eliminar definitivamente';

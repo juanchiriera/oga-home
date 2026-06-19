@@ -15,6 +15,33 @@
   "signInAccessCardTitle": "Acceso al hogar",
   "signInAccessCardDescription": "Sincronizá despensa, gastos y notas con quienes comparten el hogar.",
   "signInContinueWithGoogle": "Continuar con Google",
+  "signInTabSignIn": "Iniciar sesión",
+  "signInTabRegister": "Crear cuenta",
+  "signInEmailLabel": "Correo electrónico",
+  "signInPasswordLabel": "Contraseña",
+  "signInCreateAccount": "Crear cuenta",
+  "signInOrDivider": "o",
+  "signInCheckEmailTitle": "Revisá tu correo",
+  "signInCheckEmailBody": "Te enviamos un enlace de verificación a {email}. Abrilo desde este dispositivo para activar tu cuenta.",
+  "@signInCheckEmailBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "signInResendVerification": "Reenviar correo de verificación",
+  "signInUseAnotherAccount": "Usar otra cuenta",
+  "signInEmailVerifiedSuccess": "Correo verificado. Ya podés iniciar sesión.",
+  "signInEmailVerificationLinkError": "No se pudo verificar el enlace. Probá reenviar el correo.",
+  "signInEmailNotVerified": "Tenés que verificar tu correo antes de entrar.",
+  "signInInvalidEmail": "Ingresá un correo válido.",
+  "signInUserDisabled": "Esta cuenta fue deshabilitada.",
+  "signInInvalidCredentials": "Correo o contraseña incorrectos.",
+  "signInEmailAlreadyInUse": "Ese correo ya está registrado.",
+  "signInWeakPassword": "La contraseña debe tener al menos 6 caracteres.",
+  "signInTooManyRequests": "Demasiados intentos. Probá más tarde.",
+  "signInVerificationEmailResent": "Correo de verificación reenviado.",
   "signInJoinExistingHomeTitle": "Unite a un hogar existente",
   "signInJoinExistingHomeDescription": "¿Tenés un código de invitación? Canjealo acá.",
   "signInRedeemCode": "Canjear código",
@@ -168,6 +195,8 @@
   "profileDeleteAccountButton": "Eliminar cuenta",
   "profileDeleteAccountConfirmTitle": "¿Eliminar cuenta?",
   "profileDeleteAccountConfirmBody": "Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que volver a entrar con Google para confirmar.",
+  "profileDeleteAccountConfirmBodyEmail": "Se borrarán tus datos en la nube y tu usuario de Firebase. Vas a tener que ingresar tu contraseña para confirmar.",
+  "profileDeleteAccountPasswordTitle": "Confirmá tu contraseña",
   "profileDeleteAccountConfirmAction": "Eliminar definitivamente",
   "profileDeleteAccountInProgress": "Eliminando cuenta...",
   "profileDeleteAccountCancelled": "Cancelaste el inicio de sesión con Google.",

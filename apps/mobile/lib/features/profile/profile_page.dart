@@ -357,12 +357,23 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _confirmAndDeleteAccount() async {
     final l10n = context.l10n;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    final usesEmailPassword = userRequiresEmailVerification(user);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
           title: Text(l10n.profileDeleteAccountConfirmTitle),
-          content: Text(l10n.profileDeleteAccountConfirmBody),
+          content: Text(
+            usesEmailPassword
+                ? l10n.profileDeleteAccountConfirmBodyEmail
+                : l10n.profileDeleteAccountConfirmBody,
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
@@ -383,9 +394,22 @@ class _ProfilePageState extends State<ProfilePage> {
       return;
     }
 
+    String? password;
+    if (usesEmailPassword) {
+      password = await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => _DeleteAccountPasswordDialog(
+          onConfirm: (value) => Navigator.pop(dialogContext, value),
+        ),
+      );
+      if (password == null || password.isEmpty || !mounted) {
+        return;
+      }
+    }
+
     setState(() => _deletingAccount = true);
     try {
-      await _authService.deleteAccountWithGoogleReauthentication();
+      await _authService.deleteAccountWithReauthentication(password: password);
     } on StateError catch (e) {
       if (!mounted) {
         return;
@@ -397,6 +421,17 @@ class _ProfilePageState extends State<ProfilePage> {
             cancelled
                 ? context.l10n.profileDeleteAccountCancelled
                 : context.l10n.profileDeleteAccountError(e.toString()),
+          ),
+        ),
+      );
+    } on ArgumentError catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            context.l10n.profileDeleteAccountError(e.message ?? e.toString()),
           ),
         ),
       );
@@ -1244,6 +1279,71 @@ class _InitialsFallback extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DeleteAccountPasswordDialog extends StatefulWidget {
+  const _DeleteAccountPasswordDialog({required this.onConfirm});
+
+  final ValueChanged<String> onConfirm;
+
+  @override
+  State<_DeleteAccountPasswordDialog> createState() =>
+      _DeleteAccountPasswordDialogState();
+}
+
+class _DeleteAccountPasswordDialogState
+    extends State<_DeleteAccountPasswordDialog> {
+  final _controller = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return AlertDialog(
+      title: Text(l10n.profileDeleteAccountPasswordTitle),
+      content: TextField(
+        controller: _controller,
+        obscureText: _obscure,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: l10n.signInPasswordLabel,
+          suffixIcon: IconButton(
+            onPressed: () => setState(() => _obscure = !_obscure),
+            icon: Icon(
+              _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+            ),
+          ),
+        ),
+        onSubmitted: (value) {
+          if (value.isNotEmpty) {
+            widget.onConfirm(value);
+          }
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.commonCancel),
+        ),
+        FilledButton(
+          onPressed: () {
+            final value = _controller.text;
+            if (value.isEmpty) {
+              return;
+            }
+            widget.onConfirm(value);
+          },
+          child: Text(l10n.profileDeleteAccountConfirmAction),
+        ),
+      ],
     );
   }
 }
